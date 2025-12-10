@@ -29,7 +29,7 @@ namespace ArtyECS.Core
     /// 
     /// // Instantiate and use
     /// var movementSystem = new MovementSystem();
-    /// movementSystem.RunInUpdate(); // Add to Update queue (System-002)
+    /// movementSystem.AddToUpdate(); // Add to Update queue (System-002)
     /// </code>
     /// 
     /// Note: Async execution support will be added in Async-001.
