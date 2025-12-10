@@ -37,6 +37,12 @@ namespace ArtyECS.Core
         private const int DefaultInitialCapacity = 64;
 
         /// <summary>
+        /// Global counter for entity IDs to ensure uniqueness across all worlds.
+        /// This prevents entity ID collisions when different worlds allocate entities after clearing.
+        /// </summary>
+        private static int _globalNextId = 0;
+
+        /// <summary>
         /// Registry of worlds to their entity pool instances.
         /// Each world has its own isolated entity pool.
         /// </summary>
@@ -77,10 +83,10 @@ namespace ArtyECS.Core
         /// This method provides fast O(1) entity allocation.
         /// 
         /// If the pool has available recycled IDs, one is reused with incremented generation.
-        /// Otherwise, a new ID is assigned starting from 0.
+        /// Otherwise, a new ID is assigned using a global counter to ensure uniqueness across all worlds.
         /// 
         /// The returned entity is guaranteed to be unique (different ID or generation) from
-        /// any currently active entities in the same world.
+        /// any currently active entities in the same world, and unique ID across all worlds.
         /// 
         /// Usage:
         /// <code>
@@ -92,7 +98,7 @@ namespace ArtyECS.Core
         public static Entity Allocate(World world = null)
         {
             var pool = GetOrCreatePool(world);
-            return pool.Allocate();
+            return pool.Allocate(ref _globalNextId);
         }
 
         /// <summary>
@@ -199,6 +205,24 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
+        /// Clears all entity pools for all worlds.
+        /// This is primarily used for testing to reset state between tests.
+        /// Note: Global ID counter is NOT reset to maintain uniqueness across test runs.
+        /// </summary>
+        /// <remarks>
+        /// WARNING: This method clears ALL entity pool data from ALL worlds.
+        /// Use with caution - typically only for testing scenarios.
+        /// 
+        /// The global ID counter (_globalNextId) is NOT reset to ensure that
+        /// entities created in different worlds after clearing will have unique IDs.
+        /// </remarks>
+        public static void ClearAll()
+        {
+            WorldPools.Clear();
+            // Note: _globalNextId is NOT reset to maintain ID uniqueness across worlds
+        }
+
+        /// <summary>
         /// Instance of entity pool for a specific world.
         /// Manages entity ID allocation, deallocation, and generation tracking.
         /// </summary>
@@ -242,8 +266,9 @@ namespace ArtyECS.Core
             /// <summary>
             /// Allocates a new entity from the pool.
             /// </summary>
+            /// <param name="globalNextId">Reference to global ID counter for uniqueness across worlds</param>
             /// <returns>Newly allocated entity</returns>
-            public Entity Allocate()
+            public Entity Allocate(ref int globalNextId)
             {
                 int id;
                 int generation;
@@ -269,8 +294,9 @@ namespace ArtyECS.Core
                 }
                 else
                 {
-                    // No available IDs, create a new one
-                    id = _nextId++;
+                    // No available IDs, create a new one using global counter
+                    // This ensures uniqueness across all worlds
+                    id = globalNextId++;
                     generation = 0;
                     _generations[id] = generation;
                 }

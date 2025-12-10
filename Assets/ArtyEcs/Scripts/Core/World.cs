@@ -131,6 +131,21 @@ namespace ArtyECS.Core
         {
             return base.GetHashCode();
         }
+
+        /// <summary>
+        /// Clears all ECS state (components and entity pools) for all worlds.
+        /// This is primarily used for testing to reset state between tests.
+        /// </summary>
+        /// <remarks>
+        /// WARNING: This method clears ALL ECS data from ALL worlds.
+        /// All entities become invalid, all components are removed.
+        /// Use with caution - typically only for testing scenarios.
+        /// </remarks>
+        public static void ClearAllECSState()
+        {
+            ComponentsStorage.ClearAll();
+            EntityPool.ClearAll();
+        }
     }
 }
 

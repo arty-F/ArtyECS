@@ -1155,10 +1155,12 @@ public class CoreTests : TestBase
             ComponentsStorage.AddComponent(entity3, new Dead());
             
             // Call GetComponentsWithout<Health, Dead, Destroyed>()
+            // This returns Health components for entities that have Health but NOT Dead and NOT Destroyed
+            // Since all entities have Dead, they are all excluded
             var components = ComponentsStorage.GetComponentsWithout<Health, Dead, Destroyed>();
             
-            // Verify returns Health components (Destroyed doesn't exist for anyone)
-            AssertEquals(3, components.Length, "Should return 3 components");
+            // Verify returns empty span (all entities have Dead, so they are excluded)
+            AssertEquals(0, components.Length, "Should return 0 components (all entities have Dead, which is an exclusion)");
         });
     }
     
@@ -1503,6 +1505,7 @@ public class CoreTests : TestBase
             int entity1Gen = entity1.Generation;
             
             // Deallocate Entity1
+            // This increments generation in _generations dictionary to invalidate old references
             EntityPool.Deallocate(entity1);
             
             // Allocate Entity2
@@ -1511,9 +1514,10 @@ public class CoreTests : TestBase
             // Verify that Entity2 has same ID but different Generation
             // Note: ID recycling may not happen immediately if pool has other available IDs
             // So we check that if ID is reused, generation is increased
+            // Generation is incremented TWICE: once during Deallocate, once during Allocate (when reusing)
             if (entity2.Id == entity1Id)
             {
-                AssertEquals(entity1Gen + 1, entity2.Generation, "Generation should be incremented");
+                AssertEquals(entity1Gen + 2, entity2.Generation, "Generation should be incremented twice: once on deallocation, once on reallocation");
             }
         });
     }
@@ -2049,16 +2053,19 @@ public class CoreTests : TestBase
             }
             
             // Add components to different entities
+            // Position: entities 0-499 (500 entities)
             for (int i = 0; i < 500; i++)
             {
                 ComponentsStorage.AddComponent(entities[i], new Position { X = i, Y = i, Z = i });
             }
             
+            // Velocity: entities 0-299 (300 entities) - all of these also have Position
             for (int i = 0; i < 300; i++)
             {
                 ComponentsStorage.AddComponent(entities[i], new Velocity { X = i, Y = i, Z = i });
             }
             
+            // Health: entities 0-199 (200 entities) - all of these also have Position and Velocity
             for (int i = 0; i < 200; i++)
             {
                 ComponentsStorage.AddComponent(entities[i], new Health { Amount = i });
@@ -2072,10 +2079,12 @@ public class CoreTests : TestBase
             var posVelHealth = ComponentsStorage.GetComponents<Position, Velocity, Health>();
             
             // Verify queries complete successfully
+            // Position AND Velocity: entities 0-299 = 300 entities (all Velocity entities also have Position)
+            // Position AND Velocity AND Health: entities 0-199 = 200 entities (all Health entities also have Position and Velocity)
             AssertEquals(500, positions.Length, "Should have 500 positions");
             AssertEquals(300, velocities.Length, "Should have 300 velocities");
             AssertEquals(200, healths.Length, "Should have 200 healths");
-            AssertEquals(200, posVel.Length, "Should have 200 entities with Position and Velocity");
+            AssertEquals(300, posVel.Length, "Should have 300 entities with Position and Velocity (intersection of 0-499 and 0-299 = 0-299)");
             AssertEquals(200, posVelHealth.Length, "Should have 200 entities with all three");
         });
     }

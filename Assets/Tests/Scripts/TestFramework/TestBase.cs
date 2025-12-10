@@ -1,4 +1,5 @@
 using UnityEngine;
+using ArtyECS.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,6 +59,10 @@ public abstract class TestBase : MonoBehaviour
         try
         {
             Debug.Log($"[TEST] Starting: {testName}");
+            
+            // Clear ECS state before each test to ensure isolation
+            World.ClearAllECSState();
+            
             testAction();
             Debug.Log($"[TEST] PASSED: {testName}");
             testResults[testName] = new TestResult(true, "Test passed");
@@ -84,6 +89,9 @@ public abstract class TestBase : MonoBehaviour
     public void RunAllTests()
     {
         Debug.Log($"[TEST] ========== Running All Tests in {GetType().Name} ==========");
+        
+        // Clear ECS state before running all tests to ensure clean start
+        World.ClearAllECSState();
         
         // Get all test methods through reflection
         MethodInfo[] testMethods = GetType()

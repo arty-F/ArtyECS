@@ -756,6 +756,19 @@ namespace ArtyECS.Core
 
             return removedCount;
         }
+
+        /// <summary>
+        /// Clears all component storage for all worlds.
+        /// This is primarily used for testing to reset state between tests.
+        /// </summary>
+        /// <remarks>
+        /// WARNING: This method clears ALL component data from ALL worlds.
+        /// Use with caution - typically only for testing scenarios.
+        /// </remarks>
+        public static void ClearAll()
+        {
+            WorldStorages.Clear();
+        }
     }
 
     /// <summary>
