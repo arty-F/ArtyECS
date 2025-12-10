@@ -6,7 +6,7 @@ namespace ArtyECS.Core
     /// Interface for component storage that allows removing components for an entity without knowing the type.
     /// Used internally for efficient entity destruction without reflection.
     /// </summary>
-    internal interface IComponentStorage
+    internal interface IComponentTable
     {
         /// <summary>
         /// Attempts to remove a component for the specified entity if it exists.

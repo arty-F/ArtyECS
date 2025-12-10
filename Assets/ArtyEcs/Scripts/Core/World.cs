@@ -47,7 +47,7 @@ namespace ArtyECS.Core
         /// <code>
         /// // Create entity in global world
         /// var entity = World.CreateEntity();
-        /// ComponentsStorage.AddComponent&lt;Position&gt;(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+        /// ComponentsRegistry.AddComponent&lt;Position&gt;(entity, new Position { X = 1f, Y = 2f, Z = 3f });
         /// 
         /// // Create entity in scoped world
         /// var localWorld = new World("Local");
@@ -75,7 +75,7 @@ namespace ArtyECS.Core
         /// - World-scoped entity destruction
         /// 
         /// The destruction process:
-        /// 1. Removes all components for the entity from ComponentsStorage
+        /// 1. Removes all components for the entity from ComponentsRegistry
         /// 2. Deallocates the entity, returning its ID to the pool
         /// 3. Increments generation number to invalidate old references
         /// 
@@ -102,7 +102,7 @@ namespace ArtyECS.Core
             }
 
             // Remove all components for this entity (automatic cleanup)
-            ComponentsStorage.RemoveAllComponents(entity, world);
+            ComponentsRegistry.RemoveAllComponents(entity, world);
 
             // Deallocate entity and return ID to pool
             return EntityPool.Deallocate(entity, world);
@@ -143,7 +143,7 @@ namespace ArtyECS.Core
         /// </remarks>
         public static void ClearAllECSState()
         {
-            ComponentsStorage.ClearAll();
+            ComponentsRegistry.ClearAll();
             EntityPool.ClearAll();
         }
     }

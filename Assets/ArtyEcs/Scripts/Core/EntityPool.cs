@@ -51,9 +51,9 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Global/default world instance. Used when no world is specified.
-        /// Lazily initialized to ensure ComponentsStorage is ready.
+        /// Lazily initialized to ensure ComponentsRegistry is ready.
         /// </summary>
-        private static World GlobalWorld => ComponentsStorage.GetGlobalWorld();
+        private static World GlobalWorld => ComponentsRegistry.GetGlobalWorld();
 
         /// <summary>
         /// Gets or creates the entity pool instance for the specified world.
@@ -119,7 +119,7 @@ namespace ArtyECS.Core
         /// This ensures that any old references to the entity become invalid
         /// (they will have the old generation number and won't match).
         /// 
-        /// Note: This method does NOT remove components from ComponentsStorage.
+        /// Note: This method does NOT remove components from ComponentsRegistry.
         /// Component cleanup should be handled separately (see Core-012).
         /// 
         /// Usage:

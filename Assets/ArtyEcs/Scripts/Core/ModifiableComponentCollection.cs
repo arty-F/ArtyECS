@@ -24,7 +24,7 @@ namespace ArtyECS.Core
     /// </remarks>
     public struct ModifiableComponentCollection<T> : IDisposable where T : struct, IComponent
     {
-        private readonly ComponentStorage<T> _storage;
+        private readonly ComponentTable<T> _storage;
         private readonly World _world;
         private T[] _modifiableComponents;
         private HashSet<int> _modifiedIndices;
@@ -35,7 +35,7 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="storage">Component storage instance</param>
         /// <param name="world">World instance</param>
-        internal ModifiableComponentCollection(ComponentStorage<T> storage, World world)
+        internal ModifiableComponentCollection(ComponentTable<T> storage, World world)
         {
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
             _world = world;
@@ -45,7 +45,7 @@ namespace ArtyECS.Core
             var count = storage.Count;
             if (count > 0)
             {
-                var (components, _, _) = storage.GetInternalStorage();
+                var (components, _, _) = storage.GetInternalTable();
                 _modifiableComponents = new T[count];
                 Array.Copy(components, _modifiableComponents, count);
                 _modifiedIndices = new HashSet<int>();
@@ -109,7 +109,7 @@ namespace ArtyECS.Core
             if (!_disposed && _modifiableComponents != null && _modifiedIndices != null)
             {
                 // Apply all modifications to storage (no reflection, direct method call)
-                var (components, _, _) = _storage.GetInternalStorage();
+                var (components, _, _) = _storage.GetInternalTable();
                 foreach (int index in _modifiedIndices)
                 {
                     if (index < components.Length && index < _modifiableComponents.Length)

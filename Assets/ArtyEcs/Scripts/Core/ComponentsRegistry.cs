@@ -12,7 +12,7 @@ namespace ArtyECS.Core
     /// registry of component type -> storage mappings.
     /// 
     /// Core-002: Basic structure with world-scoped storage dictionaries (COMPLETED)
-    /// Core-003: Single component type storage with ComponentStorage&lt;T&gt; (COMPLETED)
+    /// Core-003: Single component type storage with ComponentTable&lt;T&gt; (COMPLETED)
     /// Core-004: AddComponent method implementation (COMPLETED)
     /// Core-005: RemoveComponent method implementation (COMPLETED)
     /// Core-006: GetComponent method for single entity (COMPLETED)
@@ -22,7 +22,7 @@ namespace ArtyECS.Core
     /// Core-010: Deferred component modifications system (COMPLETED)
     /// Core-012: RemoveAllComponents method for entity destruction (COMPLETED)
     /// </remarks>
-    public static class ComponentsStorage
+    public static class ComponentsRegistry
     {
         /// <summary>
         /// Global/default world instance. Used when no world is specified.
@@ -32,10 +32,10 @@ namespace ArtyECS.Core
         /// <summary>
         /// Registry of worlds to their component storage instances.
         /// Each world has its own dictionary mapping component types to storage.
-        /// Uses IComponentStorage interface to allow type-erased removal without reflection.
+        /// Uses IComponentTable interface to allow type-erased removal without reflection.
         /// </summary>
-        private static readonly Dictionary<World, Dictionary<Type, IComponentStorage>> WorldStorages =
-            new Dictionary<World, Dictionary<Type, IComponentStorage>>();
+        private static readonly Dictionary<World, Dictionary<Type, IComponentTable>> WorldTables =
+            new Dictionary<World, Dictionary<Type, IComponentTable>>();
 
         /// <summary>
         /// Gets the storage dictionary for the specified world.
@@ -43,17 +43,17 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="world">World instance, or null for global world</param>
         /// <returns>Dictionary mapping component types to their storage instances</returns>
-        private static Dictionary<Type, IComponentStorage> GetWorldStorage(World world = null)
+        private static Dictionary<Type, IComponentTable> GetWorldTable(World world = null)
         {
             World targetWorld = world ?? GlobalWorld;
 
-            if (!WorldStorages.TryGetValue(targetWorld, out var storage))
+            if (!WorldTables.TryGetValue(targetWorld, out var table))
             {
-                storage = new Dictionary<Type, IComponentStorage>();
-                WorldStorages[targetWorld] = storage;
+                table = new Dictionary<Type, IComponentTable>();
+                WorldTables[targetWorld] = table;
             }
 
-            return storage;
+            return table;
         }
 
         /// <summary>
@@ -74,21 +74,21 @@ namespace ArtyECS.Core
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <returns>Storage instance for component type T</returns>
         /// <remarks>
-        /// Creates ComponentStorage&lt;T&gt; on first access for the specified world.
+        /// Creates ComponentTable&lt;T&gt; on first access for the specified world.
         /// </remarks>
-        internal static ComponentStorage<T> GetOrCreateStorage<T>(World world = null) where T : struct, IComponent
+        internal static ComponentTable<T> GetOrCreateTable<T>(World world = null) where T : struct, IComponent
         {
             World targetWorld = ResolveWorld(world);
-            var worldStorage = GetWorldStorage(targetWorld);
+            var worldTable = GetWorldTable(targetWorld);
             Type componentType = typeof(T);
 
-            if (!worldStorage.TryGetValue(componentType, out var storage))
+            if (!worldTable.TryGetValue(componentType, out var table))
             {
-                storage = new ComponentStorage<T>();
-                worldStorage[componentType] = storage;
+                table = new ComponentTable<T>();
+                worldTable[componentType] = table;
             }
 
-            return (ComponentStorage<T>)storage;
+            return (ComponentTable<T>)table;
         }
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace ArtyECS.Core
         /// <returns>Number of worlds (including global world)</returns>
         public static int GetWorldCount()
         {
-            return WorldStorages.Count;
+            return WorldTables.Count;
         }
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace ArtyECS.Core
         public static bool IsWorldInitialized(World world = null)
         {
             World targetWorld = ResolveWorld(world);
-            return WorldStorages.ContainsKey(targetWorld);
+            return WorldTables.ContainsKey(targetWorld);
         }
 
         /// <summary>
@@ -143,10 +143,10 @@ namespace ArtyECS.Core
         public static void AddComponent<T>(Entity entity, T component, World world = null) where T : struct, IComponent
         {
             // Get or create storage for component type T in the specified world
-            var storage = GetOrCreateStorage<T>(world);
+            var table = GetOrCreateTable<T>(world);
 
             // Duplicate component detection: check if entity already has this component type
-            if (storage.HasComponent(entity))
+            if (table.HasComponent(entity))
             {
                 throw new InvalidOperationException(
                     $"Entity {entity} already has a component of type {typeof(T).Name}. " +
@@ -154,9 +154,9 @@ namespace ArtyECS.Core
             }
 
             // Get internal storage with capacity check (need space for count + 1)
-            var currentCount = storage.Count;
-            var (components, entities, entityToIndex) = storage.GetInternalStorageForAdd(currentCount + 1);
-            ref int count = ref storage.GetCountRef();
+            var currentCount = table.Count;
+            var (components, entities, entityToIndex) = table.GetInternalTableForAdd(currentCount + 1);
+            ref int count = ref table.GetCountRef();
 
             // Add component at the end of the array (index = count)
             components[count] = component;
@@ -197,16 +197,16 @@ namespace ArtyECS.Core
         public static bool RemoveComponent<T>(Entity entity, World world = null) where T : struct, IComponent
         {
             // Get storage for component type T in the specified world
-            var storage = GetOrCreateStorage<T>(world);
+            var table = GetOrCreateTable<T>(world);
 
             // Check if entity has this component
-            if (!storage.HasComponent(entity))
+            if (!table.HasComponent(entity))
             {
                 return false;
             }
 
             // Perform removal using swap-with-last strategy
-            storage.RemoveComponentInternal(entity);
+            table.RemoveComponentInternal(entity);
             return true;
         }
 
@@ -228,7 +228,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var hp = ComponentsStorage.GetComponent&lt;Hp&gt;(entity);
+        /// var hp = ComponentsRegistry.GetComponent&lt;Hp&gt;(entity);
         /// if (hp.HasValue)
         /// {
         ///     float currentHp = hp.Value.Amount;
@@ -238,10 +238,10 @@ namespace ArtyECS.Core
         public static T? GetComponent<T>(Entity entity, World world = null) where T : struct, IComponent
         {
             // Get storage for component type T in the specified world
-            var storage = GetOrCreateStorage<T>(world);
+            var table = GetOrCreateTable<T>(world);
 
             // Try to get component using fast lookup
-            if (storage.TryGetComponent(entity, out T component))
+            if (table.TryGetComponent(entity, out T component))
             {
                 return component;
             }
@@ -271,14 +271,14 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// // For read-only iteration:
-        /// var hpComponents = ComponentsStorage.GetComponents&lt;Hp&gt;();
+        /// var hpComponents = ComponentsRegistry.GetComponents&lt;Hp&gt;();
         /// foreach (var hp in hpComponents)
         /// {
         ///     // Read component values
         /// }
         /// 
         /// // For modifiable iteration with deferred application:
-        /// using (var components = ComponentsStorage.GetModifiableComponents&lt;Hp&gt;())
+        /// using (var components = ComponentsRegistry.GetModifiableComponents&lt;Hp&gt;())
         /// {
         ///     for (int i = 0; i &lt; components.Count; i++)
         ///     {
@@ -292,10 +292,10 @@ namespace ArtyECS.Core
         public static ReadOnlySpan<T> GetComponents<T>(World world = null) where T : struct, IComponent
         {
             // Get storage for component type T in the specified world
-            var storage = GetOrCreateStorage<T>(world);
+            var table = GetOrCreateTable<T>(world);
 
             // Return ReadOnlySpan over all stored components for zero-allocation iteration
-            return storage.GetComponents();
+            return table.GetComponents();
         }
 
         /// <summary>
@@ -324,7 +324,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var positionComponents = ComponentsStorage.GetComponents&lt;Position, Velocity&gt;();
+        /// var positionComponents = ComponentsRegistry.GetComponents&lt;Position, Velocity&gt;();
         /// foreach (var pos in positionComponents)
         /// {
         ///     // This entity has both Position and Velocity components
@@ -339,18 +339,18 @@ namespace ArtyECS.Core
             where T2 : struct, IComponent
         {
             // Get storage for both component types
-            var storage1 = GetOrCreateStorage<T1>(world);
-            var storage2 = GetOrCreateStorage<T2>(world);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
 
             // If either storage is empty, return empty span
-            if (storage1.Count == 0 || storage2.Count == 0)
+            if (table1.Count == 0 || table2.Count == 0)
             {
                 return ReadOnlySpan<T1>.Empty;
             }
 
             // Get entity sets for efficient intersection
-            var entities1 = storage1.GetEntitiesSet();
-            var entities2 = storage2.GetEntitiesSet();
+            var entities1 = table1.GetEntitiesSet();
+            var entities2 = table2.GetEntitiesSet();
 
             // Find intersection: entities that have both components
             entities1.IntersectWith(entities2);
@@ -364,8 +364,8 @@ namespace ArtyECS.Core
             // Build result array: T1 components for matching entities
             var result = new T1[entities1.Count];
             int index = 0;
-            var entitiesSpan = storage1.GetEntities();
-            var componentsSpan = storage1.GetComponents();
+            var entitiesSpan = table1.GetEntities();
+            var componentsSpan = table1.GetComponents();
 
             for (int i = 0; i < entitiesSpan.Length; i++)
             {
@@ -406,7 +406,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var positionComponents = ComponentsStorage.GetComponents&lt;Position, Velocity, Health&gt;();
+        /// var positionComponents = ComponentsRegistry.GetComponents&lt;Position, Velocity, Health&gt;();
         /// foreach (var pos in positionComponents)
         /// {
         ///     // This entity has Position, Velocity, and Health components
@@ -422,20 +422,20 @@ namespace ArtyECS.Core
             where T3 : struct, IComponent
         {
             // Get storage for all component types
-            var storage1 = GetOrCreateStorage<T1>(world);
-            var storage2 = GetOrCreateStorage<T2>(world);
-            var storage3 = GetOrCreateStorage<T3>(world);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
 
             // If any storage is empty, return empty span
-            if (storage1.Count == 0 || storage2.Count == 0 || storage3.Count == 0)
+            if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0)
             {
                 return ReadOnlySpan<T1>.Empty;
             }
 
             // Get entity sets for efficient intersection
-            var entities1 = storage1.GetEntitiesSet();
-            var entities2 = storage2.GetEntitiesSet();
-            var entities3 = storage3.GetEntitiesSet();
+            var entities1 = table1.GetEntitiesSet();
+            var entities2 = table2.GetEntitiesSet();
+            var entities3 = table3.GetEntitiesSet();
 
             // Find intersection: entities that have all three components
             entities1.IntersectWith(entities2);
@@ -450,8 +450,8 @@ namespace ArtyECS.Core
             // Build result array: T1 components for matching entities
             var result = new T1[entities1.Count];
             int index = 0;
-            var entitiesSpan = storage1.GetEntities();
-            var componentsSpan = storage1.GetComponents();
+            var entitiesSpan = table1.GetEntities();
+            var componentsSpan = table1.GetComponents();
 
             for (int i = 0; i < entitiesSpan.Length; i++)
             {
@@ -480,8 +480,8 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var allHealth = ComponentsStorage.GetComponentsWithout&lt;Health&gt;();
-        /// // Equivalent to: ComponentsStorage.GetComponents&lt;Health&gt;();
+        /// var allHealth = ComponentsRegistry.GetComponentsWithout&lt;Health&gt;();
+        /// // Equivalent to: ComponentsRegistry.GetComponents&lt;Health&gt;();
         /// </code>
         /// </remarks>
         public static ReadOnlySpan<T1> GetComponentsWithout<T1>(World world = null) 
@@ -518,7 +518,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var aliveEntities = ComponentsStorage.GetComponentsWithout&lt;Health, Dead&gt;();
+        /// var aliveEntities = ComponentsRegistry.GetComponentsWithout&lt;Health, Dead&gt;();
         /// foreach (var health in aliveEntities)
         /// {
         ///     // This entity has Health but NOT Dead component
@@ -533,18 +533,18 @@ namespace ArtyECS.Core
             where T2 : struct, IComponent
         {
             // Get storage for both component types
-            var storage1 = GetOrCreateStorage<T1>(world);
-            var storage2 = GetOrCreateStorage<T2>(world);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
 
             // If T1 storage is empty, return empty span
-            if (storage1.Count == 0)
+            if (table1.Count == 0)
             {
                 return ReadOnlySpan<T1>.Empty;
             }
 
             // Get entity sets for efficient set difference
-            var entities1 = storage1.GetEntitiesSet();
-            var entities2 = storage2.GetEntitiesSet();
+            var entities1 = table1.GetEntitiesSet();
+            var entities2 = table2.GetEntitiesSet();
 
             // Find set difference: entities with T1 that don't have T2
             entities1.ExceptWith(entities2);
@@ -558,8 +558,8 @@ namespace ArtyECS.Core
             // Build result array: T1 components for matching entities
             var result = new T1[entities1.Count];
             int index = 0;
-            var entitiesSpan = storage1.GetEntities();
-            var componentsSpan = storage1.GetComponents();
+            var entitiesSpan = table1.GetEntities();
+            var componentsSpan = table1.GetComponents();
 
             for (int i = 0; i < entitiesSpan.Length; i++)
             {
@@ -600,7 +600,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var activeEntities = ComponentsStorage.GetComponentsWithout&lt;Health, Dead, Destroyed&gt;();
+        /// var activeEntities = ComponentsRegistry.GetComponentsWithout&lt;Health, Dead, Destroyed&gt;();
         /// foreach (var health in activeEntities)
         /// {
         ///     // This entity has Health but NOT Dead and NOT Destroyed components
@@ -616,20 +616,20 @@ namespace ArtyECS.Core
             where T3 : struct, IComponent
         {
             // Get storage for all component types
-            var storage1 = GetOrCreateStorage<T1>(world);
-            var storage2 = GetOrCreateStorage<T2>(world);
-            var storage3 = GetOrCreateStorage<T3>(world);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
 
             // If T1 storage is empty, return empty span
-            if (storage1.Count == 0)
+            if (table1.Count == 0)
             {
                 return ReadOnlySpan<T1>.Empty;
             }
 
             // Get entity sets for efficient set difference
-            var entities1 = storage1.GetEntitiesSet();
-            var entities2 = storage2.GetEntitiesSet();
-            var entities3 = storage3.GetEntitiesSet();
+            var entities1 = table1.GetEntitiesSet();
+            var entities2 = table2.GetEntitiesSet();
+            var entities3 = table3.GetEntitiesSet();
 
             // Find set difference: entities with T1 that don't have T2 or T3
             entities1.ExceptWith(entities2);
@@ -644,8 +644,8 @@ namespace ArtyECS.Core
             // Build result array: T1 components for matching entities
             var result = new T1[entities1.Count];
             int index = 0;
-            var entitiesSpan = storage1.GetEntities();
-            var componentsSpan = storage1.GetComponents();
+            var entitiesSpan = table1.GetEntities();
+            var componentsSpan = table1.GetComponents();
 
             for (int i = 0; i < entitiesSpan.Length; i++)
             {
@@ -678,7 +678,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// using (var components = ComponentsStorage.GetModifiableComponents&lt;Hp&gt;())
+        /// using (var components = ComponentsRegistry.GetModifiableComponents&lt;Hp&gt;())
         /// {
         ///     for (int i = 0; i &lt; components.Count; i++)
         ///     {
@@ -692,8 +692,8 @@ namespace ArtyECS.Core
         /// </remarks>
         public static ModifiableComponentCollection<T> GetModifiableComponents<T>(World world = null) where T : struct, IComponent
         {
-            var storage = GetOrCreateStorage<T>(world);
-            return new ModifiableComponentCollection<T>(storage, ResolveWorld(world));
+            var table = GetOrCreateTable<T>(world);
+            return new ModifiableComponentCollection<T>(table, ResolveWorld(world));
         }
 
         /// <summary>
@@ -716,7 +716,7 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// // Called automatically by World.DestroyEntity()
-        /// int removedCount = ComponentsStorage.RemoveAllComponents(entity);
+        /// int removedCount = ComponentsRegistry.RemoveAllComponents(entity);
         /// </code>
         /// </remarks>
         internal static int RemoveAllComponents(Entity entity, World world = null)
@@ -725,16 +725,16 @@ namespace ArtyECS.Core
             int removedCount = 0;
 
             // Get world storage (may not exist if world was never used)
-            if (!WorldStorages.TryGetValue(targetWorld, out var worldStorage))
+            if (!WorldTables.TryGetValue(targetWorld, out var worldTable))
             {
                 return 0; // No components to remove
             }
 
             // Iterate through all component storages in this world
-            // Use IComponentStorage interface to remove components without reflection
-            foreach (var storage in worldStorage.Values)
+            // Use IComponentTable interface to remove components without reflection
+            foreach (var table in worldTable.Values)
             {
-                if (storage.TryRemoveComponentForEntity(entity))
+                if (table.TryRemoveComponentForEntity(entity))
                 {
                     removedCount++;
                 }
@@ -753,7 +753,7 @@ namespace ArtyECS.Core
         /// </remarks>
         public static void ClearAll()
         {
-            WorldStorages.Clear();
+            WorldTables.Clear();
         }
     }
 }

@@ -17,7 +17,7 @@ namespace ArtyECS.Core
     /// - Index-to-entity reverse mapping for efficient iteration
     /// - Dynamic capacity management with doubling growth strategy
     /// - Only stores components for entities that have them (sparse storage)
-    /// - Implements IComponentStorage for type-erased removal without reflection
+    /// - Implements IComponentTable for type-erased removal without reflection
     /// 
     /// The storage maintains two arrays:
     /// 1. Components array: stores actual component values
@@ -25,7 +25,7 @@ namespace ArtyECS.Core
     /// 
     /// Both arrays grow together to maintain index alignment.
     /// </remarks>
-    internal class ComponentStorage<T> : IComponentStorage where T : struct, IComponent
+    internal class ComponentTable<T> : IComponentTable where T : struct, IComponent
     {
         /// <summary>
         /// Default initial capacity for component storage.
@@ -54,17 +54,17 @@ namespace ArtyECS.Core
         private readonly Dictionary<Entity, int> _entityToIndex;
 
         /// <summary>
-        /// Creates a new ComponentStorage with default initial capacity.
+        /// Creates a new ComponentTable with default initial capacity.
         /// </summary>
-        public ComponentStorage() : this(DefaultInitialCapacity)
+        public ComponentTable() : this(DefaultInitialCapacity)
         {
         }
 
         /// <summary>
-        /// Creates a new ComponentStorage with specified initial capacity.
+        /// Creates a new ComponentTable with specified initial capacity.
         /// </summary>
         /// <param name="initialCapacity">Initial capacity for component arrays</param>
-        public ComponentStorage(int initialCapacity)
+        public ComponentTable(int initialCapacity)
         {
             if (initialCapacity < 1)
                 throw new ArgumentException("Initial capacity must be at least 1", nameof(initialCapacity));
@@ -201,10 +201,10 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Gets or creates a reference to the internal storage arrays.
-        /// Used internally by ComponentsStorage for add/remove/get operations.
+        /// Used internally by ComponentsRegistry for add/remove/get operations.
         /// </summary>
         /// <returns>Internal storage arrays (components, entities, entity-to-index mapping)</returns>
-        internal (T[] components, Entity[] entities, Dictionary<Entity, int> entityToIndex) GetInternalStorage()
+        internal (T[] components, Entity[] entities, Dictionary<Entity, int> entityToIndex) GetInternalTable()
         {
             return (_components, _entities, _entityToIndex);
         }
@@ -220,19 +220,19 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Ensures capacity and returns internal storage for modification.
-        /// Called by ComponentsStorage before adding components.
+        /// Called by ComponentsRegistry before adding components.
         /// </summary>
         /// <param name="minCapacity">Minimum capacity needed</param>
         /// <returns>Internal table arrays ready for modification</returns>
-        internal (T[] components, Entity[] entities, Dictionary<Entity, int> entityToIndex) GetInternalStorageForAdd(int minCapacity)
+        internal (T[] components, Entity[] entities, Dictionary<Entity, int> entityToIndex) GetInternalTableForAdd(int minCapacity)
         {
             EnsureCapacity(minCapacity);
-            return GetInternalStorage();
+            return GetInternalTable();
         }
 
         /// <summary>
         /// Attempts to remove a component for the specified entity if it exists.
-        /// Implements IComponentStorage interface for type-erased removal without reflection.
+        /// Implements IComponentTable interface for type-erased removal without reflection.
         /// </summary>
         /// <param name="entity">Entity to remove component for</param>
         /// <returns>True if component was removed, false if entity didn't have this component type</returns>
