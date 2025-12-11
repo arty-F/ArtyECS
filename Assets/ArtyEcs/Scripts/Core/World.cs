@@ -40,12 +40,13 @@ namespace ArtyECS.Core
         /// - ID recycling support via EntityPool
         /// - World-scoped entity allocation
         /// - Zero-allocation in hot path
+        /// - Automatically creates UpdateProvider when first entity is created
         /// 
         /// The returned entity is ready to use - you can immediately add components to it.
         /// 
         /// Usage:
         /// <code>
-        /// // Create entity in global world
+        /// // Create entity in global world - UpdateProvider created automatically here
         /// var entity = World.CreateEntity();
         /// ComponentsRegistry.AddComponent&lt;Position&gt;(entity, new Position { X = 1f, Y = 2f, Z = 3f });
         /// 
@@ -56,6 +57,9 @@ namespace ArtyECS.Core
         /// </remarks>
         public static Entity CreateEntity(World world = null)
         {
+            // Ensure UpdateProvider is created when first entity is created
+            UpdateProvider.EnsureCreated();
+            
             return EntityPool.Allocate(world);
         }
 

@@ -13,6 +13,7 @@ namespace ArtyECS.Core
     /// - System-002: SystemsRegistry - Update Queue Management ✅
     /// - System-003: SystemsRegistry - FixedUpdate Queue Management ✅
     /// - System-004: SystemsRegistry - Manual Execution ✅
+    /// - System-005: SystemsRegistry - Queue Execution (Sync) ✅
     /// 
     /// Features:
     /// - World-scoped instance support: each world has its own system queues
@@ -22,13 +23,15 @@ namespace ArtyECS.Core
     /// - Update queue management: add to end or insert at specific index
     /// - FixedUpdate queue management: add to end or insert at specific index
     /// - Queue execution: ExecuteUpdate() and ExecuteFixedUpdate() execute all systems in respective queues
+    /// - Sequential execution in order (index 0, 1, 2, ...)
+    /// - Graceful error handling: continues execution even if one system fails
     /// - Manual execution: ExecuteOnce() executes a system immediately without adding to any queue
     /// 
     /// The registry maintains separate queues for Update and FixedUpdate execution contexts.
     /// Systems can be added to either queue and will be executed in order during their respective Unity callbacks.
     /// 
     /// Future tasks:
-    /// - System-005: Queue Execution (sync execution already implemented, async support in Async-002)
+    /// - Async-002: Async Queue Execution (async system support)
     /// </remarks>
     public static class SystemsRegistry
     {
@@ -251,14 +254,15 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
-        /// This method implements System-002: Update Queue Management.
+        /// This method implements System-005: SystemsRegistry - Queue Execution (Sync).
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
         /// - If a system throws an exception, execution continues with the next system
-        /// - Errors are not swallowed - exceptions propagate unless handled by the caller
+        /// - Errors are logged but do not stop queue execution (graceful error handling)
+        /// - Empty queues are handled gracefully (no-op if queue is empty)
         /// 
-        /// This method should be called from Unity's Update() method (via EntryPoint or SystemExecutor).
+        /// This method should be called from Unity's Update() method (via UpdateProvider or SystemExecutor).
         /// 
         /// Usage:
         /// <code>
@@ -395,14 +399,15 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
-        /// This method implements System-003: FixedUpdate Queue Management.
+        /// This method implements System-005: SystemsRegistry - Queue Execution (Sync).
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
         /// - If a system throws an exception, execution continues with the next system
-        /// - Errors are not swallowed - exceptions propagate unless handled by the caller
+        /// - Errors are logged but do not stop queue execution (graceful error handling)
+        /// - Empty queues are handled gracefully (no-op if queue is empty)
         /// 
-        /// This method should be called from Unity's FixedUpdate() method (via EntryPoint or SystemExecutor).
+        /// This method should be called from Unity's FixedUpdate() method (via UpdateProvider or SystemExecutor).
         /// 
         /// Usage:
         /// <code>
