@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace ArtyECS.Core
@@ -12,9 +11,9 @@ namespace ArtyECS.Core
     /// World-003: World Persistence Across Scenes (COMPLETED)
     /// 
     /// Features:
-    /// - Calls SystemsRegistry.ExecuteUpdate() in Update() for all registered worlds
-    /// - Calls SystemsRegistry.ExecuteFixedUpdate() in FixedUpdate() for all registered worlds
-    /// - Supports multiple worlds - executes systems for all initialized worlds
+    /// - Calls SystemsRegistry.ExecuteUpdateAllWorlds() in Update() for all registered worlds
+    /// - Calls SystemsRegistry.ExecuteFixedUpdateAllWorlds() in FixedUpdate() for all registered worlds
+    /// - Always executes systems for all initialized worlds (no configuration needed)
     /// - **DontDestroyOnLoad for persistence across scene changes** - ensures UpdateProvider 
     ///   and system execution continue across scene transitions
     /// - Initialization in Awake() to ensure early setup
@@ -46,12 +45,13 @@ namespace ArtyECS.Core
     /// var physicsSystem = new PhysicsSystem();
     /// physicsSystem.AddToFixedUpdate(); // Will be executed in FixedUpdate() each frame
     /// 
-    /// // UpdateProvider automatically executes all systems each frame
+    /// // UpdateProvider automatically executes all systems for all worlds each frame
     /// </code>
     /// 
     /// Multiple Worlds:
-    /// The UpdateProvider executes systems for all initialized worlds. To execute systems
-    /// for a specific world, use SystemsRegistry methods with the world parameter.
+    /// The UpdateProvider always executes systems for all initialized worlds. To execute systems
+    /// for a specific world only, use SystemsRegistry.ExecuteUpdate(world) or SystemsRegistry.ExecuteFixedUpdate(world)
+    /// directly from your code.
     /// 
     /// Note: UpdateProvider is created automatically as a visible GameObject named "UpdateProvider".
     /// Only one UpdateProvider instance exists at a time (singleton pattern).
@@ -63,20 +63,6 @@ namespace ArtyECS.Core
     [DefaultExecutionOrder(-100)] // Execute early to ensure systems run before other scripts
     public class UpdateProvider : MonoBehaviour
     {
-        /// <summary>
-        /// Whether to execute systems for all worlds or only the global world.
-        /// If true, executes systems for all initialized worlds.
-        /// If false, executes systems only for the global world (default).
-        /// </summary>
-        [Tooltip("If true, executes systems for all worlds. If false, executes only for global world.")]
-        public bool ExecuteAllWorlds = false;
-
-        /// <summary>
-        /// List of specific worlds to execute systems for (if ExecuteAllWorlds is false).
-        /// If empty and ExecuteAllWorlds is false, only global world is executed.
-        /// </summary>
-        [Tooltip("Specific worlds to execute systems for (if ExecuteAllWorlds is false).")]
-        public List<World> WorldsToExecute = new List<World>();
 
         /// <summary>
         /// Whether the UpdateProvider has been initialized.
@@ -161,7 +147,7 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
-        /// Executes all systems in the Update queue for the specified worlds.
+        /// Executes all systems in the Update queue for all initialized worlds.
         /// Called automatically by Unity each frame.
         /// </summary>
         private void Update()
@@ -170,7 +156,7 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
-        /// Executes all systems in the FixedUpdate queue for the specified worlds.
+        /// Executes all systems in the FixedUpdate queue for all initialized worlds.
         /// Called automatically by Unity at fixed intervals.
         /// </summary>
         private void FixedUpdate()
@@ -179,89 +165,19 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
-        /// Executes Update systems for the configured worlds.
+        /// Executes Update systems for all initialized worlds.
         /// </summary>
         private void ExecuteUpdateSystems()
         {
-            if (ExecuteAllWorlds)
-            {
-                // Execute systems for all initialized worlds
-                // Note: SystemsRegistry doesn't expose a method to get all worlds,
-                // so we execute for global world and any explicitly specified worlds
-                SystemsRegistry.ExecuteUpdate();
-
-                // Execute for any additional worlds specified in WorldsToExecute
-                foreach (var world in WorldsToExecute)
-                {
-                    if (world != null && SystemsRegistry.IsWorldInitialized(world))
-                    {
-                        SystemsRegistry.ExecuteUpdate(world);
-                    }
-                }
-            }
-            else
-            {
-                // Execute only for specified worlds (or global if none specified)
-                if (WorldsToExecute.Count == 0)
-                {
-                    // Default: execute only for global world
-                    SystemsRegistry.ExecuteUpdate();
-                }
-                else
-                {
-                    // Execute for each specified world
-                    foreach (var world in WorldsToExecute)
-                    {
-                        if (world != null && SystemsRegistry.IsWorldInitialized(world))
-                        {
-                            SystemsRegistry.ExecuteUpdate(world);
-                        }
-                    }
-                }
-            }
+            SystemsRegistry.ExecuteUpdateAllWorlds();
         }
 
         /// <summary>
-        /// Executes FixedUpdate systems for the configured worlds.
+        /// Executes FixedUpdate systems for all initialized worlds.
         /// </summary>
         private void ExecuteFixedUpdateSystems()
         {
-            if (ExecuteAllWorlds)
-            {
-                // Execute systems for all initialized worlds
-                // Note: SystemsRegistry doesn't expose a method to get all worlds,
-                // so we execute for global world and any explicitly specified worlds
-                SystemsRegistry.ExecuteFixedUpdate();
-
-                // Execute for any additional worlds specified in WorldsToExecute
-                foreach (var world in WorldsToExecute)
-                {
-                    if (world != null && SystemsRegistry.IsWorldInitialized(world))
-                    {
-                        SystemsRegistry.ExecuteFixedUpdate(world);
-                    }
-                }
-            }
-            else
-            {
-                // Execute only for specified worlds (or global if none specified)
-                if (WorldsToExecute.Count == 0)
-                {
-                    // Default: execute only for global world
-                    SystemsRegistry.ExecuteFixedUpdate();
-                }
-                else
-                {
-                    // Execute for each specified world
-                    foreach (var world in WorldsToExecute)
-                    {
-                        if (world != null && SystemsRegistry.IsWorldInitialized(world))
-                        {
-                            SystemsRegistry.ExecuteFixedUpdate(world);
-                        }
-                    }
-                }
-            }
+            SystemsRegistry.ExecuteFixedUpdateAllWorlds();
         }
 
         /// <summary>

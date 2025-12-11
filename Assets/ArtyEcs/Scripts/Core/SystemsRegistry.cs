@@ -536,6 +536,102 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
+        /// Executes all systems in the Update queue for all initialized worlds.
+        /// This method iterates through all worlds and executes their Update queues.
+        /// </summary>
+        /// <remarks>
+        /// This method executes Update systems for all worlds that have been initialized.
+        /// Each world's systems are executed sequentially in the order they appear in that world's queue.
+        /// 
+        /// Execution behavior:
+        /// - All worlds are processed in the order they appear in the internal storage
+        /// - For each world, systems are executed in the order they appear in the Update queue
+        /// - If a system throws an exception, execution continues with the next system
+        /// - Errors are logged but do not stop queue execution (graceful error handling)
+        /// 
+        /// This method should be called from Unity's Update() method (via UpdateProvider).
+        /// 
+        /// Usage:
+        /// <code>
+        /// // In MonoBehaviour Update() method:
+        /// void Update()
+        /// {
+        ///     SystemsRegistry.ExecuteUpdateAllWorlds();
+        /// }
+        /// </code>
+        /// </remarks>
+        public static void ExecuteUpdateAllWorlds()
+        {
+            foreach (var kvp in WorldStorages)
+            {
+                var queue = kvp.Value.UpdateQueue;
+
+                // Execute all systems in order
+                for (int i = 0; i < queue.Count; i++)
+                {
+                    var system = queue[i];
+                    try
+                    {
+                        system.Execute();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but continue execution with next system
+                        UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{kvp.Key.Name}': {ex}");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Executes all systems in the FixedUpdate queue for all initialized worlds.
+        /// This method iterates through all worlds and executes their FixedUpdate queues.
+        /// </summary>
+        /// <remarks>
+        /// This method executes FixedUpdate systems for all worlds that have been initialized.
+        /// Each world's systems are executed sequentially in the order they appear in that world's queue.
+        /// 
+        /// Execution behavior:
+        /// - All worlds are processed in the order they appear in the internal storage
+        /// - For each world, systems are executed in the order they appear in the FixedUpdate queue
+        /// - If a system throws an exception, execution continues with the next system
+        /// - Errors are logged but do not stop queue execution (graceful error handling)
+        /// 
+        /// This method should be called from Unity's FixedUpdate() method (via UpdateProvider).
+        /// 
+        /// Usage:
+        /// <code>
+        /// // In MonoBehaviour FixedUpdate() method:
+        /// void FixedUpdate()
+        /// {
+        ///     SystemsRegistry.ExecuteFixedUpdateAllWorlds();
+        /// }
+        /// </code>
+        /// </remarks>
+        public static void ExecuteFixedUpdateAllWorlds()
+        {
+            foreach (var kvp in WorldStorages)
+            {
+                var queue = kvp.Value.FixedUpdateQueue;
+
+                // Execute all systems in order
+                for (int i = 0; i < queue.Count; i++)
+                {
+                    var system = queue[i];
+                    try
+                    {
+                        system.Execute();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but continue execution with next system
+                        UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{kvp.Key.Name}': {ex}");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Clears all system storage for all worlds.
         /// This is primarily used for testing to reset state between tests.
         /// </summary>
