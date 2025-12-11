@@ -17,7 +17,7 @@ namespace ArtyECS.Core
     /// 
     /// Usage:
     /// <code>
-    /// public class MovementSystem : System
+    /// public class MovementSystem : SystemHandler
     /// {
     ///     public override void Execute()
     ///     {
@@ -34,7 +34,7 @@ namespace ArtyECS.Core
     /// 
     /// Note: Async execution support will be added in Async-001.
     /// </remarks>
-    public class System
+    public class SystemHandler
     {
         /// <summary>
         /// Optional Execute method that can be overridden by derived systems.
@@ -57,7 +57,7 @@ namespace ArtyECS.Core
         /// </summary>
         public override string ToString()
         {
-            return $"System({GetType().Name})";
+            return $"SystemHandler({GetType().Name})";
         }
     }
 }

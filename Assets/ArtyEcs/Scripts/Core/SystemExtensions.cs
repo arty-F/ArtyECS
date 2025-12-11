@@ -37,7 +37,7 @@ namespace ArtyECS.Core
         /// This is an extension method that calls SystemsRegistry.AddToUpdate().
         /// The system will be added to the end of the Update queue.
         /// </remarks>
-        public static void AddToUpdate(this System system, World world = null)
+        public static void AddToUpdate(this SystemHandler system, World world = null)
         {
             SystemsRegistry.AddToUpdate(system, world);
         }
@@ -54,7 +54,7 @@ namespace ArtyECS.Core
         /// This is an extension method that calls SystemsRegistry.AddToUpdate().
         /// The system will be inserted at the specified index, shifting existing systems forward.
         /// </remarks>
-        public static void AddToUpdate(this System system, int order, World world = null)
+        public static void AddToUpdate(this SystemHandler system, int order, World world = null)
         {
             SystemsRegistry.AddToUpdate(system, order, world);
         }
@@ -68,7 +68,7 @@ namespace ArtyECS.Core
         /// This is an extension method that calls SystemsRegistry.AddToFixedUpdate().
         /// The system will be added to the end of the FixedUpdate queue.
         /// </remarks>
-        public static void AddToFixedUpdate(this System system, World world = null)
+        public static void AddToFixedUpdate(this SystemHandler system, World world = null)
         {
             SystemsRegistry.AddToFixedUpdate(system, world);
         }
@@ -85,7 +85,7 @@ namespace ArtyECS.Core
         /// This is an extension method that calls SystemsRegistry.AddToFixedUpdate().
         /// The system will be inserted at the specified index, shifting existing systems forward.
         /// </remarks>
-        public static void AddToFixedUpdate(this System system, int order, World world = null)
+        public static void AddToFixedUpdate(this SystemHandler system, int order, World world = null)
         {
             SystemsRegistry.AddToFixedUpdate(system, order, world);
         }
@@ -105,7 +105,7 @@ namespace ArtyECS.Core
         /// - Testing systems in isolation
         /// - Manual system execution outside of normal update loops
         /// </remarks>
-        public static void ExecuteOnce(this System system, World world = null)
+        public static void ExecuteOnce(this SystemHandler system, World world = null)
         {
             SystemsRegistry.ExecuteOnce(system, world);
         }

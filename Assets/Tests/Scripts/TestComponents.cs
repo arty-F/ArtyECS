@@ -29,3 +29,31 @@ public struct Dead : IComponent { }
 
 public struct Destroyed : IComponent { }
 
+// Additional test components for System tests
+public struct CounterComponent : IComponent
+{
+    public int Value;
+}
+
+public struct UpdateCounter : IComponent
+{
+    public int Value;
+}
+
+public struct FixedUpdateCounter : IComponent
+{
+    public int Value;
+}
+
+public struct Spawner : IComponent
+{
+    public int SpawnCount;
+}
+
+public struct Acceleration : IComponent
+{
+    public float X;
+    public float Y;
+    public float Z;
+}
+

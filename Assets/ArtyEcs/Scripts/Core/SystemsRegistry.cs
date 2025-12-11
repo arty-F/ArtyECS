@@ -50,13 +50,13 @@ namespace ArtyECS.Core
             /// Queue of systems to execute during Update().
             /// Systems are executed in order (index 0, 1, 2, ...).
             /// </summary>
-            public readonly List<System> UpdateQueue = new List<System>();
+            public readonly List<SystemHandler> UpdateQueue = new List<SystemHandler>();
 
             /// <summary>
             /// Queue of systems to execute during FixedUpdate().
             /// Systems are executed in order (index 0, 1, 2, ...).
             /// </summary>
-            public readonly List<System> FixedUpdateQueue = new List<System>();
+            public readonly List<SystemHandler> FixedUpdateQueue = new List<SystemHandler>();
         }
 
         /// <summary>
@@ -133,8 +133,9 @@ namespace ArtyECS.Core
         /// <remarks>
         /// This method provides access to the Update queue for a specific world.
         /// The queue will be managed by System-002: Update Queue Management.
+        /// Primarily used for testing and debugging.
         /// </remarks>
-        internal static List<System> GetUpdateQueue(World world = null)
+        public static List<SystemHandler> GetUpdateQueue(World world = null)
         {
             var storage = GetWorldStorage(world);
             return storage.UpdateQueue;
@@ -148,8 +149,9 @@ namespace ArtyECS.Core
         /// <remarks>
         /// This method provides access to the FixedUpdate queue for a specific world.
         /// The queue will be managed by System-003: FixedUpdate Queue Management.
+        /// Primarily used for testing and debugging.
         /// </remarks>
-        internal static List<System> GetFixedUpdateQueue(World world = null)
+        public static List<SystemHandler> GetFixedUpdateQueue(World world = null)
         {
             var storage = GetWorldStorage(world);
             return storage.FixedUpdateQueue;
@@ -178,7 +180,7 @@ namespace ArtyECS.Core
         /// movementSystem.AddToUpdate();
         /// </code>
         /// </remarks>
-        public static void AddToUpdate(System system, World world = null)
+        public static void AddToUpdate(SystemHandler system, World world = null)
         {
             if (system == null)
             {
@@ -221,7 +223,7 @@ namespace ArtyECS.Core
         /// movementSystem.AddToUpdate(3); // Insert at index 3
         /// </code>
         /// </remarks>
-        public static void AddToUpdate(System system, int order, World world = null)
+        public static void AddToUpdate(SystemHandler system, int order, World world = null)
         {
             if (system == null)
             {
@@ -294,7 +296,7 @@ namespace ArtyECS.Core
                     // Log error but continue execution with next system
                     // This allows other systems to continue even if one fails
                     // In production, you might want to use a proper logging system
-                    UnityEngine.Debug.LogError($"System {system} execution failed: {ex}");
+                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed: {ex}");
                 }
             }
         }
@@ -323,7 +325,7 @@ namespace ArtyECS.Core
         /// physicsSystem.AddToFixedUpdate();
         /// </code>
         /// </remarks>
-        public static void AddToFixedUpdate(System system, World world = null)
+        public static void AddToFixedUpdate(SystemHandler system, World world = null)
         {
             if (system == null)
             {
@@ -366,7 +368,7 @@ namespace ArtyECS.Core
         /// physicsSystem.AddToFixedUpdate(3); // Insert at index 3
         /// </code>
         /// </remarks>
-        public static void AddToFixedUpdate(System system, int order, World world = null)
+        public static void AddToFixedUpdate(SystemHandler system, int order, World world = null)
         {
             if (system == null)
             {
@@ -439,7 +441,7 @@ namespace ArtyECS.Core
                     // Log error but continue execution with next system
                     // This allows other systems to continue even if one fails
                     // In production, you might want to use a proper logging system
-                    UnityEngine.Debug.LogError($"System {system} execution failed: {ex}");
+                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed: {ex}");
                 }
             }
         }
@@ -480,7 +482,7 @@ namespace ArtyECS.Core
         /// Note: Async system support will be added in Async-001 and Async-002.
         /// Currently, all systems are executed synchronously via Execute() method.
         /// </remarks>
-        public static void ExecuteOnce(System system, World world = null)
+        public static void ExecuteOnce(SystemHandler system, World world = null)
         {
             if (system == null)
             {
