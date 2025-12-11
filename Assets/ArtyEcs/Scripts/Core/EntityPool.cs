@@ -9,6 +9,7 @@ namespace ArtyECS.Core
     /// </summary>
     /// <remarks>
     /// This class implements Core-011: Entity Pool Implementation.
+    /// World-003: World Persistence Across Scenes (COMPLETED)
     /// 
     /// Features:
     /// - Entity ID recycling for memory efficiency
@@ -16,6 +17,7 @@ namespace ArtyECS.Core
     /// - Fast O(1) allocation and deallocation
     /// - World-scoped pools (each world has its own entity pool)
     /// - Zero-allocation in hot path (only allocates on pool growth)
+    /// - Entity pools use static dictionaries that persist across Unity scene changes
     /// 
     /// The pool maintains:
     /// - A stack of available entity IDs for fast allocation
@@ -182,6 +184,36 @@ namespace ArtyECS.Core
         {
             var pool = GetOrCreatePool(world);
             return pool.GetAvailableCount();
+        }
+
+        /// <summary>
+        /// Clears the entity pool for the specified world, resetting all state.
+        /// Removes the pool instance from the registry.
+        /// </summary>
+        /// <param name="world">World instance to clear</param>
+        /// <remarks>
+        /// This method is used by World.Destroy() to clean up world resources.
+        /// 
+        /// Features:
+        /// - Removes entity pool instance for the specified world
+        /// - All entities in the world become invalid
+        /// - Pool is removed from registry
+        /// 
+        /// Usage:
+        /// <code>
+        /// var localWorld = new World("Local");
+        /// // ... use world ...
+        /// EntityPool.ClearWorld(localWorld); // Clean up entity pool
+        /// </code>
+        /// </remarks>
+        internal static void ClearWorld(World world)
+        {
+            if (world == null)
+            {
+                return;
+            }
+
+            WorldPools.Remove(world);
         }
 
         /// <summary>

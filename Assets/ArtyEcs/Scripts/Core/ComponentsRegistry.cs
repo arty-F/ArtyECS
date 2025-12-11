@@ -21,13 +21,23 @@ namespace ArtyECS.Core
     /// Core-009: GetComponentsWithout query for WITHOUT operations (COMPLETED)
     /// Core-010: Deferred component modifications system (COMPLETED)
     /// Core-012: RemoveAllComponents method for entity destruction (COMPLETED)
+    /// World-002: World-Scoped Storage Integration (COMPLETED)
+    ///   - All methods support optional World? parameter (default: global world)
+    ///   - Automatic world resolution via ResolveWorld() method (null → global world)
+    ///   - World-scoped storage via Dictionary&lt;World, Dictionary&lt;Type, IComponentTable&gt;&gt;
+    ///   - Uses shared global world singleton from World.GetGlobalWorld()
+    /// World-003: World Persistence Across Scenes (COMPLETED)
+    ///   - Component storage uses static dictionaries that persist across Unity scene changes
+    ///   - All component data remains valid after scene transitions
+    ///   - No data loss on scene load/unload operations
     /// </remarks>
     public static class ComponentsRegistry
     {
         /// <summary>
-        /// Global/default world instance. Used when no world is specified.
+        /// Gets the global/default world instance. Used when no world is specified.
+        /// Uses World.GetGlobalWorld() to ensure shared singleton instance.
         /// </summary>
-        private static readonly World GlobalWorld = new World("Global");
+        private static World GlobalWorld => World.GetGlobalWorld();
 
         /// <summary>
         /// Registry of worlds to their component storage instances.
@@ -741,6 +751,36 @@ namespace ArtyECS.Core
             }
 
             return removedCount;
+        }
+
+        /// <summary>
+        /// Clears all component storage for the specified world.
+        /// Removes all components for all entities in the world.
+        /// </summary>
+        /// <param name="world">World instance to clear</param>
+        /// <remarks>
+        /// This method is used by World.Destroy() to clean up world resources.
+        /// 
+        /// Features:
+        /// - Removes all component storage for the specified world
+        /// - All entities in the world lose their components
+        /// - World storage dictionary is removed from registry
+        /// 
+        /// Usage:
+        /// <code>
+        /// var localWorld = new World("Local");
+        /// // ... use world ...
+        /// ComponentsRegistry.ClearWorld(localWorld); // Clean up components
+        /// </code>
+        /// </remarks>
+        internal static void ClearWorld(World world)
+        {
+            if (world == null)
+            {
+                return;
+            }
+
+            WorldTables.Remove(world);
         }
 
         /// <summary>

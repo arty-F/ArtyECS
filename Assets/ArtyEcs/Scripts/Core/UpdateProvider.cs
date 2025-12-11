@@ -9,14 +9,26 @@ namespace ArtyECS.Core
     /// </summary>
     /// <remarks>
     /// This class implements System-006: System Execution Integration with Unity.
+    /// World-003: World Persistence Across Scenes (COMPLETED)
     /// 
     /// Features:
     /// - Calls SystemsRegistry.ExecuteUpdate() in Update() for all registered worlds
     /// - Calls SystemsRegistry.ExecuteFixedUpdate() in FixedUpdate() for all registered worlds
     /// - Supports multiple worlds - executes systems for all initialized worlds
-    /// - DontDestroyOnLoad for persistence across scene changes
+    /// - **DontDestroyOnLoad for persistence across scene changes** - ensures UpdateProvider 
+    ///   and system execution continue across scene transitions
     /// - Initialization in Awake() to ensure early setup
     /// - **Automatic creation**: UpdateProvider is automatically created when first world is created
+    /// 
+    /// Scene Persistence:
+    /// UpdateProvider uses DontDestroyOnLoad to persist across Unity scene changes.
+    /// This ensures that:
+    /// - System execution continues seamlessly across scene transitions
+    /// - Update and FixedUpdate queues are executed in new scenes
+    /// - ECS World state (components, entities, systems) is preserved between scenes
+    /// 
+    /// The UpdateProvider GameObject will persist in DontDestroyOnLoad scene and continue
+    /// executing systems for all registered worlds regardless of active Unity scene.
     /// 
     /// Usage:
     /// UpdateProvider is created automatically when you create the first entity (World.CreateEntity()).
@@ -117,6 +129,7 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Initializes the UpdateProvider and ensures it persists across scene changes.
+        /// This method implements World-003: World Persistence Across Scenes.
         /// </summary>
         private void Awake()
         {
@@ -133,6 +146,11 @@ namespace ArtyECS.Core
             _instance = this;
 
             // Ensure this GameObject persists across scene changes
+            // This is critical for World-003: World Persistence Across Scenes
+            // Without DontDestroyOnLoad, the UpdateProvider would be destroyed on scene unload,
+            // breaking system execution in new scenes. With DontDestroyOnLoad, the UpdateProvider
+            // persists in DontDestroyOnLoad scene and continues executing systems regardless
+            // of which Unity scene is currently active.
             DontDestroyOnLoad(gameObject);
 
             // Initialize global ECS World (ensure it exists)

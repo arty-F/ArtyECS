@@ -14,6 +14,15 @@ namespace ArtyECS.Core
     /// - System-003: SystemsRegistry - FixedUpdate Queue Management ✅
     /// - System-004: SystemsRegistry - Manual Execution ✅
     /// - System-005: SystemsRegistry - Queue Execution (Sync) ✅
+    /// - World-002: World-Scoped Storage Integration ✅
+    ///   - All methods support optional World? parameter (default: global world)
+    ///   - Automatic world resolution via ResolveWorld() method (null → global world)
+    ///   - World-scoped storage via Dictionary&lt;World, SystemStorageInstance&gt;
+    ///   - Uses shared global world singleton from World.GetGlobalWorld()
+    /// - World-003: World Persistence Across Scenes ✅
+    ///   - System queues use static dictionaries that persist across Unity scene changes
+    ///   - All system queues remain valid after scene transitions
+    ///   - Systems continue executing in new scenes via UpdateProvider persistence
     /// 
     /// Features:
     /// - World-scoped instance support: each world has its own system queues
@@ -36,9 +45,10 @@ namespace ArtyECS.Core
     public static class SystemsRegistry
     {
         /// <summary>
-        /// Global/default world instance. Used when no world is specified.
+        /// Gets the global/default world instance. Used when no world is specified.
+        /// Uses World.GetGlobalWorld() to ensure shared singleton instance.
         /// </summary>
-        private static readonly World GlobalWorld = new World("Global");
+        private static World GlobalWorld => World.GetGlobalWorld();
 
         /// <summary>
         /// Internal class to hold system queues for a single world.
@@ -493,6 +503,36 @@ namespace ArtyECS.Core
             // World parameter is accepted for API consistency but doesn't affect execution
             // since systems execute in the context of ComponentsRegistry queries, not world queues
             system.Execute();
+        }
+
+        /// <summary>
+        /// Clears all system storage for the specified world.
+        /// Removes all systems from Update and FixedUpdate queues for the world.
+        /// </summary>
+        /// <param name="world">World instance to clear</param>
+        /// <remarks>
+        /// This method is used by World.Destroy() to clean up world resources.
+        /// 
+        /// Features:
+        /// - Clears Update queue for the specified world
+        /// - Clears FixedUpdate queue for the specified world
+        /// - World storage instance is removed from registry
+        /// 
+        /// Usage:
+        /// <code>
+        /// var localWorld = new World("Local");
+        /// // ... use world ...
+        /// SystemsRegistry.ClearWorld(localWorld); // Clean up systems
+        /// </code>
+        /// </remarks>
+        internal static void ClearWorld(World world)
+        {
+            if (world == null)
+            {
+                return;
+            }
+
+            WorldStorages.Remove(world);
         }
 
         /// <summary>
