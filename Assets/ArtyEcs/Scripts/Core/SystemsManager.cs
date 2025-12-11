@@ -4,16 +4,16 @@ using System.Collections.Generic;
 namespace ArtyECS.Core
 {
     /// <summary>
-    /// Central registry for ECS systems, organized by world scope.
+    /// Manager for ECS systems, organized by world scope.
     /// Manages system execution queues (Update and FixedUpdate) per world.
     /// </summary>
     /// <remarks>
     /// This class implements:
-    /// - System-001: SystemsRegistry - Basic Structure ✅
-    /// - System-002: SystemsRegistry - Update Queue Management ✅
-    /// - System-003: SystemsRegistry - FixedUpdate Queue Management ✅
-    /// - System-004: SystemsRegistry - Manual Execution ✅
-    /// - System-005: SystemsRegistry - Queue Execution (Sync) ✅
+    /// - System-001: SystemsManager - Basic Structure ✅
+    /// - System-002: SystemsManager - Update Queue Management ✅
+    /// - System-003: SystemsManager - FixedUpdate Queue Management ✅
+    /// - System-004: SystemsManager - Manual Execution ✅
+    /// - System-005: SystemsManager - Queue Execution (Sync) ✅
     /// - World-002: World-Scoped Storage Integration ✅
     ///   - All methods support optional World? parameter (default: global world)
     ///   - Automatic world resolution via ResolveWorld() method (null → global world)
@@ -36,13 +36,13 @@ namespace ArtyECS.Core
     /// - Graceful error handling: continues execution even if one system fails
     /// - Manual execution: ExecuteOnce() executes a system immediately without adding to any queue
     /// 
-    /// The registry maintains separate queues for Update and FixedUpdate execution contexts.
+    /// The manager maintains separate queues for Update and FixedUpdate execution contexts.
     /// Systems can be added to either queue and will be executed in order during their respective Unity callbacks.
     /// 
     /// Future tasks:
     /// - Async-002: Async Queue Execution (async system support)
     /// </remarks>
-    public static class SystemsRegistry
+    public static class SystemsManager
     {
         /// <summary>
         /// Gets the global/default world instance. Used when no world is specified.
@@ -181,7 +181,7 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var movementSystem = new MovementSystem();
-        /// SystemsRegistry.AddToUpdate(movementSystem);
+        /// SystemsManager.AddToUpdate(movementSystem);
         /// </code>
         /// 
         /// Or using extension method:
@@ -224,7 +224,7 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var movementSystem = new MovementSystem();
-        /// SystemsRegistry.AddToUpdate(movementSystem, order: 3); // Insert at index 3
+        /// SystemsManager.AddToUpdate(movementSystem, order: 3); // Insert at index 3
         /// </code>
         /// 
         /// Or using extension method:
@@ -266,7 +266,7 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
-        /// This method implements System-005: SystemsRegistry - Queue Execution (Sync).
+        /// This method implements System-005: SystemsManager - Queue Execution (Sync).
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
@@ -281,7 +281,7 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour Update() method:
         /// void Update()
         /// {
-        ///     SystemsRegistry.ExecuteUpdate();
+        ///     SystemsManager.ExecuteUpdate();
         /// }
         /// </code>
         /// 
@@ -326,7 +326,7 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var physicsSystem = new PhysicsSystem();
-        /// SystemsRegistry.AddToFixedUpdate(physicsSystem);
+        /// SystemsManager.AddToFixedUpdate(physicsSystem);
         /// </code>
         /// 
         /// Or using extension method:
@@ -369,7 +369,7 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var physicsSystem = new PhysicsSystem();
-        /// SystemsRegistry.AddToFixedUpdate(physicsSystem, order: 3); // Insert at index 3
+        /// SystemsManager.AddToFixedUpdate(physicsSystem, order: 3); // Insert at index 3
         /// </code>
         /// 
         /// Or using extension method:
@@ -411,7 +411,7 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
-        /// This method implements System-005: SystemsRegistry - Queue Execution (Sync).
+        /// This method implements System-005: SystemsManager - Queue Execution (Sync).
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
@@ -426,7 +426,7 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour FixedUpdate() method:
         /// void FixedUpdate()
         /// {
-        ///     SystemsRegistry.ExecuteFixedUpdate();
+        ///     SystemsManager.ExecuteFixedUpdate();
         /// }
         /// </code>
         /// 
@@ -464,7 +464,7 @@ namespace ArtyECS.Core
         /// <param name="world">Optional world instance (default: global world). Note: This parameter is for API consistency but doesn't affect execution since systems are not world-scoped during execution.</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <remarks>
-        /// This method implements System-004: SystemsRegistry - Manual Execution.
+        /// This method implements System-004: SystemsManager - Manual Execution.
         /// 
         /// Execution behavior:
         /// - System is executed immediately without being added to any queue
@@ -480,7 +480,7 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var initializationSystem = new InitializationSystem();
-        /// SystemsRegistry.ExecuteOnce(initializationSystem);
+        /// SystemsManager.ExecuteOnce(initializationSystem);
         /// </code>
         /// 
         /// Or using extension method:
@@ -501,7 +501,7 @@ namespace ArtyECS.Core
 
             // Execute system immediately without adding to any queue
             // World parameter is accepted for API consistency but doesn't affect execution
-            // since systems execute in the context of ComponentsRegistry queries, not world queues
+            // since systems execute in the context of ComponentsManager queries, not world queues
             system.Execute();
         }
 
@@ -522,7 +522,7 @@ namespace ArtyECS.Core
         /// <code>
         /// var localWorld = new World("Local");
         /// // ... use world ...
-        /// SystemsRegistry.ClearWorld(localWorld); // Clean up systems
+        /// SystemsManager.ClearWorld(localWorld); // Clean up systems
         /// </code>
         /// </remarks>
         internal static void ClearWorld(World world)
@@ -556,7 +556,7 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour Update() method:
         /// void Update()
         /// {
-        ///     SystemsRegistry.ExecuteUpdateAllWorlds();
+        ///     SystemsManager.ExecuteUpdateAllWorlds();
         /// }
         /// </code>
         /// </remarks>
@@ -604,7 +604,7 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour FixedUpdate() method:
         /// void FixedUpdate()
         /// {
-        ///     SystemsRegistry.ExecuteFixedUpdateAllWorlds();
+        ///     SystemsManager.ExecuteFixedUpdateAllWorlds();
         /// }
         /// </code>
         /// </remarks>

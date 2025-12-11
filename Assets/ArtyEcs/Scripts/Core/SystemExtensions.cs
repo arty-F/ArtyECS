@@ -2,7 +2,7 @@ namespace ArtyECS.Core
 {
     /// <summary>
     /// Extension methods for System class to provide convenient API for queue management and execution.
-    /// These methods call the corresponding static methods in SystemsRegistry.
+    /// These methods call the corresponding static methods in SystemsManager.
     /// </summary>
     /// <remarks>
     /// These extension methods implement:
@@ -34,12 +34,12 @@ namespace ArtyECS.Core
         /// <param name="system">System instance (this)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
-        /// This is an extension method that calls SystemsRegistry.AddToUpdate().
+        /// This is an extension method that calls SystemsManager.AddToUpdate().
         /// The system will be added to the end of the Update queue.
         /// </remarks>
         public static void AddToUpdate(this SystemHandler system, World world = null)
         {
-            SystemsRegistry.AddToUpdate(system, world);
+            SystemsManager.AddToUpdate(system, world);
         }
 
         /// <summary>
@@ -51,12 +51,12 @@ namespace ArtyECS.Core
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <exception cref="System.ArgumentOutOfRangeException">Thrown if order is negative or greater than queue count</exception>
         /// <remarks>
-        /// This is an extension method that calls SystemsRegistry.AddToUpdate().
+        /// This is an extension method that calls SystemsManager.AddToUpdate().
         /// The system will be inserted at the specified index, shifting existing systems forward.
         /// </remarks>
         public static void AddToUpdate(this SystemHandler system, int order, World world = null)
         {
-            SystemsRegistry.AddToUpdate(system, order, world);
+            SystemsManager.AddToUpdate(system, order, world);
         }
 
         /// <summary>
@@ -65,12 +65,12 @@ namespace ArtyECS.Core
         /// <param name="system">System instance (this)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
-        /// This is an extension method that calls SystemsRegistry.AddToFixedUpdate().
+        /// This is an extension method that calls SystemsManager.AddToFixedUpdate().
         /// The system will be added to the end of the FixedUpdate queue.
         /// </remarks>
         public static void AddToFixedUpdate(this SystemHandler system, World world = null)
         {
-            SystemsRegistry.AddToFixedUpdate(system, world);
+            SystemsManager.AddToFixedUpdate(system, world);
         }
 
         /// <summary>
@@ -82,12 +82,12 @@ namespace ArtyECS.Core
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <exception cref="System.ArgumentOutOfRangeException">Thrown if order is negative or greater than queue count</exception>
         /// <remarks>
-        /// This is an extension method that calls SystemsRegistry.AddToFixedUpdate().
+        /// This is an extension method that calls SystemsManager.AddToFixedUpdate().
         /// The system will be inserted at the specified index, shifting existing systems forward.
         /// </remarks>
         public static void AddToFixedUpdate(this SystemHandler system, int order, World world = null)
         {
-            SystemsRegistry.AddToFixedUpdate(system, order, world);
+            SystemsManager.AddToFixedUpdate(system, order, world);
         }
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace ArtyECS.Core
         /// <param name="system">System instance (this)</param>
         /// <param name="world">Optional world instance (default: global world). Note: This parameter is for API consistency but doesn't affect execution since systems are not world-scoped during execution.</param>
         /// <remarks>
-        /// This is an extension method that calls SystemsRegistry.ExecuteOnce().
+        /// This is an extension method that calls SystemsManager.ExecuteOnce().
         /// The system will be executed immediately without being added to any queue.
         /// 
         /// This method is useful for:
@@ -107,7 +107,7 @@ namespace ArtyECS.Core
         /// </remarks>
         public static void ExecuteOnce(this SystemHandler system, World world = null)
         {
-            SystemsRegistry.ExecuteOnce(system, world);
+            SystemsManager.ExecuteOnce(system, world);
         }
     }
 }

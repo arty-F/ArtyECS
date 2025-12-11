@@ -4,7 +4,7 @@ using System;
 using System.Linq;
 
 /// <summary>
-/// Test cases for ArtyECS Core functionality (Entity, Component, ComponentsRegistry, etc.)
+/// Test cases for ArtyECS Core functionality (Entity, Component, ComponentsManager, etc.)
 /// </summary>
 public class CoreTests : TestBase
 {
@@ -155,7 +155,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-002: ComponentsRegistry - Basic Structure ==========
+    // ========== Core-002: ComponentsManager - Basic Structure ==========
     
     [ContextMenu("Run Test: GetGlobalWorld Returns World")]
     public void Test_Storage_001()
@@ -163,8 +163,8 @@ public class CoreTests : TestBase
         string testName = "Test_Storage_001";
         ExecuteTest(testName, () =>
         {
-            // Call ComponentsRegistry.GetGlobalWorld()
-            World world = ComponentsRegistry.GetGlobalWorld();
+            // Call ComponentsManager.GetGlobalWorld()
+            World world = ComponentsManager.GetGlobalWorld();
             
             // Verify world is not null
             AssertNotNull(world, "GetGlobalWorld() should return non-null World");
@@ -181,14 +181,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Check IsWorldInitialized() before usage (may be false or true)
-            bool beforeUsage = ComponentsRegistry.IsWorldInitialized();
+            bool beforeUsage = ComponentsManager.IsWorldInitialized();
             
             // Add component (initializes world)
             Entity entity = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 });
             
             // Check IsWorldInitialized() after usage
-            bool afterUsage = ComponentsRegistry.IsWorldInitialized();
+            bool afterUsage = ComponentsManager.IsWorldInitialized();
             
             // Verify world is initialized after usage
             Assert(afterUsage, "IsWorldInitialized() should be true after usage");
@@ -202,17 +202,17 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get initial world count
-            int initialCount = ComponentsRegistry.GetWorldCount();
+            int initialCount = ComponentsManager.GetWorldCount();
             
             // Create new World("Test")
             World testWorld = new World("Test");
             
             // Add component to new world
             Entity entity = World.CreateEntity(testWorld);
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 }, testWorld);
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 }, testWorld);
             
             // Get new world count
-            int newCount = ComponentsRegistry.GetWorldCount();
+            int newCount = ComponentsManager.GetWorldCount();
             
             // Verify world count increased
             Assert(initialCount >= 0, "Initial count should be >= 0");
@@ -235,16 +235,16 @@ public class CoreTests : TestBase
             Entity entity2 = World.CreateEntity(world2);
             
             // Add component to Entity1 in World1
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 }, world1);
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 }, world1);
             
             // Add component to Entity2 in World2
-            ComponentsRegistry.AddComponent(entity2, new TestComponent { Value = 2 }, world2);
+            ComponentsManager.AddComponent(entity2, new TestComponent { Value = 2 }, world2);
             
             // Check components in each world
-            var comp1World1 = ComponentsRegistry.GetComponent<TestComponent>(entity1, world1);
-            var comp1World2 = ComponentsRegistry.GetComponent<TestComponent>(entity1, world2);
-            var comp2World1 = ComponentsRegistry.GetComponent<TestComponent>(entity2, world1);
-            var comp2World2 = ComponentsRegistry.GetComponent<TestComponent>(entity2, world2);
+            var comp1World1 = ComponentsManager.GetComponent<TestComponent>(entity1, world1);
+            var comp1World2 = ComponentsManager.GetComponent<TestComponent>(entity1, world2);
+            var comp2World1 = ComponentsManager.GetComponent<TestComponent>(entity2, world1);
+            var comp2World2 = ComponentsManager.GetComponent<TestComponent>(entity2, world2);
             
             // Verify isolation
             Assert(comp1World1.HasValue, "Entity1 should have component in World1");
@@ -254,7 +254,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-003: ComponentsRegistry - Single Component Type Storage ==========
+    // ========== Core-003: ComponentsManager - Single Component Type Storage ==========
     
     [ContextMenu("Run Test: ComponentTable Initial Capacity")]
     public void Test_Storage_005()
@@ -264,10 +264,10 @@ public class CoreTests : TestBase
         {
             // Add first component
             Entity entity = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 });
             
             // Verify that storage is created (can be verified through component addition)
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity);
+            var component = ComponentsManager.GetComponent<TestComponent>(entity);
             Assert(component.HasValue, "Component should be successfully added");
             AssertEquals(1, component.Value.Value, "Component value should be 1");
         });
@@ -284,11 +284,11 @@ public class CoreTests : TestBase
             for (int i = 0; i < 20; i++)
             {
                 entities[i] = World.CreateEntity();
-                ComponentsRegistry.AddComponent(entities[i], new TestComponent { Value = i });
+                ComponentsManager.AddComponent(entities[i], new TestComponent { Value = i });
             }
             
             // Verify that all components are added
-            var components = ComponentsRegistry.GetComponents<TestComponent>();
+            var components = ComponentsManager.GetComponents<TestComponent>();
             AssertEquals(20, components.Length, "All 20 components should be added");
         });
     }
@@ -304,11 +304,11 @@ public class CoreTests : TestBase
             for (int i = 0; i < 5; i++)
             {
                 entities[i] = World.CreateEntity();
-                ComponentsRegistry.AddComponent(entities[i], new TestComponent { Value = i });
+                ComponentsManager.AddComponent(entities[i], new TestComponent { Value = i });
             }
             
             // Get ReadOnlySpan of components
-            var span = ComponentsRegistry.GetComponents<TestComponent>();
+            var span = ComponentsManager.GetComponents<TestComponent>();
             
             // Verify that all components are accessible
             AssertEquals(5, span.Length, "Span should contain 5 components");
@@ -319,7 +319,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-004: ComponentsRegistry - Add Component ==========
+    // ========== Core-004: ComponentsManager - Add Component ==========
     
     [ContextMenu("Run Test: Add Single Component")]
     public void Test_Add_001()
@@ -332,10 +332,10 @@ public class CoreTests : TestBase
             
             // Add TestComponent with value
             TestComponent component = new TestComponent { Value = 42 };
-            ComponentsRegistry.AddComponent(entity, component);
+            ComponentsManager.AddComponent(entity, component);
             
             // Get component back
-            var retrieved = ComponentsRegistry.GetComponent<TestComponent>(entity);
+            var retrieved = ComponentsManager.GetComponent<TestComponent>(entity);
             
             // Verify component was added
             Assert(retrieved.HasValue, "Component should exist");
@@ -353,18 +353,18 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Position component
-            ComponentsRegistry.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
             
             // Add Velocity component
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
             
             // Add Health component
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Get all components
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
-            var velocity = ComponentsRegistry.GetComponent<Velocity>(entity);
-            var health = ComponentsRegistry.GetComponent<Health>(entity);
+            var position = ComponentsManager.GetComponent<Position>(entity);
+            var velocity = ComponentsManager.GetComponent<Velocity>(entity);
+            var health = ComponentsManager.GetComponent<Health>(entity);
             
             // Verify all components added
             Assert(position.HasValue, "Position component should exist");
@@ -383,13 +383,13 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add TestComponent
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 });
             
             // Attempt to add TestComponent again
             bool exceptionThrown = false;
             try
             {
-                ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 2 });
+                ComponentsManager.AddComponent(entity, new TestComponent { Value = 2 });
             }
             catch (InvalidOperationException ex)
             {
@@ -414,14 +414,14 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add TestComponent to each with different values
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 });
-            ComponentsRegistry.AddComponent(entity2, new TestComponent { Value = 2 });
-            ComponentsRegistry.AddComponent(entity3, new TestComponent { Value = 3 });
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity2, new TestComponent { Value = 2 });
+            ComponentsManager.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // Get components back
-            var comp1 = ComponentsRegistry.GetComponent<TestComponent>(entity1);
-            var comp2 = ComponentsRegistry.GetComponent<TestComponent>(entity2);
-            var comp3 = ComponentsRegistry.GetComponent<TestComponent>(entity3);
+            var comp1 = ComponentsManager.GetComponent<TestComponent>(entity1);
+            var comp2 = ComponentsManager.GetComponent<TestComponent>(entity2);
+            var comp3 = ComponentsManager.GetComponent<TestComponent>(entity3);
             
             // Verify each entity has its own component
             AssertEquals(1, comp1.Value.Value, "Entity1 should have value 1");
@@ -443,13 +443,13 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity(testWorld);
             
             // Add component to specified world
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 42 }, testWorld);
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 42 }, testWorld);
             
             // Get component from specified world
-            var compInWorld = ComponentsRegistry.GetComponent<TestComponent>(entity, testWorld);
+            var compInWorld = ComponentsManager.GetComponent<TestComponent>(entity, testWorld);
             
             // Attempt to get component from global world
-            var compGlobal = ComponentsRegistry.GetComponent<TestComponent>(entity, null);
+            var compGlobal = ComponentsManager.GetComponent<TestComponent>(entity, null);
             
             // Verify component accessible only in specified world
             Assert(compInWorld.HasValue, "Component should exist in testWorld");
@@ -457,7 +457,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-005: ComponentsRegistry - Remove Component ==========
+    // ========== Core-005: ComponentsManager - Remove Component ==========
     
     [ContextMenu("Run Test: Remove Existing Component")]
     public void Test_Remove_001()
@@ -469,14 +469,14 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add TestComponent
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 });
             
             // Remove TestComponent
-            bool removed = ComponentsRegistry.RemoveComponent<TestComponent>(entity);
+            bool removed = ComponentsManager.RemoveComponent<TestComponent>(entity);
             
             // Verify that component is removed
             Assert(removed, "RemoveComponent should return true");
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity);
+            var component = ComponentsManager.GetComponent<TestComponent>(entity);
             Assert(!component.HasValue, "Component should not exist after removal");
         });
     }
@@ -491,7 +491,7 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Attempt to remove non-existent component
-            bool removed = ComponentsRegistry.RemoveComponent<TestComponent>(entity);
+            bool removed = ComponentsManager.RemoveComponent<TestComponent>(entity);
             
             // Verify returns false, no exception thrown
             Assert(!removed, "RemoveComponent should return false");
@@ -508,17 +508,17 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Position, Velocity, Health
-            ComponentsRegistry.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Remove Velocity
-            ComponentsRegistry.RemoveComponent<Velocity>(entity);
+            ComponentsManager.RemoveComponent<Velocity>(entity);
             
             // Check remaining components
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
-            var velocity = ComponentsRegistry.GetComponent<Velocity>(entity);
-            var health = ComponentsRegistry.GetComponent<Health>(entity);
+            var position = ComponentsManager.GetComponent<Position>(entity);
+            var velocity = ComponentsManager.GetComponent<Velocity>(entity);
+            var health = ComponentsManager.GetComponent<Health>(entity);
             
             // Verify Position and Health remain, Velocity removed
             Assert(position.HasValue, "Position should still exist");
@@ -539,17 +539,17 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add components to all three
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 });
-            ComponentsRegistry.AddComponent(entity2, new TestComponent { Value = 2 });
-            ComponentsRegistry.AddComponent(entity3, new TestComponent { Value = 3 });
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity2, new TestComponent { Value = 2 });
+            ComponentsManager.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // Remove component from Entity2 (middle)
-            ComponentsRegistry.RemoveComponent<TestComponent>(entity2);
+            ComponentsManager.RemoveComponent<TestComponent>(entity2);
             
             // Verify that Entity1 and Entity3 still have components
-            var comp1 = ComponentsRegistry.GetComponent<TestComponent>(entity1);
-            var comp2 = ComponentsRegistry.GetComponent<TestComponent>(entity2);
-            var comp3 = ComponentsRegistry.GetComponent<TestComponent>(entity3);
+            var comp1 = ComponentsManager.GetComponent<TestComponent>(entity1);
+            var comp2 = ComponentsManager.GetComponent<TestComponent>(entity2);
+            var comp3 = ComponentsManager.GetComponent<TestComponent>(entity3);
             
             Assert(comp1.HasValue, "Entity1 should still have component");
             Assert(!comp2.HasValue, "Entity2 should not have component");
@@ -570,15 +570,15 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity(testWorld);
             
             // Add component to testWorld and to global world
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 }, testWorld);
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 2 }, null);
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 }, testWorld);
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 2 }, null);
             
             // Remove component from testWorld
-            ComponentsRegistry.RemoveComponent<TestComponent>(entity, testWorld);
+            ComponentsManager.RemoveComponent<TestComponent>(entity, testWorld);
             
             // Check components in both worlds
-            var compTest = ComponentsRegistry.GetComponent<TestComponent>(entity, testWorld);
-            var compGlobal = ComponentsRegistry.GetComponent<TestComponent>(entity, null);
+            var compTest = ComponentsManager.GetComponent<TestComponent>(entity, testWorld);
+            var compGlobal = ComponentsManager.GetComponent<TestComponent>(entity, null);
             
             // Verify component removed only from specified world
             Assert(!compTest.HasValue, "Component should be removed from testWorld");
@@ -586,7 +586,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-006: ComponentsRegistry - Get Component (Single Entity) ==========
+    // ========== Core-006: ComponentsManager - Get Component (Single Entity) ==========
     
     [ContextMenu("Run Test: Get Existing Component")]
     public void Test_Get_001()
@@ -598,10 +598,10 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add TestComponent with known value
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 42 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 42 });
             
             // Get component
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity);
+            var component = ComponentsManager.GetComponent<TestComponent>(entity);
             
             // Verify component returned with correct value
             Assert(component.HasValue, "Component should exist");
@@ -619,7 +619,7 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Get non-existent component
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity);
+            var component = ComponentsManager.GetComponent<TestComponent>(entity);
             
             // Verify returns null (nullable struct)
             Assert(!component.HasValue, "Component should not exist");
@@ -636,13 +636,13 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add TestComponent
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 });
             
             // Remove TestComponent
-            ComponentsRegistry.RemoveComponent<TestComponent>(entity);
+            ComponentsManager.RemoveComponent<TestComponent>(entity);
             
             // Get TestComponent
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity);
+            var component = ComponentsManager.GetComponent<TestComponent>(entity);
             
             // Verify returns null
             Assert(!component.HasValue, "Component should not exist after removal");
@@ -662,13 +662,13 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity(testWorld);
             
             // Add component to testWorld
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 42 }, testWorld);
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 42 }, testWorld);
             
             // Get component from testWorld
-            var compTest = ComponentsRegistry.GetComponent<TestComponent>(entity, testWorld);
+            var compTest = ComponentsManager.GetComponent<TestComponent>(entity, testWorld);
             
             // Get component from global world
-            var compGlobal = ComponentsRegistry.GetComponent<TestComponent>(entity, null);
+            var compGlobal = ComponentsManager.GetComponent<TestComponent>(entity, null);
             
             // Verify component accessible only in specified world
             Assert(compTest.HasValue, "Component should exist in testWorld");
@@ -676,7 +676,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-007: ComponentsRegistry - GetComponents (Single Type Query) ==========
+    // ========== Core-007: ComponentsManager - GetComponents (Single Type Query) ==========
     
     [ContextMenu("Run Test: GetComponents Empty Storage")]
     public void Test_Query_001()
@@ -685,7 +685,7 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get components from empty storage
-            var components = ComponentsRegistry.GetComponents<TestComponent>();
+            var components = ComponentsManager.GetComponents<TestComponent>();
             
             // Verify returns empty span
             AssertEquals(0, components.Length, "Components.Length should be 0");
@@ -703,10 +703,10 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add TestComponent
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 42 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 42 });
             
             // Get all components
-            var components = ComponentsRegistry.GetComponents<TestComponent>();
+            var components = ComponentsManager.GetComponents<TestComponent>();
             
             // Verify returns span with one component
             AssertEquals(1, components.Length, "Components.Length should be 1");
@@ -726,12 +726,12 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add TestComponent to each with different values
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 });
-            ComponentsRegistry.AddComponent(entity2, new TestComponent { Value = 2 });
-            ComponentsRegistry.AddComponent(entity3, new TestComponent { Value = 3 });
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity2, new TestComponent { Value = 2 });
+            ComponentsManager.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // Get all components
-            var components = ComponentsRegistry.GetComponents<TestComponent>();
+            var components = ComponentsManager.GetComponents<TestComponent>();
             
             // Verify returns span with three components
             AssertEquals(3, components.Length, "Components.Length should be 3");
@@ -755,11 +755,11 @@ public class CoreTests : TestBase
             for (int i = 0; i < 5; i++)
             {
                 entities[i] = World.CreateEntity();
-                ComponentsRegistry.AddComponent(entities[i], new TestComponent { Value = i });
+                ComponentsManager.AddComponent(entities[i], new TestComponent { Value = i });
             }
             
             // Get components through GetComponents
-            var components = ComponentsRegistry.GetComponents<TestComponent>();
+            var components = ComponentsManager.GetComponents<TestComponent>();
             
             // Verify that it's ReadOnlySpan (not array)
             // This is verified by the fact that we can iterate without allocations
@@ -782,15 +782,15 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add components to all three
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 });
-            ComponentsRegistry.AddComponent(entity2, new TestComponent { Value = 2 });
-            ComponentsRegistry.AddComponent(entity3, new TestComponent { Value = 3 });
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity2, new TestComponent { Value = 2 });
+            ComponentsManager.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // Remove component from Entity2
-            ComponentsRegistry.RemoveComponent<TestComponent>(entity2);
+            ComponentsManager.RemoveComponent<TestComponent>(entity2);
             
             // Get all components
-            var components = ComponentsRegistry.GetComponents<TestComponent>();
+            var components = ComponentsManager.GetComponents<TestComponent>();
             
             // Verify returns span with two components
             AssertEquals(2, components.Length, "Components.Length should be 2");
@@ -811,14 +811,14 @@ public class CoreTests : TestBase
             Entity entity2 = World.CreateEntity(null);
             
             // Add components to testWorld and to global world
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 }, testWorld);
-            ComponentsRegistry.AddComponent(entity2, new TestComponent { Value = 2 }, null);
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 }, testWorld);
+            ComponentsManager.AddComponent(entity2, new TestComponent { Value = 2 }, null);
             
             // Get components from testWorld
-            var componentsTest = ComponentsRegistry.GetComponents<TestComponent>(testWorld);
+            var componentsTest = ComponentsManager.GetComponents<TestComponent>(testWorld);
             
             // Get components from global world
-            var componentsGlobal = ComponentsRegistry.GetComponents<TestComponent>(null);
+            var componentsGlobal = ComponentsManager.GetComponents<TestComponent>(null);
             
             // Verify components are isolated by worlds
             AssertEquals(1, componentsTest.Length, "TestWorld should have 1 component");
@@ -826,7 +826,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-008: ComponentsRegistry - GetComponents (Multiple AND Query) ==========
+    // ========== Core-008: ComponentsManager - GetComponents (Multiple AND Query) ==========
     
     [ContextMenu("Run Test: GetComponents Two Types - Both Present")]
     public void Test_Query_007()
@@ -836,19 +836,19 @@ public class CoreTests : TestBase
         {
             // Create Entity1 with Position and Velocity
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
             
             // Create Entity2 only with Position
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
+            ComponentsManager.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
             
             // Create Entity3 only with Velocity
             Entity entity3 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity3, new Velocity { X = 40f, Y = 50f, Z = 60f });
+            ComponentsManager.AddComponent(entity3, new Velocity { X = 40f, Y = 50f, Z = 60f });
             
             // Call GetComponents<Position, Velocity>()
-            var components = ComponentsRegistry.GetComponents<Position, Velocity>();
+            var components = ComponentsManager.GetComponents<Position, Velocity>();
             
             // Verify returns only Entity1 (has both components)
             AssertEquals(1, components.Length, "Should return 1 component");
@@ -864,14 +864,14 @@ public class CoreTests : TestBase
         {
             // Create Entity1 only with Position
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
             
             // Create Entity2 only with Velocity
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity2, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity2, new Velocity { X = 4f, Y = 5f, Z = 6f });
             
             // Call GetComponents<Position, Velocity>()
-            var components = ComponentsRegistry.GetComponents<Position, Velocity>();
+            var components = ComponentsManager.GetComponents<Position, Velocity>();
             
             // Verify returns empty span
             AssertEquals(0, components.Length, "Should return 0 components");
@@ -887,23 +887,23 @@ public class CoreTests : TestBase
         {
             // Create Entity1, Entity2, Entity3 with Position and Velocity
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
             
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
-            ComponentsRegistry.AddComponent(entity2, new Velocity { X = 40f, Y = 50f, Z = 60f });
+            ComponentsManager.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
+            ComponentsManager.AddComponent(entity2, new Velocity { X = 40f, Y = 50f, Z = 60f });
             
             Entity entity3 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity3, new Position { X = 100f, Y = 200f, Z = 300f });
-            ComponentsRegistry.AddComponent(entity3, new Velocity { X = 400f, Y = 500f, Z = 600f });
+            ComponentsManager.AddComponent(entity3, new Position { X = 100f, Y = 200f, Z = 300f });
+            ComponentsManager.AddComponent(entity3, new Velocity { X = 400f, Y = 500f, Z = 600f });
             
             // Create Entity4 only with Position
             Entity entity4 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity4, new Position { X = 1000f, Y = 2000f, Z = 3000f });
+            ComponentsManager.AddComponent(entity4, new Position { X = 1000f, Y = 2000f, Z = 3000f });
             
             // Call GetComponents<Position, Velocity>()
-            var components = ComponentsRegistry.GetComponents<Position, Velocity>();
+            var components = ComponentsManager.GetComponents<Position, Velocity>();
             
             // Verify returns span with three components
             AssertEquals(3, components.Length, "Should return 3 components");
@@ -918,22 +918,22 @@ public class CoreTests : TestBase
         {
             // Create Entity1 with Position, Velocity, Health
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
             
             // Create Entity2 with Position, Velocity (without Health)
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
-            ComponentsRegistry.AddComponent(entity2, new Velocity { X = 40f, Y = 50f, Z = 60f });
+            ComponentsManager.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
+            ComponentsManager.AddComponent(entity2, new Velocity { X = 40f, Y = 50f, Z = 60f });
             
             // Create Entity3 with Position, Health (without Velocity)
             Entity entity3 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity3, new Position { X = 100f, Y = 200f, Z = 300f });
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 200f });
+            ComponentsManager.AddComponent(entity3, new Position { X = 100f, Y = 200f, Z = 300f });
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 200f });
             
             // Call GetComponents<Position, Velocity, Health>()
-            var components = ComponentsRegistry.GetComponents<Position, Velocity, Health>();
+            var components = ComponentsManager.GetComponents<Position, Velocity, Health>();
             
             // Verify returns only Entity1
             AssertEquals(1, components.Length, "Should return 1 component");
@@ -949,16 +949,16 @@ public class CoreTests : TestBase
         {
             // Create Entity1 with Position, Velocity
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f });
             
             // Create Entity2 with Position, Health
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 100f });
             
             // Call GetComponents<Position, Velocity, Health>()
-            var components = ComponentsRegistry.GetComponents<Position, Velocity, Health>();
+            var components = ComponentsManager.GetComponents<Position, Velocity, Health>();
             
             // Verify returns empty span
             AssertEquals(0, components.Length, "Should return 0 components");
@@ -975,11 +975,11 @@ public class CoreTests : TestBase
             // Add several Position components
             Entity entity1 = World.CreateEntity();
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
+            ComponentsManager.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
             
             // Call GetComponents<Position, Velocity>()
-            var components = ComponentsRegistry.GetComponents<Position, Velocity>();
+            var components = ComponentsManager.GetComponents<Position, Velocity>();
             
             // Verify returns empty span (early exit)
             AssertEquals(0, components.Length, "Should return 0 components");
@@ -997,16 +997,16 @@ public class CoreTests : TestBase
             
             // Create Entity1 in testWorld with Position and Velocity
             Entity entity1 = World.CreateEntity(testWorld);
-            ComponentsRegistry.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f }, testWorld);
-            ComponentsRegistry.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f }, testWorld);
+            ComponentsManager.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f }, testWorld);
+            ComponentsManager.AddComponent(entity1, new Velocity { X = 4f, Y = 5f, Z = 6f }, testWorld);
             
             // Create Entity2 in global world with Position and Velocity
             Entity entity2 = World.CreateEntity(null);
-            ComponentsRegistry.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f }, null);
-            ComponentsRegistry.AddComponent(entity2, new Velocity { X = 40f, Y = 50f, Z = 60f }, null);
+            ComponentsManager.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f }, null);
+            ComponentsManager.AddComponent(entity2, new Velocity { X = 40f, Y = 50f, Z = 60f }, null);
             
             // Call GetComponents<Position, Velocity>(testWorld)
-            var components = ComponentsRegistry.GetComponents<Position, Velocity>(testWorld);
+            var components = ComponentsManager.GetComponents<Position, Velocity>(testWorld);
             
             // Verify returns only Entity1 from testWorld
             AssertEquals(1, components.Length, "Should return 1 component from testWorld");
@@ -1014,7 +1014,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-009: ComponentsRegistry - GetComponentsWithout Query ==========
+    // ========== Core-009: ComponentsManager - GetComponentsWithout Query ==========
     
     [ContextMenu("Run Test: GetComponentsWithout Single Type (No Exclusions)")]
     public void Test_Query_014()
@@ -1028,12 +1028,12 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add Health to all three
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 200f });
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 300f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 200f });
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 300f });
             
             // Call GetComponentsWithout<Health>()
-            var components = ComponentsRegistry.GetComponentsWithout<Health>();
+            var components = ComponentsManager.GetComponentsWithout<Health>();
             
             // Verify returns all Health components (equivalent to GetComponents<Health>())
             AssertEquals(3, components.Length, "Should return 3 components");
@@ -1048,19 +1048,19 @@ public class CoreTests : TestBase
         {
             // Create Entity1 with Health (without Dead)
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
             
             // Create Entity2 with Health and Dead
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 200f });
-            ComponentsRegistry.AddComponent(entity2, new Dead());
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 200f });
+            ComponentsManager.AddComponent(entity2, new Dead());
             
             // Create Entity3 with Health (without Dead)
             Entity entity3 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 300f });
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 300f });
             
             // Call GetComponentsWithout<Health, Dead>()
-            var components = ComponentsRegistry.GetComponentsWithout<Health, Dead>();
+            var components = ComponentsManager.GetComponentsWithout<Health, Dead>();
             
             // Verify returns Health components of Entity1 and Entity3
             AssertEquals(2, components.Length, "Should return 2 components");
@@ -1085,15 +1085,15 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add Health and Dead to all three
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity1, new Dead());
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 200f });
-            ComponentsRegistry.AddComponent(entity2, new Dead());
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 300f });
-            ComponentsRegistry.AddComponent(entity3, new Dead());
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Dead());
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 200f });
+            ComponentsManager.AddComponent(entity2, new Dead());
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 300f });
+            ComponentsManager.AddComponent(entity3, new Dead());
             
             // Call GetComponentsWithout<Health, Dead>()
-            var components = ComponentsRegistry.GetComponentsWithout<Health, Dead>();
+            var components = ComponentsManager.GetComponentsWithout<Health, Dead>();
             
             // Verify returns empty span
             AssertEquals(0, components.Length, "Should return 0 components");
@@ -1108,26 +1108,26 @@ public class CoreTests : TestBase
         {
             // Create Entity1 with Health (without Dead, without Destroyed)
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
             
             // Create Entity2 with Health and Dead
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 200f });
-            ComponentsRegistry.AddComponent(entity2, new Dead());
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 200f });
+            ComponentsManager.AddComponent(entity2, new Dead());
             
             // Create Entity3 with Health and Destroyed
             Entity entity3 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 300f });
-            ComponentsRegistry.AddComponent(entity3, new Destroyed());
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 300f });
+            ComponentsManager.AddComponent(entity3, new Destroyed());
             
             // Create Entity4 with Health, Dead, Destroyed
             Entity entity4 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity4, new Health { Amount = 400f });
-            ComponentsRegistry.AddComponent(entity4, new Dead());
-            ComponentsRegistry.AddComponent(entity4, new Destroyed());
+            ComponentsManager.AddComponent(entity4, new Health { Amount = 400f });
+            ComponentsManager.AddComponent(entity4, new Dead());
+            ComponentsManager.AddComponent(entity4, new Destroyed());
             
             // Call GetComponentsWithout<Health, Dead, Destroyed>()
-            var components = ComponentsRegistry.GetComponentsWithout<Health, Dead, Destroyed>();
+            var components = ComponentsManager.GetComponentsWithout<Health, Dead, Destroyed>();
             
             // Verify returns only Entity1 Health component
             AssertEquals(1, components.Length, "Should return 1 component");
@@ -1147,17 +1147,17 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add Health and Dead to all three
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity1, new Dead());
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 200f });
-            ComponentsRegistry.AddComponent(entity2, new Dead());
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 300f });
-            ComponentsRegistry.AddComponent(entity3, new Dead());
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Dead());
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 200f });
+            ComponentsManager.AddComponent(entity2, new Dead());
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 300f });
+            ComponentsManager.AddComponent(entity3, new Dead());
             
             // Call GetComponentsWithout<Health, Dead, Destroyed>()
             // This returns Health components for entities that have Health but NOT Dead and NOT Destroyed
             // Since all entities have Dead, they are all excluded
-            var components = ComponentsRegistry.GetComponentsWithout<Health, Dead, Destroyed>();
+            var components = ComponentsManager.GetComponentsWithout<Health, Dead, Destroyed>();
             
             // Verify returns empty span (all entities have Dead, so they are excluded)
             AssertEquals(0, components.Length, "Should return 0 components (all entities have Dead, which is an exclusion)");
@@ -1175,19 +1175,19 @@ public class CoreTests : TestBase
             
             // Create Entity1 in testWorld with Health (without Dead)
             Entity entity1 = World.CreateEntity(testWorld);
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f }, testWorld);
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f }, testWorld);
             
             // Create Entity2 in testWorld with Health and Dead
             Entity entity2 = World.CreateEntity(testWorld);
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 200f }, testWorld);
-            ComponentsRegistry.AddComponent(entity2, new Dead(), testWorld);
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 200f }, testWorld);
+            ComponentsManager.AddComponent(entity2, new Dead(), testWorld);
             
             // Create Entity3 in global world with Health (without Dead)
             Entity entity3 = World.CreateEntity(null);
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 300f }, null);
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 300f }, null);
             
             // Call GetComponentsWithout<Health, Dead>(testWorld)
-            var components = ComponentsRegistry.GetComponentsWithout<Health, Dead>(testWorld);
+            var components = ComponentsManager.GetComponentsWithout<Health, Dead>(testWorld);
             
             // Verify returns only Entity1 Health component from testWorld
             AssertEquals(1, components.Length, "Should return 1 component from testWorld");
@@ -1195,7 +1195,7 @@ public class CoreTests : TestBase
         });
     }
     
-    // ========== Core-010: ComponentsRegistry - Deferred Component Modifications ==========
+    // ========== Core-010: ComponentsManager - Deferred Component Modifications ==========
     
     [ContextMenu("Run Test: Modify Component Using ModifiableCollection")]
     public void Test_Modify_001()
@@ -1207,10 +1207,10 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Health with Amount=100
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Use GetModifiableComponents<Health>()
-            using (var components = ComponentsRegistry.GetModifiableComponents<Health>())
+            using (var components = ComponentsManager.GetModifiableComponents<Health>())
             {
                 // Change Amount to 50 via ref
                 if (components.Count > 0)
@@ -1220,7 +1220,7 @@ public class CoreTests : TestBase
             } // Dispose collection
             
             // Get component back
-            var health = ComponentsRegistry.GetComponent<Health>(entity);
+            var health = ComponentsManager.GetComponent<Health>(entity);
             
             // Verify changes applied after Dispose
             Assert(health.HasValue, "Health component should exist");
@@ -1240,12 +1240,12 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add Health to all with Amount=100
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 100f });
             
             // Use GetModifiableComponents<Health>()
-            using (var components = ComponentsRegistry.GetModifiableComponents<Health>())
+            using (var components = ComponentsManager.GetModifiableComponents<Health>())
             {
                 // Change Amount for all three
                 for (int i = 0; i < components.Count; i++)
@@ -1255,9 +1255,9 @@ public class CoreTests : TestBase
             } // Dispose collection
             
             // Check all components
-            var health1 = ComponentsRegistry.GetComponent<Health>(entity1);
-            var health2 = ComponentsRegistry.GetComponent<Health>(entity2);
-            var health3 = ComponentsRegistry.GetComponent<Health>(entity3);
+            var health1 = ComponentsManager.GetComponent<Health>(entity1);
+            var health2 = ComponentsManager.GetComponent<Health>(entity2);
+            var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
             // Verify all changes applied
             Assert(health1.HasValue, "Entity1 health should exist");
@@ -1282,10 +1282,10 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Health with Amount=100
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Use GetModifiableComponents<Health>()
-            var components = ComponentsRegistry.GetModifiableComponents<Health>();
+            var components = ComponentsManager.GetModifiableComponents<Health>();
             
             // Change Amount to 50
             if (components.Count > 0)
@@ -1295,7 +1295,7 @@ public class CoreTests : TestBase
             
             // DON'T call Dispose
             // Get component back
-            var health = ComponentsRegistry.GetComponent<Health>(entity);
+            var health = ComponentsManager.GetComponent<Health>(entity);
             
             // Verify changes NOT applied (remains 100)
             Assert(health.HasValue, "Health component should exist");
@@ -1318,12 +1318,12 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add Health to all
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 200f });
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 300f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 200f });
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 300f });
             
             // Use GetModifiableComponents<Health>()
-            using (var components = ComponentsRegistry.GetModifiableComponents<Health>())
+            using (var components = ComponentsManager.GetModifiableComponents<Health>())
             {
                 // Iterate and modify all components
                 for (int i = 0; i < components.Count; i++)
@@ -1333,9 +1333,9 @@ public class CoreTests : TestBase
             } // Dispose collection
             
             // Verify all components modified correctly
-            var health1 = ComponentsRegistry.GetComponent<Health>(entity1);
-            var health2 = ComponentsRegistry.GetComponent<Health>(entity2);
-            var health3 = ComponentsRegistry.GetComponent<Health>(entity3);
+            var health1 = ComponentsManager.GetComponent<Health>(entity1);
+            var health2 = ComponentsManager.GetComponent<Health>(entity2);
+            var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
             Assert(health1.HasValue, "Entity1 health should exist");
             Assert(health2.HasValue, "Entity2 health should exist");
@@ -1362,11 +1362,11 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity(testWorld);
             
             // Add Health to testWorld and to global world
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f }, testWorld);
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 200f }, null);
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f }, testWorld);
+            ComponentsManager.AddComponent(entity, new Health { Amount = 200f }, null);
             
             // Use GetModifiableComponents<Health>(testWorld)
-            using (var components = ComponentsRegistry.GetModifiableComponents<Health>(testWorld))
+            using (var components = ComponentsManager.GetModifiableComponents<Health>(testWorld))
             {
                 // Change Amount
                 if (components.Count > 0)
@@ -1376,8 +1376,8 @@ public class CoreTests : TestBase
             } // Dispose collection
             
             // Check components in both worlds
-            var healthTest = ComponentsRegistry.GetComponent<Health>(entity, testWorld);
-            var healthGlobal = ComponentsRegistry.GetComponent<Health>(entity, null);
+            var healthTest = ComponentsManager.GetComponent<Health>(entity, testWorld);
+            var healthGlobal = ComponentsManager.GetComponent<Health>(entity, null);
             
             // Verify changes applied only in specified world
             Assert(healthTest.HasValue, "Health should exist in testWorld");
@@ -1397,10 +1397,10 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Health
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Use GetModifiableComponents<Health>()
-            var components = ComponentsRegistry.GetModifiableComponents<Health>();
+            var components = ComponentsManager.GetModifiableComponents<Health>();
             
             // Dispose collection
             components.Dispose();
@@ -1428,8 +1428,8 @@ public class CoreTests : TestBase
         string testName = "Test_Pool_001";
         ExecuteTest(testName, () =>
         {
-            // Call EntityPool.Allocate()
-            Entity entity = EntityPool.Allocate();
+            // Call EntitiesManager.Allocate()
+            Entity entity = EntitiesManager.Allocate();
             
             // Verify returns valid Entity
             Assert(entity.IsValid, "Entity should be valid");
@@ -1444,10 +1444,10 @@ public class CoreTests : TestBase
         string testName = "Test_Pool_002";
         ExecuteTest(testName, () =>
         {
-            // Call EntityPool.Allocate() three times
-            Entity entity1 = EntityPool.Allocate();
-            Entity entity2 = EntityPool.Allocate();
-            Entity entity3 = EntityPool.Allocate();
+            // Call EntitiesManager.Allocate() three times
+            Entity entity1 = EntitiesManager.Allocate();
+            Entity entity2 = EntitiesManager.Allocate();
+            Entity entity3 = EntitiesManager.Allocate();
             
             // Verify ID uniqueness
             Assert(entity1.Id != entity2.Id, "Entity1.Id != Entity2.Id");
@@ -1463,14 +1463,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Allocate Entity
-            Entity entity = EntityPool.Allocate();
+            Entity entity = EntitiesManager.Allocate();
             
             // Deallocate Entity
-            bool deallocated = EntityPool.Deallocate(entity);
+            bool deallocated = EntitiesManager.Deallocate(entity);
             
             // Verify that Entity is no longer allocated
             Assert(deallocated, "Deallocate should return true");
-            Assert(!EntityPool.IsAllocated(entity), "Entity should not be allocated");
+            Assert(!EntitiesManager.IsAllocated(entity), "Entity should not be allocated");
         });
     }
     
@@ -1484,7 +1484,7 @@ public class CoreTests : TestBase
             Entity invalid = Entity.Invalid;
             
             // Attempt to deallocate
-            bool deallocated = EntityPool.Deallocate(invalid);
+            bool deallocated = EntitiesManager.Deallocate(invalid);
             
             // Verify returns false
             Assert(!deallocated, "Deallocate should return false");
@@ -1498,7 +1498,7 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Allocate Entity1
-            Entity entity1 = EntityPool.Allocate();
+            Entity entity1 = EntitiesManager.Allocate();
             
             // Remember Entity1 ID
             int entity1Id = entity1.Id;
@@ -1506,10 +1506,10 @@ public class CoreTests : TestBase
             
             // Deallocate Entity1
             // This increments generation in _generations dictionary to invalidate old references
-            EntityPool.Deallocate(entity1);
+            EntitiesManager.Deallocate(entity1);
             
             // Allocate Entity2
-            Entity entity2 = EntityPool.Allocate();
+            Entity entity2 = EntitiesManager.Allocate();
             
             // Verify that Entity2 has same ID but different Generation
             // Note: ID recycling may not happen immediately if pool has other available IDs
@@ -1529,20 +1529,20 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Allocate Entity1
-            Entity entity1 = EntityPool.Allocate();
+            Entity entity1 = EntitiesManager.Allocate();
             
             // Remember Entity1 completely (ID and Generation)
             Entity oldEntity1 = entity1;
             
             // Deallocate Entity1
-            EntityPool.Deallocate(entity1);
+            EntitiesManager.Deallocate(entity1);
             
             // Allocate Entity2 (reuses ID)
-            Entity entity2 = EntityPool.Allocate();
+            Entity entity2 = EntitiesManager.Allocate();
             
             // Verify that old Entity1 is not equal to Entity2
             Assert(oldEntity1 != entity2, "Old Entity1 should not equal Entity2");
-            Assert(!EntityPool.IsAllocated(oldEntity1), "Old Entity1 should not be allocated");
+            Assert(!EntitiesManager.IsAllocated(oldEntity1), "Old Entity1 should not be allocated");
         });
     }
     
@@ -1553,16 +1553,16 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Allocate Entity
-            Entity entity = EntityPool.Allocate();
+            Entity entity = EntitiesManager.Allocate();
             
             // Check IsAllocated
-            bool allocated = EntityPool.IsAllocated(entity);
+            bool allocated = EntitiesManager.IsAllocated(entity);
             
             // Deallocate Entity
-            EntityPool.Deallocate(entity);
+            EntitiesManager.Deallocate(entity);
             
             // Check IsAllocated again
-            bool allocatedAfter = EntityPool.IsAllocated(entity);
+            bool allocatedAfter = EntitiesManager.IsAllocated(entity);
             
             // Verify IsAllocated correctly reflects state
             Assert(allocated, "Entity should be allocated after allocation");
@@ -1577,21 +1577,21 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get initial count
-            int initialCount = EntityPool.GetAllocatedCount();
+            int initialCount = EntitiesManager.GetAllocatedCount();
             
             // Allocate 3 entities
-            Entity entity1 = EntityPool.Allocate();
-            Entity entity2 = EntityPool.Allocate();
-            Entity entity3 = EntityPool.Allocate();
+            Entity entity1 = EntitiesManager.Allocate();
+            Entity entity2 = EntitiesManager.Allocate();
+            Entity entity3 = EntitiesManager.Allocate();
             
             // Get new count
-            int newCount = EntityPool.GetAllocatedCount();
+            int newCount = EntitiesManager.GetAllocatedCount();
             
             // Deallocate 1 entity
-            EntityPool.Deallocate(entity1);
+            EntitiesManager.Deallocate(entity1);
             
             // Get final count
-            int finalCount = EntityPool.GetAllocatedCount();
+            int finalCount = EntitiesManager.GetAllocatedCount();
             
             // Verify count correctly tracks allocated entities
             AssertEquals(0, initialCount, "Initial count should be 0");
@@ -1607,19 +1607,19 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get initial available count
-            int initialAvailable = EntityPool.GetAvailableCount();
+            int initialAvailable = EntitiesManager.GetAvailableCount();
             
             // Allocate 3 entities
-            Entity entity1 = EntityPool.Allocate();
-            Entity entity2 = EntityPool.Allocate();
-            Entity entity3 = EntityPool.Allocate();
+            Entity entity1 = EntitiesManager.Allocate();
+            Entity entity2 = EntitiesManager.Allocate();
+            Entity entity3 = EntitiesManager.Allocate();
             
             // Deallocate 2 entities
-            EntityPool.Deallocate(entity1);
-            EntityPool.Deallocate(entity2);
+            EntitiesManager.Deallocate(entity1);
+            EntitiesManager.Deallocate(entity2);
             
             // Get available count
-            int finalAvailable = EntityPool.GetAvailableCount();
+            int finalAvailable = EntitiesManager.GetAvailableCount();
             
             // Verify available count correctly tracks deallocated IDs
             AssertEquals(0, initialAvailable, "Initial available should be 0");
@@ -1634,19 +1634,19 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Allocate several entities
-            Entity entity1 = EntityPool.Allocate();
-            Entity entity2 = EntityPool.Allocate();
-            Entity entity3 = EntityPool.Allocate();
+            Entity entity1 = EntitiesManager.Allocate();
+            Entity entity2 = EntitiesManager.Allocate();
+            Entity entity3 = EntitiesManager.Allocate();
             
             // Deallocate some
-            EntityPool.Deallocate(entity1);
+            EntitiesManager.Deallocate(entity1);
             
             // Clear pool
-            EntityPool.Clear();
+            EntitiesManager.Clear();
             
             // Check counts
-            int allocatedCount = EntityPool.GetAllocatedCount();
-            int availableCount = EntityPool.GetAvailableCount();
+            int allocatedCount = EntitiesManager.GetAllocatedCount();
+            int availableCount = EntitiesManager.GetAvailableCount();
             
             // Verify pool cleared, counts reset
             AssertEquals(0, allocatedCount, "Allocated count should be 0");
@@ -1664,14 +1664,14 @@ public class CoreTests : TestBase
             World testWorld = new World("Test");
             
             // Allocate Entity1 in global world
-            Entity entity1 = EntityPool.Allocate(null);
+            Entity entity1 = EntitiesManager.Allocate(null);
             
             // Allocate Entity2 in testWorld
-            Entity entity2 = EntityPool.Allocate(testWorld);
+            Entity entity2 = EntitiesManager.Allocate(testWorld);
             
             // Check counts in each world
-            int globalCount = EntityPool.GetAllocatedCount(null);
-            int testCount = EntityPool.GetAllocatedCount(testWorld);
+            int globalCount = EntitiesManager.GetAllocatedCount(null);
+            int testCount = EntitiesManager.GetAllocatedCount(testWorld);
             
             // Verify pools isolated by worlds
             AssertEquals(1, globalCount, "Global world should have 1 allocated entity");
@@ -1686,13 +1686,13 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Allocate Entity
-            Entity entity = EntityPool.Allocate();
+            Entity entity = EntitiesManager.Allocate();
             
             // Deallocate Entity
-            bool firstDealloc = EntityPool.Deallocate(entity);
+            bool firstDealloc = EntitiesManager.Deallocate(entity);
             
             // Attempt to deallocate Entity again
-            bool secondDealloc = EntityPool.Deallocate(entity);
+            bool secondDealloc = EntitiesManager.Deallocate(entity);
             
             // Verify second deallocation returns false
             Assert(firstDealloc, "First deallocation should return true");
@@ -1713,7 +1713,7 @@ public class CoreTests : TestBase
             
             // Verify returns valid Entity
             Assert(entity.IsValid, "Entity should be valid");
-            Assert(EntityPool.IsAllocated(entity), "Entity should be allocated");
+            Assert(EntitiesManager.IsAllocated(entity), "Entity should be allocated");
         });
     }
     
@@ -1751,8 +1751,8 @@ public class CoreTests : TestBase
             Entity entity2 = World.CreateEntity(testWorld);
             
             // Verify that they are in different pools
-            Assert(EntityPool.IsAllocated(entity1, null), "Entity1 should be allocated in global world");
-            Assert(EntityPool.IsAllocated(entity2, testWorld), "Entity2 should be allocated in testWorld");
+            Assert(EntitiesManager.IsAllocated(entity1, null), "Entity1 should be allocated in global world");
+            Assert(EntitiesManager.IsAllocated(entity2, testWorld), "Entity2 should be allocated in testWorld");
         });
     }
     
@@ -1770,7 +1770,7 @@ public class CoreTests : TestBase
             
             // Verify that entity is destroyed
             Assert(destroyed, "DestroyEntity should return true");
-            Assert(!EntityPool.IsAllocated(entity), "Entity should not be allocated");
+            Assert(!EntitiesManager.IsAllocated(entity), "Entity should not be allocated");
         });
     }
     
@@ -1784,22 +1784,22 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Position, Velocity, Health
-            ComponentsRegistry.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Call World.DestroyEntity(entity)
             bool destroyed = World.DestroyEntity(entity);
             
             // Verify that all components are removed
             Assert(destroyed, "DestroyEntity should return true");
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
-            var velocity = ComponentsRegistry.GetComponent<Velocity>(entity);
-            var health = ComponentsRegistry.GetComponent<Health>(entity);
+            var position = ComponentsManager.GetComponent<Position>(entity);
+            var velocity = ComponentsManager.GetComponent<Velocity>(entity);
+            var health = ComponentsManager.GetComponent<Health>(entity);
             Assert(!position.HasValue, "Position should be removed");
             Assert(!velocity.HasValue, "Velocity should be removed");
             Assert(!health.HasValue, "Health should be removed");
-            Assert(!EntityPool.IsAllocated(entity), "Entity should not be allocated");
+            Assert(!EntitiesManager.IsAllocated(entity), "Entity should not be allocated");
         });
     }
     
@@ -1813,12 +1813,12 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add 10 different component types
-            ComponentsRegistry.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 });
-            ComponentsRegistry.AddComponent(entity, new Dead());
-            ComponentsRegistry.AddComponent(entity, new Destroyed());
+            ComponentsManager.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity, new Dead());
+            ComponentsManager.AddComponent(entity, new Destroyed());
             // We only have 6 component types, so we'll use what we have
             // In a real scenario, there would be 10 different types
             
@@ -1827,10 +1827,10 @@ public class CoreTests : TestBase
             
             // Verify that all components are removed
             Assert(destroyed, "DestroyEntity should return true");
-            Assert(!ComponentsRegistry.GetComponent<Position>(entity).HasValue, "Position should be removed");
-            Assert(!ComponentsRegistry.GetComponent<Velocity>(entity).HasValue, "Velocity should be removed");
-            Assert(!ComponentsRegistry.GetComponent<Health>(entity).HasValue, "Health should be removed");
-            Assert(!ComponentsRegistry.GetComponent<TestComponent>(entity).HasValue, "TestComponent should be removed");
+            Assert(!ComponentsManager.GetComponent<Position>(entity).HasValue, "Position should be removed");
+            Assert(!ComponentsManager.GetComponent<Velocity>(entity).HasValue, "Velocity should be removed");
+            Assert(!ComponentsManager.GetComponent<Health>(entity).HasValue, "Health should be removed");
+            Assert(!ComponentsManager.GetComponent<TestComponent>(entity).HasValue, "TestComponent should be removed");
         });
     }
     
@@ -1882,21 +1882,21 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity(testWorld);
             
             // Add components to testWorld and to global world
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 1 }, testWorld);
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 2 }, null);
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 }, testWorld);
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 2 }, null);
             
             // Destroy Entity in testWorld
             bool destroyed = World.DestroyEntity(entity, testWorld);
             
             // Check components in both worlds
-            var compTest = ComponentsRegistry.GetComponent<TestComponent>(entity, testWorld);
-            var compGlobal = ComponentsRegistry.GetComponent<TestComponent>(entity, null);
+            var compTest = ComponentsManager.GetComponent<TestComponent>(entity, testWorld);
+            var compGlobal = ComponentsManager.GetComponent<TestComponent>(entity, null);
             
             // Verify components removed only from specified world, entity deallocated
             Assert(destroyed, "DestroyEntity should return true");
             Assert(!compTest.HasValue, "Component should be removed from testWorld");
             Assert(compGlobal.HasValue, "Component should remain in global world");
-            Assert(!EntityPool.IsAllocated(entity, testWorld), "Entity should not be allocated in testWorld");
+            Assert(!EntitiesManager.IsAllocated(entity, testWorld), "Entity should not be allocated in testWorld");
         });
     }
     
@@ -1910,17 +1910,17 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add components of different types
-            ComponentsRegistry.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Destroy Entity
             World.DestroyEntity(entity);
             
             // Verify that GetComponents for all types don't contain this entity
-            var positions = ComponentsRegistry.GetComponents<Position>();
-            var velocities = ComponentsRegistry.GetComponents<Velocity>();
-            var healths = ComponentsRegistry.GetComponents<Health>();
+            var positions = ComponentsManager.GetComponents<Position>();
+            var velocities = ComponentsManager.GetComponents<Velocity>();
+            var healths = ComponentsManager.GetComponents<Health>();
             
             // Since this was the only entity, all should be empty
             AssertEquals(0, positions.Length, "Positions should be empty");
@@ -1939,7 +1939,7 @@ public class CoreTests : TestBase
             Entity entity1 = World.CreateEntity();
             
             // Add components
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 });
             
             // Destroy Entity1
             World.DestroyEntity(entity1);
@@ -1950,7 +1950,7 @@ public class CoreTests : TestBase
             // Verify that Entity2 can use recycled ID
             // Note: ID recycling may not happen immediately
             // Components should not be recycled
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity2);
+            var component = ComponentsManager.GetComponent<TestComponent>(entity2);
             Assert(!component.HasValue, "Entity2 should not have recycled components");
         });
     }
@@ -1967,12 +1967,12 @@ public class CoreTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add several components
-            ComponentsRegistry.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Modify components
-            using (var components = ComponentsRegistry.GetModifiableComponents<Health>())
+            using (var components = ComponentsManager.GetModifiableComponents<Health>())
             {
                 if (components.Count > 0)
                 {
@@ -1981,17 +1981,17 @@ public class CoreTests : TestBase
             }
             
             // Remove one component
-            ComponentsRegistry.RemoveComponent<Velocity>(entity);
+            ComponentsManager.RemoveComponent<Velocity>(entity);
             
             // Add new component
-            ComponentsRegistry.AddComponent(entity, new TestComponent { Value = 42 });
+            ComponentsManager.AddComponent(entity, new TestComponent { Value = 42 });
             
             // Destroy entity
             World.DestroyEntity(entity);
             
             // Verify final state
-            Assert(!EntityPool.IsAllocated(entity), "Entity should not be allocated");
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
+            Assert(!EntitiesManager.IsAllocated(entity), "Entity should not be allocated");
+            var position = ComponentsManager.GetComponent<Position>(entity);
             Assert(!position.HasValue, "Position should be removed");
         });
     }
@@ -2013,14 +2013,14 @@ public class CoreTests : TestBase
             Entity entity3 = World.CreateEntity(world3);
             
             // Add components in different worlds
-            ComponentsRegistry.AddComponent(entity1, new TestComponent { Value = 1 }, world1);
-            ComponentsRegistry.AddComponent(entity2, new TestComponent { Value = 2 }, world2);
-            ComponentsRegistry.AddComponent(entity3, new TestComponent { Value = 3 }, world3);
+            ComponentsManager.AddComponent(entity1, new TestComponent { Value = 1 }, world1);
+            ComponentsManager.AddComponent(entity2, new TestComponent { Value = 2 }, world2);
+            ComponentsManager.AddComponent(entity3, new TestComponent { Value = 3 }, world3);
             
             // Execute queries in each world
-            var comps1 = ComponentsRegistry.GetComponents<TestComponent>(world1);
-            var comps2 = ComponentsRegistry.GetComponents<TestComponent>(world2);
-            var comps3 = ComponentsRegistry.GetComponents<TestComponent>(world3);
+            var comps1 = ComponentsManager.GetComponents<TestComponent>(world1);
+            var comps2 = ComponentsManager.GetComponents<TestComponent>(world2);
+            var comps3 = ComponentsManager.GetComponents<TestComponent>(world3);
             
             // Verify worlds are completely isolated
             AssertEquals(1, comps1.Length, "World1 should have 1 component");
@@ -2033,9 +2033,9 @@ public class CoreTests : TestBase
             World.DestroyEntity(entity3, world3);
             
             // Verify isolation maintained
-            Assert(!EntityPool.IsAllocated(entity1, world1), "Entity1 should not be allocated");
-            Assert(!EntityPool.IsAllocated(entity2, world2), "Entity2 should not be allocated");
-            Assert(!EntityPool.IsAllocated(entity3, world3), "Entity3 should not be allocated");
+            Assert(!EntitiesManager.IsAllocated(entity1, world1), "Entity1 should not be allocated");
+            Assert(!EntitiesManager.IsAllocated(entity2, world2), "Entity2 should not be allocated");
+            Assert(!EntitiesManager.IsAllocated(entity3, world3), "Entity3 should not be allocated");
         });
     }
     
@@ -2056,27 +2056,27 @@ public class CoreTests : TestBase
             // Position: entities 0-499 (500 entities)
             for (int i = 0; i < 500; i++)
             {
-                ComponentsRegistry.AddComponent(entities[i], new Position { X = i, Y = i, Z = i });
+                ComponentsManager.AddComponent(entities[i], new Position { X = i, Y = i, Z = i });
             }
             
             // Velocity: entities 0-299 (300 entities) - all of these also have Position
             for (int i = 0; i < 300; i++)
             {
-                ComponentsRegistry.AddComponent(entities[i], new Velocity { X = i, Y = i, Z = i });
+                ComponentsManager.AddComponent(entities[i], new Velocity { X = i, Y = i, Z = i });
             }
             
             // Health: entities 0-199 (200 entities) - all of these also have Position and Velocity
             for (int i = 0; i < 200; i++)
             {
-                ComponentsRegistry.AddComponent(entities[i], new Health { Amount = i });
+                ComponentsManager.AddComponent(entities[i], new Health { Amount = i });
             }
             
             // Execute various queries
-            var positions = ComponentsRegistry.GetComponents<Position>();
-            var velocities = ComponentsRegistry.GetComponents<Velocity>();
-            var healths = ComponentsRegistry.GetComponents<Health>();
-            var posVel = ComponentsRegistry.GetComponents<Position, Velocity>();
-            var posVelHealth = ComponentsRegistry.GetComponents<Position, Velocity, Health>();
+            var positions = ComponentsManager.GetComponents<Position>();
+            var velocities = ComponentsManager.GetComponents<Velocity>();
+            var healths = ComponentsManager.GetComponents<Health>();
+            var posVel = ComponentsManager.GetComponents<Position, Velocity>();
+            var posVelHealth = ComponentsManager.GetComponents<Position, Velocity, Health>();
             
             // Verify queries complete successfully
             // Position AND Velocity: entities 0-299 = 300 entities (all Velocity entities also have Position)

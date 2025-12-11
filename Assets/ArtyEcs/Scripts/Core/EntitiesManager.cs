@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace ArtyECS.Core
 {
     /// <summary>
-    /// Pool for managing reusable entity IDs with generation tracking for safety.
+    /// Manager for reusable entity IDs with generation tracking for safety.
     /// Provides fast allocation and deallocation of entities with ID recycling.
     /// </summary>
     /// <remarks>
@@ -19,7 +19,7 @@ namespace ArtyECS.Core
     /// - Zero-allocation in hot path (only allocates on pool growth)
     /// - Entity pools use static dictionaries that persist across Unity scene changes
     /// 
-    /// The pool maintains:
+    /// The manager maintains:
     /// - A stack of available entity IDs for fast allocation
     /// - A dictionary tracking generation numbers per entity ID
     /// - A counter for the next new entity ID
@@ -31,7 +31,7 @@ namespace ArtyECS.Core
     /// Generation numbers ensure that old entity references become invalid when IDs are recycled,
     /// preventing accidental use of destroyed entities.
     /// </remarks>
-    public static class EntityPool
+    public static class EntitiesManager
     {
         /// <summary>
         /// Default initial capacity for entity pools.
@@ -53,9 +53,9 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Global/default world instance. Used when no world is specified.
-        /// Lazily initialized to ensure ComponentsRegistry is ready.
+        /// Lazily initialized to ensure ComponentsManager is ready.
         /// </summary>
-        private static World GlobalWorld => ComponentsRegistry.GetGlobalWorld();
+        private static World GlobalWorld => ComponentsManager.GetGlobalWorld();
 
         /// <summary>
         /// Gets or creates the entity pool instance for the specified world.
@@ -92,9 +92,9 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var entity = EntityPool.Allocate();
+        /// var entity = EntitiesManager.Allocate();
         /// // Use entity...
-        /// EntityPool.Deallocate(entity);
+        /// EntitiesManager.Deallocate(entity);
         /// </code>
         /// </remarks>
         public static Entity Allocate(World world = null)
@@ -121,12 +121,12 @@ namespace ArtyECS.Core
         /// This ensures that any old references to the entity become invalid
         /// (they will have the old generation number and won't match).
         /// 
-        /// Note: This method does NOT remove components from ComponentsRegistry.
+        /// Note: This method does NOT remove components from ComponentsManager.
         /// Component cleanup should be handled separately (see Core-012).
         /// 
         /// Usage:
         /// <code>
-        /// EntityPool.Deallocate(entity);
+        /// EntitiesManager.Deallocate(entity);
         /// // Entity ID is now available for reuse
         /// </code>
         /// </remarks>
@@ -202,8 +202,8 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var localWorld = new World("Local");
-        /// // ... use world ...
-        /// EntityPool.ClearWorld(localWorld); // Clean up entity pool
+        /// // ... use world ... 
+        /// EntitiesManager.ClearWorld(localWorld); // Clean up entity pool
         /// </code>
         /// </remarks>
         internal static void ClearWorld(World world)

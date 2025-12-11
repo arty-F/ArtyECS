@@ -89,23 +89,23 @@ public class WorldTests : TestBase
             Entity entity = World.CreateEntity(testWorld);
             
             // Add components to Entity in TestWorld
-            ComponentsRegistry.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, testWorld);
-            ComponentsRegistry.AddComponent<Position>(entity, new Position { X = 1f, Y = 2f, Z = 3f }, testWorld);
+            ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, testWorld);
+            ComponentsManager.AddComponent<Position>(entity, new Position { X = 1f, Y = 2f, Z = 3f }, testWorld);
             
             // Add system to TestWorld
             var system = new TestSystem(() => { });
-            SystemsRegistry.AddToUpdate(system, testWorld);
+            SystemsManager.AddToUpdate(system, testWorld);
             
             // Call World.Destroy(TestWorld)
             bool destroyed = World.Destroy(testWorld);
             
             // Verify that world is destroyed
             Assert(destroyed, "World.Destroy(TestWorld) should return true");
-            AssertEquals(0, ComponentsRegistry.GetComponents<TestComponent>(testWorld).Length, "Components should be cleared");
-            AssertEquals(0, ComponentsRegistry.GetComponents<Position>(testWorld).Length, "Components should be cleared");
-            AssertEquals(0, SystemsRegistry.GetUpdateQueue(testWorld).Count, "Update queue should be cleared");
-            AssertEquals(0, SystemsRegistry.GetFixedUpdateQueue(testWorld).Count, "FixedUpdate queue should be cleared");
-            Assert(!EntityPool.IsAllocated(entity, testWorld), "Entity should not be allocated");
+            AssertEquals(0, ComponentsManager.GetComponents<TestComponent>(testWorld).Length, "Components should be cleared");
+            AssertEquals(0, ComponentsManager.GetComponents<Position>(testWorld).Length, "Components should be cleared");
+            AssertEquals(0, SystemsManager.GetUpdateQueue(testWorld).Count, "Update queue should be cleared");
+            AssertEquals(0, SystemsManager.GetFixedUpdateQueue(testWorld).Count, "FixedUpdate queue should be cleared");
+            Assert(!EntitiesManager.IsAllocated(entity, testWorld), "Entity should not be allocated");
         });
     }
     
@@ -164,25 +164,25 @@ public class WorldTests : TestBase
             Entity entity3 = World.CreateEntity(testWorld);
             
             // Add Position, Velocity, Health to all entities
-            ComponentsRegistry.AddComponent<Position>(entity1, new Position { X = 1f, Y = 2f, Z = 3f }, testWorld);
-            ComponentsRegistry.AddComponent<Velocity>(entity1, new Velocity { X = 1f, Y = 1f, Z = 1f }, testWorld);
-            ComponentsRegistry.AddComponent<Health>(entity1, new Health { Amount = 100f }, testWorld);
+            ComponentsManager.AddComponent<Position>(entity1, new Position { X = 1f, Y = 2f, Z = 3f }, testWorld);
+            ComponentsManager.AddComponent<Velocity>(entity1, new Velocity { X = 1f, Y = 1f, Z = 1f }, testWorld);
+            ComponentsManager.AddComponent<Health>(entity1, new Health { Amount = 100f }, testWorld);
             
-            ComponentsRegistry.AddComponent<Position>(entity2, new Position { X = 4f, Y = 5f, Z = 6f }, testWorld);
-            ComponentsRegistry.AddComponent<Velocity>(entity2, new Velocity { X = 2f, Y = 2f, Z = 2f }, testWorld);
-            ComponentsRegistry.AddComponent<Health>(entity2, new Health { Amount = 200f }, testWorld);
+            ComponentsManager.AddComponent<Position>(entity2, new Position { X = 4f, Y = 5f, Z = 6f }, testWorld);
+            ComponentsManager.AddComponent<Velocity>(entity2, new Velocity { X = 2f, Y = 2f, Z = 2f }, testWorld);
+            ComponentsManager.AddComponent<Health>(entity2, new Health { Amount = 200f }, testWorld);
             
-            ComponentsRegistry.AddComponent<Position>(entity3, new Position { X = 7f, Y = 8f, Z = 9f }, testWorld);
-            ComponentsRegistry.AddComponent<Velocity>(entity3, new Velocity { X = 3f, Y = 3f, Z = 3f }, testWorld);
-            ComponentsRegistry.AddComponent<Health>(entity3, new Health { Amount = 300f }, testWorld);
+            ComponentsManager.AddComponent<Position>(entity3, new Position { X = 7f, Y = 8f, Z = 9f }, testWorld);
+            ComponentsManager.AddComponent<Velocity>(entity3, new Velocity { X = 3f, Y = 3f, Z = 3f }, testWorld);
+            ComponentsManager.AddComponent<Health>(entity3, new Health { Amount = 300f }, testWorld);
             
             // Destroy TestWorld
             World.Destroy(testWorld);
             
             // Check components in TestWorld
-            AssertEquals(0, ComponentsRegistry.GetComponents<Position>(testWorld).Length, "Position components should be cleared");
-            AssertEquals(0, ComponentsRegistry.GetComponents<Velocity>(testWorld).Length, "Velocity components should be cleared");
-            AssertEquals(0, ComponentsRegistry.GetComponents<Health>(testWorld).Length, "Health components should be cleared");
+            AssertEquals(0, ComponentsManager.GetComponents<Position>(testWorld).Length, "Position components should be cleared");
+            AssertEquals(0, ComponentsManager.GetComponents<Velocity>(testWorld).Length, "Velocity components should be cleared");
+            AssertEquals(0, ComponentsManager.GetComponents<Health>(testWorld).Length, "Health components should be cleared");
         });
     }
     
@@ -201,16 +201,16 @@ public class WorldTests : TestBase
             var system3 = new TestSystem(() => { });
             
             // Add all systems to TestWorld Update queue
-            SystemsRegistry.AddToUpdate(system1, testWorld);
-            SystemsRegistry.AddToUpdate(system2, testWorld);
-            SystemsRegistry.AddToUpdate(system3, testWorld);
+            SystemsManager.AddToUpdate(system1, testWorld);
+            SystemsManager.AddToUpdate(system2, testWorld);
+            SystemsManager.AddToUpdate(system3, testWorld);
             
             // Destroy TestWorld
             World.Destroy(testWorld);
             
             // Check systems in TestWorld
-            AssertEquals(0, SystemsRegistry.GetUpdateQueue(testWorld).Count, "Update queue should be cleared");
-            AssertEquals(0, SystemsRegistry.GetFixedUpdateQueue(testWorld).Count, "FixedUpdate queue should be cleared");
+            AssertEquals(0, SystemsManager.GetUpdateQueue(testWorld).Count, "Update queue should be cleared");
+            AssertEquals(0, SystemsManager.GetFixedUpdateQueue(testWorld).Count, "FixedUpdate queue should be cleared");
         });
     }
     
@@ -232,8 +232,8 @@ public class WorldTests : TestBase
             World.Destroy(testWorld);
             
             // Check entity pool in TestWorld
-            AssertEquals(0, EntityPool.GetAllocatedCount(testWorld), "Allocated count should be 0");
-            AssertEquals(0, EntityPool.GetAvailableCount(testWorld), "Available count should be 0");
+            AssertEquals(0, EntitiesManager.GetAllocatedCount(testWorld), "Allocated count should be 0");
+            AssertEquals(0, EntitiesManager.GetAvailableCount(testWorld), "Available count should be 0");
         });
     }
     
@@ -252,17 +252,17 @@ public class WorldTests : TestBase
             Entity entity2 = World.CreateEntity(world2);
             
             // Add components to both entities
-            ComponentsRegistry.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, world1);
-            ComponentsRegistry.AddComponent<TestComponent>(entity2, new TestComponent { Value = 200 }, world2);
+            ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, world1);
+            ComponentsManager.AddComponent<TestComponent>(entity2, new TestComponent { Value = 200 }, world2);
             
             // Destroy World1
             World.Destroy(world1);
             
             // Check World2
-            var component2 = ComponentsRegistry.GetComponent<TestComponent>(entity2, world2);
+            var component2 = ComponentsManager.GetComponent<TestComponent>(entity2, world2);
             Assert(component2.HasValue, "GetComponent(Entity2, World2) should not be null");
             AssertEquals(200, component2.Value.Value, "Component value should be 200");
-            AssertEquals(1, ComponentsRegistry.GetComponents<TestComponent>(world2).Length, "World2 should have 1 component");
+            AssertEquals(1, ComponentsManager.GetComponents<TestComponent>(world2).Length, "World2 should have 1 component");
         });
     }
     
@@ -324,16 +324,16 @@ public class WorldTests : TestBase
             // Get global world from World.GetGlobalWorld()
             World worldGlobal = World.GetGlobalWorld();
             
-            // Get global world from ComponentsRegistry.GetGlobalWorld()
-            World componentsGlobal = ComponentsRegistry.GetGlobalWorld();
+            // Get global world from ComponentsManager.GetGlobalWorld()
+            World componentsGlobal = ComponentsManager.GetGlobalWorld();
             
-            // Get global world from SystemsRegistry.GetGlobalWorld()
-            World systemsGlobal = SystemsRegistry.GetGlobalWorld();
+            // Get global world from SystemsManager.GetGlobalWorld()
+            World systemsGlobal = SystemsManager.GetGlobalWorld();
             
             // Compare instances
-            Assert(worldGlobal == componentsGlobal, "World.GetGlobalWorld() == ComponentsRegistry.GetGlobalWorld() should be true");
-            Assert(worldGlobal == systemsGlobal, "World.GetGlobalWorld() == SystemsRegistry.GetGlobalWorld() should be true");
-            Assert(ReferenceEquals(worldGlobal, componentsGlobal), "World and ComponentsRegistry should share same global world instance");
+            Assert(worldGlobal == componentsGlobal, "World.GetGlobalWorld() == ComponentsManager.GetGlobalWorld() should be true");
+            Assert(worldGlobal == systemsGlobal, "World.GetGlobalWorld() == SystemsManager.GetGlobalWorld() should be true");
+            Assert(ReferenceEquals(worldGlobal, componentsGlobal), "World and ComponentsManager should share same global world instance");
         });
     }
     
@@ -347,11 +347,11 @@ public class WorldTests : TestBase
             Entity entity = World.CreateEntity(null);
             
             // Add component without specifying world (null)
-            ComponentsRegistry.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, null);
+            ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, null);
             
             // Get component without specifying world (null)
-            var componentNull = ComponentsRegistry.GetComponent<TestComponent>(entity, null);
-            var componentGlobal = ComponentsRegistry.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
+            var componentNull = ComponentsManager.GetComponent<TestComponent>(entity, null);
+            var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
             
             // Verify component is in global world
             Assert(componentNull.HasValue, "GetComponent(entity, null) should not be null");
@@ -407,7 +407,7 @@ public class WorldTests : TestBase
     
     // ========== World-002: World-Scoped Storage Integration ==========
     
-    [ContextMenu("Run Test: ComponentsRegistry World Parameter Support")]
+    [ContextMenu("Run Test: ComponentsManager World Parameter Support")]
     public void Test_WorldScoped_001()
     {
         string testName = "Test_WorldScoped_001";
@@ -420,20 +420,20 @@ public class WorldTests : TestBase
             Entity entity = World.CreateEntity(testWorld);
             
             // Add component with World parameter
-            ComponentsRegistry.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, testWorld);
+            ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, testWorld);
             
             // Get component with World parameter
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity, testWorld);
+            var component = ComponentsManager.GetComponent<TestComponent>(entity, testWorld);
             Assert(component.HasValue, "GetComponent should return component");
             AssertEquals(42, component.Value.Value, "Component value should be 42");
             
             // Remove component with World parameter
-            bool removed = ComponentsRegistry.RemoveComponent<TestComponent>(entity, testWorld);
+            bool removed = ComponentsManager.RemoveComponent<TestComponent>(entity, testWorld);
             Assert(removed, "RemoveComponent should return true");
         });
     }
     
-    [ContextMenu("Run Test: ComponentsRegistry Null World Resolves to Global")]
+    [ContextMenu("Run Test: ComponentsManager Null World Resolves to Global")]
     public void Test_WorldScoped_002()
     {
         string testName = "Test_WorldScoped_002";
@@ -443,11 +443,11 @@ public class WorldTests : TestBase
             Entity entity = World.CreateEntity(null);
             
             // Add component with null World parameter
-            ComponentsRegistry.AddComponent<TestComponent>(entity, new TestComponent { Value = 100 }, null);
+            ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 100 }, null);
             
             // Get component from global world
-            var componentNull = ComponentsRegistry.GetComponent<TestComponent>(entity, null);
-            var componentGlobal = ComponentsRegistry.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
+            var componentNull = ComponentsManager.GetComponent<TestComponent>(entity, null);
+            var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
             
             // Verify component added to global world
             Assert(componentNull.HasValue, "GetComponent(entity, null) should not be null");
@@ -456,7 +456,7 @@ public class WorldTests : TestBase
         });
     }
     
-    [ContextMenu("Run Test: SystemsRegistry World Parameter Support")]
+    [ContextMenu("Run Test: SystemsManager World Parameter Support")]
     public void Test_WorldScoped_003()
     {
         string testName = "Test_WorldScoped_003";
@@ -469,18 +469,18 @@ public class WorldTests : TestBase
             var system = new TestSystem(() => { });
             
             // Add system to Update queue with World parameter
-            SystemsRegistry.AddToUpdate(system, testWorld);
+            SystemsManager.AddToUpdate(system, testWorld);
             
             // Add system to FixedUpdate queue with World parameter
-            SystemsRegistry.AddToFixedUpdate(system, testWorld);
+            SystemsManager.AddToFixedUpdate(system, testWorld);
             
             // Verify systems in queues
-            Assert(SystemsRegistry.GetUpdateQueue(testWorld).Contains(system), "Update queue should contain system");
-            Assert(SystemsRegistry.GetFixedUpdateQueue(testWorld).Contains(system), "FixedUpdate queue should contain system");
+            Assert(SystemsManager.GetUpdateQueue(testWorld).Contains(system), "Update queue should contain system");
+            Assert(SystemsManager.GetFixedUpdateQueue(testWorld).Contains(system), "FixedUpdate queue should contain system");
         });
     }
     
-    [ContextMenu("Run Test: SystemsRegistry Null World Resolves to Global")]
+    [ContextMenu("Run Test: SystemsManager Null World Resolves to Global")]
     public void Test_WorldScoped_004()
     {
         string testName = "Test_WorldScoped_004";
@@ -490,11 +490,11 @@ public class WorldTests : TestBase
             var system = new TestSystem(() => { });
             
             // Add system to Update queue with null World parameter
-            SystemsRegistry.AddToUpdate(system, null);
+            SystemsManager.AddToUpdate(system, null);
             
             // Check global world queue
-            Assert(SystemsRegistry.GetUpdateQueue(null).Contains(system), "GetUpdateQueue(null) should contain system");
-            Assert(SystemsRegistry.GetUpdateQueue(World.GetGlobalWorld()).Contains(system), "GetUpdateQueue(globalWorld) should contain system");
+            Assert(SystemsManager.GetUpdateQueue(null).Contains(system), "GetUpdateQueue(null) should contain system");
+            Assert(SystemsManager.GetUpdateQueue(World.GetGlobalWorld()).Contains(system), "GetUpdateQueue(globalWorld) should contain system");
         });
     }
     
@@ -515,16 +515,16 @@ public class WorldTests : TestBase
             Entity entity2 = World.CreateEntity(world2);
             
             // Add TestComponent to Entity1 in World1
-            ComponentsRegistry.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, world1);
+            ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, world1);
             
             // Add TestComponent to Entity2 in World2
-            ComponentsRegistry.AddComponent<TestComponent>(entity2, new TestComponent { Value = 200 }, world2);
+            ComponentsManager.AddComponent<TestComponent>(entity2, new TestComponent { Value = 200 }, world2);
             
             // Check components in each world
-            var component1InWorld1 = ComponentsRegistry.GetComponent<TestComponent>(entity1, world1);
-            var component1InWorld2 = ComponentsRegistry.GetComponent<TestComponent>(entity1, world2);
-            var component2InWorld1 = ComponentsRegistry.GetComponent<TestComponent>(entity2, world1);
-            var component2InWorld2 = ComponentsRegistry.GetComponent<TestComponent>(entity2, world2);
+            var component1InWorld1 = ComponentsManager.GetComponent<TestComponent>(entity1, world1);
+            var component1InWorld2 = ComponentsManager.GetComponent<TestComponent>(entity1, world2);
+            var component2InWorld1 = ComponentsManager.GetComponent<TestComponent>(entity2, world1);
+            var component2InWorld2 = ComponentsManager.GetComponent<TestComponent>(entity2, world2);
             
             Assert(component1InWorld1.HasValue, "GetComponent(Entity1, World1) should not be null");
             Assert(!component1InWorld2.HasValue, "GetComponent(Entity1, World2) should be null");
@@ -548,16 +548,16 @@ public class WorldTests : TestBase
             var system2 = new TestSystem(() => { });
             
             // Add System1 to World1 Update queue
-            SystemsRegistry.AddToUpdate(system1, world1);
+            SystemsManager.AddToUpdate(system1, world1);
             
             // Add System2 to World2 Update queue
-            SystemsRegistry.AddToUpdate(system2, world2);
+            SystemsManager.AddToUpdate(system2, world2);
             
             // Check queues in each world
-            Assert(SystemsRegistry.GetUpdateQueue(world1).Contains(system1), "World1 Update queue should contain System1");
-            Assert(!SystemsRegistry.GetUpdateQueue(world1).Contains(system2), "World1 Update queue should not contain System2");
-            Assert(!SystemsRegistry.GetUpdateQueue(world2).Contains(system1), "World2 Update queue should not contain System1");
-            Assert(SystemsRegistry.GetUpdateQueue(world2).Contains(system2), "World2 Update queue should contain System2");
+            Assert(SystemsManager.GetUpdateQueue(world1).Contains(system1), "World1 Update queue should contain System1");
+            Assert(!SystemsManager.GetUpdateQueue(world1).Contains(system2), "World1 Update queue should not contain System2");
+            Assert(!SystemsManager.GetUpdateQueue(world2).Contains(system1), "World2 Update queue should not contain System1");
+            Assert(SystemsManager.GetUpdateQueue(world2).Contains(system2), "World2 Update queue should contain System2");
         });
     }
     
@@ -578,10 +578,10 @@ public class WorldTests : TestBase
             Entity entity2 = World.CreateEntity(world2);
             
             // Check entity pools
-            Assert(EntityPool.IsAllocated(entity1, world1), "Entity1 should be allocated in World1");
-            Assert(!EntityPool.IsAllocated(entity1, world2), "Entity1 should not be allocated in World2");
-            Assert(!EntityPool.IsAllocated(entity2, world1), "Entity2 should not be allocated in World1");
-            Assert(EntityPool.IsAllocated(entity2, world2), "Entity2 should be allocated in World2");
+            Assert(EntitiesManager.IsAllocated(entity1, world1), "Entity1 should be allocated in World1");
+            Assert(!EntitiesManager.IsAllocated(entity1, world2), "Entity1 should not be allocated in World2");
+            Assert(!EntitiesManager.IsAllocated(entity2, world1), "Entity2 should not be allocated in World1");
+            Assert(EntitiesManager.IsAllocated(entity2, world2), "Entity2 should be allocated in World2");
         });
     }
     
@@ -601,12 +601,12 @@ public class WorldTests : TestBase
             Entity entity2 = World.CreateEntity(testWorld);
             
             // Add TestComponent to both entities
-            ComponentsRegistry.AddComponent<TestComponent>(entity1, new TestComponent { Value = 10 }, null);
-            ComponentsRegistry.AddComponent<TestComponent>(entity2, new TestComponent { Value = 20 }, testWorld);
+            ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 10 }, null);
+            ComponentsManager.AddComponent<TestComponent>(entity2, new TestComponent { Value = 20 }, testWorld);
             
             // Get components from each world
-            var componentsGlobal = ComponentsRegistry.GetComponents<TestComponent>(null);
-            var componentsTest = ComponentsRegistry.GetComponents<TestComponent>(testWorld);
+            var componentsGlobal = ComponentsManager.GetComponents<TestComponent>(null);
+            var componentsTest = ComponentsManager.GetComponents<TestComponent>(testWorld);
             
             // Verify GetComponents returns components only from specified world
             AssertEquals(1, componentsGlobal.Length, "Global world should have 1 component");
@@ -626,17 +626,17 @@ public class WorldTests : TestBase
             
             // Create Entity1 in global world with Position and Velocity
             Entity entity1 = World.CreateEntity(null);
-            ComponentsRegistry.AddComponent<Position>(entity1, new Position { X = 1f, Y = 2f, Z = 3f }, null);
-            ComponentsRegistry.AddComponent<Velocity>(entity1, new Velocity { X = 1f, Y = 1f, Z = 1f }, null);
+            ComponentsManager.AddComponent<Position>(entity1, new Position { X = 1f, Y = 2f, Z = 3f }, null);
+            ComponentsManager.AddComponent<Velocity>(entity1, new Velocity { X = 1f, Y = 1f, Z = 1f }, null);
             
             // Create Entity2 in TestWorld with Position and Velocity
             Entity entity2 = World.CreateEntity(testWorld);
-            ComponentsRegistry.AddComponent<Position>(entity2, new Position { X = 4f, Y = 5f, Z = 6f }, testWorld);
-            ComponentsRegistry.AddComponent<Velocity>(entity2, new Velocity { X = 2f, Y = 2f, Z = 2f }, testWorld);
+            ComponentsManager.AddComponent<Position>(entity2, new Position { X = 4f, Y = 5f, Z = 6f }, testWorld);
+            ComponentsManager.AddComponent<Velocity>(entity2, new Velocity { X = 2f, Y = 2f, Z = 2f }, testWorld);
             
             // Get components from each world
-            var componentsGlobal = ComponentsRegistry.GetComponents<Position, Velocity>(null);
-            var componentsTest = ComponentsRegistry.GetComponents<Position, Velocity>(testWorld);
+            var componentsGlobal = ComponentsManager.GetComponents<Position, Velocity>(null);
+            var componentsTest = ComponentsManager.GetComponents<Position, Velocity>(testWorld);
             
             // Verify multi-type queries respect World parameter
             AssertEquals(1, componentsGlobal.Length, "Global world should have 1 matching entity");
@@ -655,15 +655,15 @@ public class WorldTests : TestBase
             
             // Create Entity1 in global world with Health (without Dead)
             Entity entity1 = World.CreateEntity(null);
-            ComponentsRegistry.AddComponent<Health>(entity1, new Health { Amount = 100f }, null);
+            ComponentsManager.AddComponent<Health>(entity1, new Health { Amount = 100f }, null);
             
             // Create Entity2 in TestWorld with Health (without Dead)
             Entity entity2 = World.CreateEntity(testWorld);
-            ComponentsRegistry.AddComponent<Health>(entity2, new Health { Amount = 200f }, testWorld);
+            ComponentsManager.AddComponent<Health>(entity2, new Health { Amount = 200f }, testWorld);
             
             // Get components from each world
-            var componentsGlobal = ComponentsRegistry.GetComponentsWithout<Health, Dead>(null);
-            var componentsTest = ComponentsRegistry.GetComponentsWithout<Health, Dead>(testWorld);
+            var componentsGlobal = ComponentsManager.GetComponentsWithout<Health, Dead>(null);
+            var componentsTest = ComponentsManager.GetComponentsWithout<Health, Dead>(testWorld);
             
             // Verify GetComponentsWithout respects World parameter
             AssertEquals(1, componentsGlobal.Length, "Global world should have 1 component");
@@ -687,18 +687,18 @@ public class WorldTests : TestBase
             Entity entity2 = World.CreateEntity(testWorld);
             
             // Add Health to both entities
-            ComponentsRegistry.AddComponent<Health>(entity1, new Health { Amount = 100f }, null);
-            ComponentsRegistry.AddComponent<Health>(entity2, new Health { Amount = 200f }, testWorld);
+            ComponentsManager.AddComponent<Health>(entity1, new Health { Amount = 100f }, null);
+            ComponentsManager.AddComponent<Health>(entity2, new Health { Amount = 200f }, testWorld);
             
             // Use GetModifiableComponents with World parameter
             int countGlobal = 0;
-            using (var components = ComponentsRegistry.GetModifiableComponents<Health>(null))
+            using (var components = ComponentsManager.GetModifiableComponents<Health>(null))
             {
                 countGlobal = components.Count;
             }
             
             int countTest = 0;
-            using (var components = ComponentsRegistry.GetModifiableComponents<Health>(testWorld))
+            using (var components = ComponentsManager.GetModifiableComponents<Health>(testWorld))
             {
                 countTest = components.Count;
             }
@@ -722,7 +722,7 @@ public class WorldTests : TestBase
             var system = new TestSystem(() => { });
             
             // Call ExecuteOnce with World parameter
-            SystemsRegistry.ExecuteOnce(system, testWorld);
+            SystemsManager.ExecuteOnce(system, testWorld);
             
             // System should execute successfully (no exception)
             // This test verifies API consistency - ExecuteOnce accepts World parameter
@@ -741,22 +741,22 @@ public class WorldTests : TestBase
             // Create System1 in global world
             bool system1Executed = false;
             var system1 = new TestSystem(() => { system1Executed = true; });
-            SystemsRegistry.AddToUpdate(system1, null);
+            SystemsManager.AddToUpdate(system1, null);
             
             // Create System2 in TestWorld
             bool system2Executed = false;
             var system2 = new TestSystem(() => { system2Executed = true; });
-            SystemsRegistry.AddToUpdate(system2, testWorld);
+            SystemsManager.AddToUpdate(system2, testWorld);
             
             // Note: We can't easily track execution in TestSystem, so we verify queue membership
             // In a real scenario, systems would have execution flags
             
             // Call ExecuteUpdate(TestWorld)
-            SystemsRegistry.ExecuteUpdate(testWorld);
+            SystemsManager.ExecuteUpdate(testWorld);
             
             // Verify systems are in correct queues
-            Assert(SystemsRegistry.GetUpdateQueue(null).Contains(system1), "System1 should be in global world queue");
-            Assert(SystemsRegistry.GetUpdateQueue(testWorld).Contains(system2), "System2 should be in TestWorld queue");
+            Assert(SystemsManager.GetUpdateQueue(null).Contains(system1), "System1 should be in global world queue");
+            Assert(SystemsManager.GetUpdateQueue(testWorld).Contains(system2), "System2 should be in TestWorld queue");
         });
     }
     
@@ -771,18 +771,18 @@ public class WorldTests : TestBase
             
             // Create System1 in global world
             var system1 = new TestSystem(() => { });
-            SystemsRegistry.AddToFixedUpdate(system1, null);
+            SystemsManager.AddToFixedUpdate(system1, null);
             
             // Create System2 in TestWorld
             var system2 = new TestSystem(() => { });
-            SystemsRegistry.AddToFixedUpdate(system2, testWorld);
+            SystemsManager.AddToFixedUpdate(system2, testWorld);
             
             // Call ExecuteFixedUpdate(TestWorld)
-            SystemsRegistry.ExecuteFixedUpdate(testWorld);
+            SystemsManager.ExecuteFixedUpdate(testWorld);
             
             // Verify systems are in correct queues
-            Assert(SystemsRegistry.GetFixedUpdateQueue(null).Contains(system1), "System1 should be in global world queue");
-            Assert(SystemsRegistry.GetFixedUpdateQueue(testWorld).Contains(system2), "System2 should be in TestWorld queue");
+            Assert(SystemsManager.GetFixedUpdateQueue(null).Contains(system1), "System1 should be in global world queue");
+            Assert(SystemsManager.GetFixedUpdateQueue(testWorld).Contains(system2), "System2 should be in TestWorld queue");
         });
     }
     
@@ -818,23 +818,23 @@ public class WorldTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Position, Velocity, Health components
-            ComponentsRegistry.AddComponent<Position>(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            ComponentsRegistry.AddComponent<Velocity>(entity, new Velocity { X = 1f, Y = 1f, Z = 1f });
-            ComponentsRegistry.AddComponent<Health>(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent<Position>(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            ComponentsManager.AddComponent<Velocity>(entity, new Velocity { X = 1f, Y = 1f, Z = 1f });
+            ComponentsManager.AddComponent<Health>(entity, new Health { Amount = 100f });
             
             // Remember component values
-            float posX = ComponentsRegistry.GetComponent<Position>(entity).Value.X;
-            float velX = ComponentsRegistry.GetComponent<Velocity>(entity).Value.X;
-            float healthAmount = ComponentsRegistry.GetComponent<Health>(entity).Value.Amount;
+            float posX = ComponentsManager.GetComponent<Position>(entity).Value.X;
+            float velX = ComponentsManager.GetComponent<Velocity>(entity).Value.X;
+            float healthAmount = ComponentsManager.GetComponent<Health>(entity).Value.Amount;
             
             // Note: Actual scene loading test would require Unity scene management.
             // This test verifies components are stored in static dictionaries which persist.
-            // Components should persist because ComponentsRegistry uses static storage.
+            // Components should persist because ComponentsManager uses static storage.
             
             // Verify components still exist (simulating persistence)
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
-            var velocity = ComponentsRegistry.GetComponent<Velocity>(entity);
-            var health = ComponentsRegistry.GetComponent<Health>(entity);
+            var position = ComponentsManager.GetComponent<Position>(entity);
+            var velocity = ComponentsManager.GetComponent<Velocity>(entity);
+            var health = ComponentsManager.GetComponent<Health>(entity);
             
             Assert(position.HasValue, "Position component should exist");
             Assert(velocity.HasValue, "Velocity component should exist");
@@ -857,17 +857,17 @@ public class WorldTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add components to all entities
-            ComponentsRegistry.AddComponent<TestComponent>(entity1, new TestComponent { Value = 1 });
-            ComponentsRegistry.AddComponent<TestComponent>(entity2, new TestComponent { Value = 2 });
-            ComponentsRegistry.AddComponent<TestComponent>(entity3, new TestComponent { Value = 3 });
+            ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent<TestComponent>(entity2, new TestComponent { Value = 2 });
+            ComponentsManager.AddComponent<TestComponent>(entity3, new TestComponent { Value = 3 });
             
             // Note: Actual scene loading test would require Unity scene management.
-            // This test verifies entities are stored in static EntityPool which persists.
+            // This test verifies entities are stored in static EntitiesManager which persists.
             
             // Verify entities still exist (simulating persistence)
-            Assert(EntityPool.IsAllocated(entity1), "Entity1 should be allocated");
-            Assert(EntityPool.IsAllocated(entity2), "Entity2 should be allocated");
-            Assert(EntityPool.IsAllocated(entity3), "Entity3 should be allocated");
+            Assert(EntitiesManager.IsAllocated(entity1), "Entity1 should be allocated");
+            Assert(EntitiesManager.IsAllocated(entity2), "Entity2 should be allocated");
+            Assert(EntitiesManager.IsAllocated(entity3), "Entity3 should be allocated");
         });
     }
     
@@ -883,17 +883,17 @@ public class WorldTests : TestBase
             var system3 = new TestSystem(() => { });
             
             // Add all to Update queue
-            SystemsRegistry.AddToUpdate(system1);
-            SystemsRegistry.AddToUpdate(system2);
-            SystemsRegistry.AddToUpdate(system3);
+            SystemsManager.AddToUpdate(system1);
+            SystemsManager.AddToUpdate(system2);
+            SystemsManager.AddToUpdate(system3);
             
             // Note: Actual scene loading test would require Unity scene management.
-            // This test verifies systems are stored in static SystemsRegistry which persists.
+            // This test verifies systems are stored in static SystemsManager which persists.
             
             // Verify systems still in queue (simulating persistence)
-            Assert(SystemsRegistry.GetUpdateQueue().Contains(system1), "System1 should be in queue");
-            Assert(SystemsRegistry.GetUpdateQueue().Contains(system2), "System2 should be in queue");
-            Assert(SystemsRegistry.GetUpdateQueue().Contains(system3), "System3 should be in queue");
+            Assert(SystemsManager.GetUpdateQueue().Contains(system1), "System1 should be in queue");
+            Assert(SystemsManager.GetUpdateQueue().Contains(system2), "System2 should be in queue");
+            Assert(SystemsManager.GetUpdateQueue().Contains(system3), "System3 should be in queue");
         });
     }
     
@@ -934,15 +934,15 @@ public class WorldTests : TestBase
             Entity entity2 = World.CreateEntity(testWorld);
             
             // Add components to both entities
-            ComponentsRegistry.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, null);
-            ComponentsRegistry.AddComponent<TestComponent>(entity2, new TestComponent { Value = 200 }, testWorld);
+            ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, null);
+            ComponentsManager.AddComponent<TestComponent>(entity2, new TestComponent { Value = 200 }, testWorld);
             
             // Note: Actual scene loading test would require Unity scene management.
             // This test verifies all worlds use static storage which persists.
             
             // Verify both worlds persist (simulating persistence)
-            var component1 = ComponentsRegistry.GetComponent<TestComponent>(entity1, null);
-            var component2 = ComponentsRegistry.GetComponent<TestComponent>(entity2, testWorld);
+            var component1 = ComponentsManager.GetComponent<TestComponent>(entity1, null);
+            var component2 = ComponentsManager.GetComponent<TestComponent>(entity2, testWorld);
             
             Assert(component1.HasValue, "Entity1 component should exist in global world");
             Assert(component2.HasValue, "Entity2 component should exist in TestWorld");
@@ -959,17 +959,17 @@ public class WorldTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Position(X=10, Y=20, Z=30)
-            ComponentsRegistry.AddComponent<Position>(entity, new Position { X = 10f, Y = 20f, Z = 30f });
+            ComponentsManager.AddComponent<Position>(entity, new Position { X = 10f, Y = 20f, Z = 30f });
             
             // Add Health(Amount=100)
-            ComponentsRegistry.AddComponent<Health>(entity, new Health { Amount = 100f });
+            ComponentsManager.AddComponent<Health>(entity, new Health { Amount = 100f });
             
             // Note: Actual scene loading test would require Unity scene management.
             // This test verifies component values are stored in static storage which persists.
             
             // Check component values (simulating persistence)
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
-            var health = ComponentsRegistry.GetComponent<Health>(entity);
+            var position = ComponentsManager.GetComponent<Position>(entity);
+            var health = ComponentsManager.GetComponent<Health>(entity);
             
             AssertEquals(10f, position.Value.X, "Position X should be 10");
             AssertEquals(20f, position.Value.Y, "Position Y should be 20");
@@ -993,13 +993,13 @@ public class WorldTests : TestBase
             World.DestroyEntity(entity2);
             
             // Note: Actual scene loading test would require Unity scene management.
-            // This test verifies entity pool is stored in static EntityPool which persists.
+            // This test verifies entity pool is stored in static EntitiesManager which persists.
             
             // Check entity pool state (simulating persistence)
-            Assert(EntityPool.IsAllocated(entity1), "Entity1 should be allocated");
-            Assert(!EntityPool.IsAllocated(entity2), "Entity2 should not be allocated");
-            Assert(EntityPool.IsAllocated(entity3), "Entity3 should be allocated");
-            AssertEquals(2, EntityPool.GetAllocatedCount(), "Allocated count should be 2");
+            Assert(EntitiesManager.IsAllocated(entity1), "Entity1 should be allocated");
+            Assert(!EntitiesManager.IsAllocated(entity2), "Entity2 should not be allocated");
+            Assert(EntitiesManager.IsAllocated(entity3), "Entity3 should be allocated");
+            AssertEquals(2, EntitiesManager.GetAllocatedCount(), "Allocated count should be 2");
         });
     }
     
@@ -1015,21 +1015,21 @@ public class WorldTests : TestBase
             
             // Create entities and components (simulating Scene1)
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent<TestComponent>(entity1, new TestComponent { Value = 1 });
+            ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 1 });
             
             // Simulate scene change by verifying state persists
             // (In real scenario, Unity scene would change, but ECS state remains)
-            Assert(EntityPool.IsAllocated(entity1), "Entity1 should still be allocated");
-            var component = ComponentsRegistry.GetComponent<TestComponent>(entity1);
+            Assert(EntitiesManager.IsAllocated(entity1), "Entity1 should still be allocated");
+            var component = ComponentsManager.GetComponent<TestComponent>(entity1);
             Assert(component.HasValue, "Component should still exist");
             
             // Create new entities (simulating Scene2)
             Entity entity2 = World.CreateEntity();
-            ComponentsRegistry.AddComponent<TestComponent>(entity2, new TestComponent { Value = 2 });
+            ComponentsManager.AddComponent<TestComponent>(entity2, new TestComponent { Value = 2 });
             
             // Verify all entities exist (simulating return to Scene1)
-            Assert(EntityPool.IsAllocated(entity1), "Entity1 should still be allocated");
-            Assert(EntityPool.IsAllocated(entity2), "Entity2 should be allocated");
+            Assert(EntitiesManager.IsAllocated(entity1), "Entity1 should still be allocated");
+            Assert(EntitiesManager.IsAllocated(entity2), "Entity2 should be allocated");
         });
     }
     

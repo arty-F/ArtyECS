@@ -26,7 +26,7 @@ public class IncrementSystem : SystemHandler
 {
     public override void Execute()
     {
-        var counters = ComponentsRegistry.GetModifiableComponents<CounterComponent>();
+        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>();
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -41,8 +41,8 @@ public class MovementSystem : SystemHandler
 {
     public override void Execute()
     {
-        var positions = ComponentsRegistry.GetModifiableComponents<Position>();
-        var velocities = ComponentsRegistry.GetComponents<Velocity>();
+        var positions = ComponentsManager.GetModifiableComponents<Position>();
+        var velocities = ComponentsManager.GetComponents<Velocity>();
         
         using (positions)
         {
@@ -64,7 +64,7 @@ public class HealthSystem : SystemHandler
 {
     public override void Execute()
     {
-        var healths = ComponentsRegistry.GetModifiableComponents<Health>();
+        var healths = ComponentsManager.GetModifiableComponents<Health>();
         using (healths)
         {
             for (int i = 0; i < healths.Count; i++)
@@ -79,7 +79,7 @@ public class ModifiableHealthSystem : SystemHandler
 {
     public override void Execute()
     {
-        var healths = ComponentsRegistry.GetModifiableComponents<Health>();
+        var healths = ComponentsManager.GetModifiableComponents<Health>();
         using (healths)
         {
             for (int i = 0; i < healths.Count; i++)
@@ -94,8 +94,8 @@ public class PhysicsSystem : SystemHandler
 {
     public override void Execute()
     {
-        var velocities = ComponentsRegistry.GetModifiableComponents<Velocity>();
-        var accelerations = ComponentsRegistry.GetComponents<Acceleration>();
+        var velocities = ComponentsManager.GetModifiableComponents<Velocity>();
+        var accelerations = ComponentsManager.GetComponents<Acceleration>();
         
         using (velocities)
         {
@@ -110,8 +110,8 @@ public class PhysicsSystem : SystemHandler
             }
         }
         
-        var positions = ComponentsRegistry.GetModifiableComponents<Position>();
-        var velocitiesRead = ComponentsRegistry.GetComponents<Velocity>();
+        var positions = ComponentsManager.GetModifiableComponents<Position>();
+        var velocitiesRead = ComponentsManager.GetComponents<Velocity>();
         
         using (positions)
         {
@@ -139,7 +139,7 @@ public class SetValueSystem : SystemHandler
     
     public override void Execute()
     {
-        var counters = ComponentsRegistry.GetModifiableComponents<CounterComponent>();
+        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>();
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -154,7 +154,7 @@ public class UpdateCounterSystem : SystemHandler
 {
     public override void Execute()
     {
-        var counters = ComponentsRegistry.GetModifiableComponents<UpdateCounter>();
+        var counters = ComponentsManager.GetModifiableComponents<UpdateCounter>();
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -169,7 +169,7 @@ public class FixedUpdateCounterSystem : SystemHandler
 {
     public override void Execute()
     {
-        var counters = ComponentsRegistry.GetModifiableComponents<FixedUpdateCounter>();
+        var counters = ComponentsManager.GetModifiableComponents<FixedUpdateCounter>();
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -196,10 +196,10 @@ public class CleanupSystem : SystemHandler
         // In a real system, we'd iterate through all entities with Health and Dead components
         if (entityToCleanup.HasValue)
         {
-            var health = ComponentsRegistry.GetComponent<Health>(entityToCleanup.Value);
+            var health = ComponentsManager.GetComponent<Health>(entityToCleanup.Value);
             if (health.HasValue && health.Value.Amount <= 0f)
             {
-                ComponentsRegistry.RemoveComponent<Dead>(entityToCleanup.Value);
+                ComponentsManager.RemoveComponent<Dead>(entityToCleanup.Value);
             }
         }
         else
@@ -207,7 +207,7 @@ public class CleanupSystem : SystemHandler
             // Fallback: try to find and remove Dead from any entity with Health <= 0
             // This is a limitation - we can't easily iterate entities in current API
             // For this test, we'll use a workaround: check if we can find entities with both components
-            var healthAndDead = ComponentsRegistry.GetComponents<Health, Dead>();
+            var healthAndDead = ComponentsManager.GetComponents<Health, Dead>();
             // Note: We can't get Entity from component in current API
             // This demonstrates a limitation that would need to be addressed in real implementation
         }
@@ -218,7 +218,7 @@ public class SpawnSystem : SystemHandler
 {
     public override void Execute()
     {
-        var spawners = ComponentsRegistry.GetComponents<Spawner>();
+        var spawners = ComponentsManager.GetComponents<Spawner>();
         
         for (int i = 0; i < spawners.Length; i++)
         {
@@ -228,10 +228,10 @@ public class SpawnSystem : SystemHandler
                 Entity newEntity = World.CreateEntity();
                 
                 // Add some component to new entity (optional)
-                ComponentsRegistry.AddComponent(newEntity, new TestComponent { Value = 42 });
+                ComponentsManager.AddComponent(newEntity, new TestComponent { Value = 42 });
                 
                 // Decrement spawn count
-                var modifiableSpawners = ComponentsRegistry.GetModifiableComponents<Spawner>();
+                var modifiableSpawners = ComponentsManager.GetModifiableComponents<Spawner>();
                 using (modifiableSpawners)
                 {
                     if (i < modifiableSpawners.Count)

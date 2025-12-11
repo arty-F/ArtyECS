@@ -11,8 +11,8 @@ namespace ArtyECS.Core
     /// World-003: World Persistence Across Scenes (COMPLETED)
     /// 
     /// Features:
-    /// - Calls SystemsRegistry.ExecuteUpdateAllWorlds() in Update() for all registered worlds
-    /// - Calls SystemsRegistry.ExecuteFixedUpdateAllWorlds() in FixedUpdate() for all registered worlds
+    /// - Calls SystemsManager.ExecuteUpdateAllWorlds() in Update() for all registered worlds
+    /// - Calls SystemsManager.ExecuteFixedUpdateAllWorlds() in FixedUpdate() for all registered worlds
     /// - Always executes systems for all initialized worlds (no configuration needed)
     /// - **DontDestroyOnLoad for persistence across scene changes** - ensures UpdateProvider 
     ///   and system execution continue across scene transitions
@@ -35,8 +35,8 @@ namespace ArtyECS.Core
     /// 
     /// <code>
     /// // Create entity - UpdateProvider created automatically here
-    /// var entity = World.CreateEntity();
-    /// ComponentsRegistry.AddComponent&lt;Position&gt;(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+        /// var entity = World.CreateEntity();
+        /// ComponentsManager.AddComponent&lt;Position&gt;(entity, new Position { X = 1f, Y = 2f, Z = 3f });
     /// 
     /// // Add systems to queues
     /// var movementSystem = new MovementSystem();
@@ -50,7 +50,7 @@ namespace ArtyECS.Core
     /// 
     /// Multiple Worlds:
     /// The UpdateProvider always executes systems for all initialized worlds. To execute systems
-    /// for a specific world only, use SystemsRegistry.ExecuteUpdate(world) or SystemsRegistry.ExecuteFixedUpdate(world)
+        /// for a specific world only, use SystemsManager.ExecuteUpdate(world) or SystemsManager.ExecuteFixedUpdate(world)
     /// directly from your code.
     /// 
     /// Note: UpdateProvider is created automatically as a visible GameObject named "UpdateProvider".
@@ -140,9 +140,9 @@ namespace ArtyECS.Core
             DontDestroyOnLoad(gameObject);
 
             // Initialize global ECS World (ensure it exists)
-            // This is done implicitly when first accessing ComponentsRegistry or SystemsRegistry,
+            // This is done implicitly when first accessing ComponentsManager or SystemsManager,
             // but we can explicitly ensure it's initialized here
-            var globalWorld = SystemsRegistry.GetGlobalWorld();
+            var globalWorld = SystemsManager.GetGlobalWorld();
             UnityEngine.Debug.Log($"UpdateProvider initialized. Global world: {globalWorld}");
         }
 
@@ -169,7 +169,7 @@ namespace ArtyECS.Core
         /// </summary>
         private void ExecuteUpdateSystems()
         {
-            SystemsRegistry.ExecuteUpdateAllWorlds();
+            SystemsManager.ExecuteUpdateAllWorlds();
         }
 
         /// <summary>
@@ -177,7 +177,7 @@ namespace ArtyECS.Core
         /// </summary>
         private void ExecuteFixedUpdateSystems()
         {
-            SystemsRegistry.ExecuteFixedUpdateAllWorlds();
+            SystemsManager.ExecuteFixedUpdateAllWorlds();
         }
 
         /// <summary>

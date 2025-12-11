@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace ArtyECS.Core
 {
     /// <summary>
-    /// Central storage for ECS components, organized by world scope.
+    /// Manager for ECS components, organized by world scope.
     /// Supports multiple worlds, each with isolated component storage.
     /// </summary>
     /// <remarks>
@@ -31,7 +31,7 @@ namespace ArtyECS.Core
     ///   - All component data remains valid after scene transitions
     ///   - No data loss on scene load/unload operations
     /// </remarks>
-    public static class ComponentsRegistry
+    public static class ComponentsManager
     {
         /// <summary>
         /// Gets the global/default world instance. Used when no world is specified.
@@ -238,7 +238,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var hp = ComponentsRegistry.GetComponent&lt;Hp&gt;(entity);
+        /// var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
         /// if (hp.HasValue)
         /// {
         ///     float currentHp = hp.Value.Amount;
@@ -281,14 +281,14 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// // For read-only iteration:
-        /// var hpComponents = ComponentsRegistry.GetComponents&lt;Hp&gt;();
+        /// var hpComponents = ComponentsManager.GetComponents&lt;Hp&gt;();
         /// foreach (var hp in hpComponents)
         /// {
         ///     // Read component values
         /// }
         /// 
         /// // For modifiable iteration with deferred application:
-        /// using (var components = ComponentsRegistry.GetModifiableComponents&lt;Hp&gt;())
+        /// using (var components = ComponentsManager.GetModifiableComponents&lt;Hp&gt;())
         /// {
         ///     for (int i = 0; i &lt; components.Count; i++)
         ///     {
@@ -334,7 +334,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var positionComponents = ComponentsRegistry.GetComponents&lt;Position, Velocity&gt;();
+        /// var positionComponents = ComponentsManager.GetComponents&lt;Position, Velocity&gt;();
         /// foreach (var pos in positionComponents)
         /// {
         ///     // This entity has both Position and Velocity components
@@ -416,7 +416,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var positionComponents = ComponentsRegistry.GetComponents&lt;Position, Velocity, Health&gt;();
+        /// var positionComponents = ComponentsManager.GetComponents&lt;Position, Velocity, Health&gt;();
         /// foreach (var pos in positionComponents)
         /// {
         ///     // This entity has Position, Velocity, and Health components
@@ -490,8 +490,8 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var allHealth = ComponentsRegistry.GetComponentsWithout&lt;Health&gt;();
-        /// // Equivalent to: ComponentsRegistry.GetComponents&lt;Health&gt;();
+        /// var allHealth = ComponentsManager.GetComponentsWithout&lt;Health&gt;();
+        /// // Equivalent to: ComponentsManager.GetComponents&lt;Health&gt;();
         /// </code>
         /// </remarks>
         public static ReadOnlySpan<T1> GetComponentsWithout<T1>(World world = null) 
@@ -528,7 +528,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var aliveEntities = ComponentsRegistry.GetComponentsWithout&lt;Health, Dead&gt;();
+        /// var aliveEntities = ComponentsManager.GetComponentsWithout&lt;Health, Dead&gt;();
         /// foreach (var health in aliveEntities)
         /// {
         ///     // This entity has Health but NOT Dead component
@@ -610,7 +610,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var activeEntities = ComponentsRegistry.GetComponentsWithout&lt;Health, Dead, Destroyed&gt;();
+        /// var activeEntities = ComponentsManager.GetComponentsWithout&lt;Health, Dead, Destroyed&gt;();
         /// foreach (var health in activeEntities)
         /// {
         ///     // This entity has Health but NOT Dead and NOT Destroyed components
@@ -688,7 +688,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// using (var components = ComponentsRegistry.GetModifiableComponents&lt;Hp&gt;())
+        /// using (var components = ComponentsManager.GetModifiableComponents&lt;Hp&gt;())
         /// {
         ///     for (int i = 0; i &lt; components.Count; i++)
         ///     {
@@ -726,7 +726,7 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// // Called automatically by World.DestroyEntity()
-        /// int removedCount = ComponentsRegistry.RemoveAllComponents(entity);
+        /// int removedCount = ComponentsManager.RemoveAllComponents(entity);
         /// </code>
         /// </remarks>
         internal static int RemoveAllComponents(Entity entity, World world = null)
@@ -770,7 +770,7 @@ namespace ArtyECS.Core
         /// <code>
         /// var localWorld = new World("Local");
         /// // ... use world ...
-        /// ComponentsRegistry.ClearWorld(localWorld); // Clean up components
+        /// ComponentsManager.ClearWorld(localWorld); // Clean up components
         /// </code>
         /// </remarks>
         internal static void ClearWorld(World world)

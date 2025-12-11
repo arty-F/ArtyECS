@@ -21,8 +21,8 @@ namespace ArtyECS.Core
     /// {
     ///     public override void Execute()
     ///     {
-    ///         var positions = ComponentsRegistry.GetComponents&lt;Position&gt;();
-    ///         var velocities = ComponentsRegistry.GetComponents&lt;Velocity&gt;();
+        ///         var positions = ComponentsManager.GetComponents&lt;Position&gt;();
+        ///         var velocities = ComponentsManager.GetComponents&lt;Velocity&gt;();
     ///         // Process movement...
     ///     }
     /// }
@@ -44,7 +44,7 @@ namespace ArtyECS.Core
         /// By default, this method does nothing. Override it in derived classes
         /// to implement system logic.
         /// 
-        /// This method is called by SystemsRegistry when executing the system queue.
+        /// This method is called by SystemsManager when executing the system queue.
         /// </remarks>
         public virtual void Execute()
         {

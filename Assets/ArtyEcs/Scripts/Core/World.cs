@@ -14,10 +14,10 @@ namespace ArtyECS.Core
     /// Features:
     /// - World identifier/name for identification and debugging
     /// - Support for multiple worlds with isolated component and system storage
-    /// - World-scoped ComponentsRegistry and SystemsRegistry integration
+    /// - World-scoped ComponentsManager and SystemsManager integration
     /// - World lifecycle management (create, destroy)
     /// - Default global world singleton with lazy initialization
-    /// - Shared global world instance across ComponentsRegistry and SystemsRegistry
+    /// - Shared global world instance across ComponentsManager and SystemsManager
     /// - **Persistence across Unity scene changes**: ECS World data (components, entities, systems) 
     ///   persists across scene loads/unloads automatically via static storage and DontDestroyOnLoad
     /// 
@@ -25,9 +25,9 @@ namespace ArtyECS.Core
     /// 
     /// Scene Persistence:
     /// The ECS World persists across Unity scene changes automatically:
-    /// - Component data is stored in static dictionaries in ComponentsRegistry (persists between scenes)
-    /// - System queues are stored in static dictionaries in SystemsRegistry (persists between scenes)
-    /// - Entity pools are stored in static dictionaries in EntityPool (persists between scenes)
+    /// - Component data is stored in static dictionaries in ComponentsManager (persists between scenes)
+    /// - System queues are stored in static dictionaries in SystemsManager (persists between scenes)
+    /// - Entity pools are stored in static dictionaries in EntitiesManager (persists between scenes)
     /// - UpdateProvider uses DontDestroyOnLoad to persist across scene changes
     /// - All ECS data (entities, components, systems) remains valid after scene transitions
     /// 
@@ -41,7 +41,7 @@ namespace ArtyECS.Core
         /// <summary>
         /// Global/default world instance. Used when no world is specified.
         /// Lazy initialization ensures thread-safe singleton pattern.
-        /// Shared across ComponentsRegistry, SystemsRegistry, and EntityPool.
+        /// Shared across ComponentsManager, SystemsManager, and EntitiesManager.
         /// </summary>
         private static World _globalWorld;
 
@@ -74,14 +74,14 @@ namespace ArtyECS.Core
         /// <summary>
         /// Gets the global/default world instance.
         /// Creates the instance on first access (lazy initialization).
-        /// This is a singleton instance shared across ComponentsRegistry, SystemsRegistry, and EntityPool.
+        /// This is a singleton instance shared across ComponentsManager, SystemsManager, and EntitiesManager.
         /// </summary>
         /// <returns>Global world instance</returns>
         /// <remarks>
         /// This method implements World-000: Global World Singleton.
         /// 
         /// The global world is created lazily on first access and reused for all subsequent calls.
-        /// This ensures that ComponentsRegistry, SystemsRegistry, and EntityPool all use the same
+        /// This ensures that ComponentsManager, SystemsManager, and EntitiesManager all use the same
         /// global world instance for consistency.
         /// 
         /// Thread-safe: uses double-checked locking pattern for lazy initialization.
@@ -119,7 +119,7 @@ namespace ArtyECS.Core
         /// 
         /// Features:
         /// - Fast O(1) entity allocation from entity pool
-        /// - ID recycling support via EntityPool
+        /// - ID recycling support via EntitiesManager
         /// - World-scoped entity allocation
         /// - Zero-allocation in hot path
         /// - Automatically creates UpdateProvider when first entity is created
@@ -130,7 +130,7 @@ namespace ArtyECS.Core
         /// <code>
         /// // Create entity in global world - UpdateProvider created automatically here
         /// var entity = World.CreateEntity();
-        /// ComponentsRegistry.AddComponent&lt;Position&gt;(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+        /// ComponentsManager.AddComponent&lt;Position&gt;(entity, new Position { X = 1f, Y = 2f, Z = 3f });
         /// 
         /// // Create entity in scoped world
         /// var localWorld = new World("Local");
@@ -142,7 +142,7 @@ namespace ArtyECS.Core
             // Ensure UpdateProvider is created when first entity is created
             UpdateProvider.EnsureCreated();
             
-            return EntityPool.Allocate(world);
+            return EntitiesManager.Allocate(world);
         }
 
         /// <summary>
@@ -161,7 +161,7 @@ namespace ArtyECS.Core
         /// - World-scoped entity destruction
         /// 
         /// The destruction process:
-        /// 1. Removes all components for the entity from ComponentsRegistry
+        /// 1. Removes all components for the entity from ComponentsManager
         /// 2. Deallocates the entity, returning its ID to the pool
         /// 3. Increments generation number to invalidate old references
         /// 
@@ -188,10 +188,10 @@ namespace ArtyECS.Core
             }
 
             // Remove all components for this entity (automatic cleanup)
-            ComponentsRegistry.RemoveAllComponents(entity, world);
+            ComponentsManager.RemoveAllComponents(entity, world);
 
             // Deallocate entity and return ID to pool
-            return EntityPool.Deallocate(entity, world);
+            return EntitiesManager.Deallocate(entity, world);
         }
 
         /// <summary>
@@ -234,7 +234,7 @@ namespace ArtyECS.Core
         /// - Prevents destruction of global world (returns false)
         /// 
         /// The destruction process:
-        /// 1. Removes all components from ComponentsRegistry for this world
+        /// 1. Removes all components from ComponentsManager for this world
         /// 2. Clears entity pool for this world
         /// 3. Clears system queues for this world
         /// 
@@ -270,9 +270,9 @@ namespace ArtyECS.Core
             }
 
             // Clean up all resources for this world
-            ComponentsRegistry.ClearWorld(world);
-            EntityPool.ClearWorld(world);
-            SystemsRegistry.ClearWorld(world);
+            ComponentsManager.ClearWorld(world);
+            EntitiesManager.ClearWorld(world);
+            SystemsManager.ClearWorld(world);
 
             // Mark world as destroyed
             _destroyedWorlds.Add(world);
@@ -291,9 +291,9 @@ namespace ArtyECS.Core
         /// </remarks>
         public static void ClearAllECSState()
         {
-            ComponentsRegistry.ClearAll();
-            EntityPool.ClearAll();
-            SystemsRegistry.ClearAll();
+            ComponentsManager.ClearAll();
+            EntitiesManager.ClearAll();
+            SystemsManager.ClearAll();
             _destroyedWorlds.Clear();
         }
     }

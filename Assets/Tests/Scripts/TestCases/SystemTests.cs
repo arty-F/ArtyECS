@@ -100,7 +100,7 @@ public class SystemTests : TestBase
         });
     }
     
-    // ========== System-001: SystemsRegistry - Basic Structure ==========
+    // ========== System-001: SystemsManager - Basic Structure ==========
     
     [ContextMenu("Run Test: GetGlobalWorld Returns World")]
     public void Test_Registry_001()
@@ -108,8 +108,8 @@ public class SystemTests : TestBase
         string testName = "Test_Registry_001";
         ExecuteTest(testName, () =>
         {
-            // Call SystemsRegistry.GetGlobalWorld()
-            World world = SystemsRegistry.GetGlobalWorld();
+            // Call SystemsManager.GetGlobalWorld()
+            World world = SystemsManager.GetGlobalWorld();
             
             // Verify world is not null
             AssertNotNull(world, "GetGlobalWorld() should return non-null World");
@@ -126,14 +126,14 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Check IsWorldInitialized() before usage (may be false or true)
-            bool beforeUsage = SystemsRegistry.IsWorldInitialized();
+            bool beforeUsage = SystemsManager.IsWorldInitialized();
             
             // Add system to queue (initializes world)
             SystemHandler system = new SystemHandler();
-            SystemsRegistry.AddToUpdate(system);
+            SystemsManager.AddToUpdate(system);
             
             // Check IsWorldInitialized() after usage
-            bool afterUsage = SystemsRegistry.IsWorldInitialized();
+            bool afterUsage = SystemsManager.IsWorldInitialized();
             
             // Verify world is initialized after usage
             Assert(afterUsage, "IsWorldInitialized() should be true after usage");
@@ -147,17 +147,17 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get initial world count
-            int initialCount = SystemsRegistry.GetWorldCount();
+            int initialCount = SystemsManager.GetWorldCount();
             
             // Create new World("Test")
             World testWorld = new World("Test");
             
             // Add system to new world
             SystemHandler system = new SystemHandler();
-            SystemsRegistry.AddToUpdate(system, testWorld);
+            SystemsManager.AddToUpdate(system, testWorld);
             
             // Get new world count
-            int newCount = SystemsRegistry.GetWorldCount();
+            int newCount = SystemsManager.GetWorldCount();
             
             // Verify world count increased
             Assert(initialCount >= 0, "Initial count should be >= 0");
@@ -180,14 +180,14 @@ public class SystemTests : TestBase
             SystemHandler system2 = new SystemHandler();
             
             // Add System1 to Update queue in World1
-            SystemsRegistry.AddToUpdate(system1, world1);
+            SystemsManager.AddToUpdate(system1, world1);
             
             // Add System2 to Update queue in World2
-            SystemsRegistry.AddToUpdate(system2, world2);
+            SystemsManager.AddToUpdate(system2, world2);
             
             // Check queues in each world
-            var queue1 = SystemsRegistry.GetUpdateQueue(world1);
-            var queue2 = SystemsRegistry.GetUpdateQueue(world2);
+            var queue1 = SystemsManager.GetUpdateQueue(world1);
+            var queue2 = SystemsManager.GetUpdateQueue(world2);
             
             // Verify systems are isolated by worlds
             Assert(queue1.Contains(system1), "World1 should contain System1");
@@ -197,7 +197,7 @@ public class SystemTests : TestBase
         });
     }
     
-    // ========== System-002: SystemsRegistry - Update Queue Management ==========
+    // ========== System-002: SystemsManager - Update Queue Management ==========
     
     [ContextMenu("Run Test: AddToUpdate Without Order")]
     public void Test_Update_001()
@@ -209,16 +209,16 @@ public class SystemTests : TestBase
             SystemHandler system1 = new SystemHandler();
             
             // Call AddToUpdate(System1)
-            SystemsRegistry.AddToUpdate(system1);
+            SystemsManager.AddToUpdate(system1);
             
             // Create System2
             SystemHandler system2 = new SystemHandler();
             
             // Call AddToUpdate(System2)
-            SystemsRegistry.AddToUpdate(system2);
+            SystemsManager.AddToUpdate(system2);
             
             // Check queue order
-            var queue = SystemsRegistry.GetUpdateQueue();
+            var queue = SystemsManager.GetUpdateQueue();
             AssertEquals(2, queue.Count, "Queue should have 2 systems");
             Assert(queue[0] == system1, "First system should be System1");
             Assert(queue[1] == system2, "Second system should be System2");
@@ -236,19 +236,19 @@ public class SystemTests : TestBase
             SystemHandler system2 = new SystemHandler();
             
             // Add System1 to Update queue
-            SystemsRegistry.AddToUpdate(system1);
+            SystemsManager.AddToUpdate(system1);
             
             // Add System2 to Update queue
-            SystemsRegistry.AddToUpdate(system2);
+            SystemsManager.AddToUpdate(system2);
             
             // Create System3
             SystemHandler system3 = new SystemHandler();
             
             // Call AddToUpdate(System3, order: 0)
-            SystemsRegistry.AddToUpdate(system3, 0);
+            SystemsManager.AddToUpdate(system3, 0);
             
             // Check queue order
-            var queue = SystemsRegistry.GetUpdateQueue();
+            var queue = SystemsManager.GetUpdateQueue();
             AssertEquals(3, queue.Count, "Queue should have 3 systems");
             Assert(queue[0] == system3, "First system should be System3");
             Assert(queue[1] == system1, "Second system should be System1");
@@ -268,18 +268,18 @@ public class SystemTests : TestBase
             SystemHandler system3 = new SystemHandler();
             
             // Add all to Update queue
-            SystemsRegistry.AddToUpdate(system1);
-            SystemsRegistry.AddToUpdate(system2);
-            SystemsRegistry.AddToUpdate(system3);
+            SystemsManager.AddToUpdate(system1);
+            SystemsManager.AddToUpdate(system2);
+            SystemsManager.AddToUpdate(system3);
             
             // Create System4
             SystemHandler system4 = new SystemHandler();
             
             // Call AddToUpdate(System4, order: 1)
-            SystemsRegistry.AddToUpdate(system4, 1);
+            SystemsManager.AddToUpdate(system4, 1);
             
             // Check queue order
-            var queue = SystemsRegistry.GetUpdateQueue();
+            var queue = SystemsManager.GetUpdateQueue();
             AssertEquals(4, queue.Count, "Queue should have 4 systems");
             Assert(queue[0] == system1, "First system should be System1");
             Assert(queue[1] == system4, "Second system should be System4");
@@ -299,17 +299,17 @@ public class SystemTests : TestBase
             SystemHandler system2 = new SystemHandler();
             
             // Add both to Update queue
-            SystemsRegistry.AddToUpdate(system1);
-            SystemsRegistry.AddToUpdate(system2);
+            SystemsManager.AddToUpdate(system1);
+            SystemsManager.AddToUpdate(system2);
             
             // Create System3
             SystemHandler system3 = new SystemHandler();
             
             // Call AddToUpdate(System3, order: 2)
-            SystemsRegistry.AddToUpdate(system3, 2);
+            SystemsManager.AddToUpdate(system3, 2);
             
             // Check queue order
-            var queue = SystemsRegistry.GetUpdateQueue();
+            var queue = SystemsManager.GetUpdateQueue();
             AssertEquals(3, queue.Count, "Queue should have 3 systems");
             Assert(queue[2] == system3, "Third system should be System3");
         });
@@ -325,7 +325,7 @@ public class SystemTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                SystemsRegistry.AddToUpdate(null);
+                SystemsManager.AddToUpdate(null);
             }
             catch (ArgumentNullException)
             {
@@ -349,7 +349,7 @@ public class SystemTests : TestBase
             bool negativeExceptionThrown = false;
             try
             {
-                SystemsRegistry.AddToUpdate(system, -1);
+                SystemsManager.AddToUpdate(system, -1);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -362,7 +362,7 @@ public class SystemTests : TestBase
             bool outOfRangeExceptionThrown = false;
             try
             {
-                SystemsRegistry.AddToUpdate(system, 10);
+                SystemsManager.AddToUpdate(system, 10);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -386,7 +386,7 @@ public class SystemTests : TestBase
             system.AddToUpdate();
             
             // Check queue
-            var queue = SystemsRegistry.GetUpdateQueue();
+            var queue = SystemsManager.GetUpdateQueue();
             Assert(queue.Contains(system), "Queue should contain system");
         });
     }
@@ -404,19 +404,19 @@ public class SystemTests : TestBase
             SystemHandler system = new SystemHandler();
             
             // Add System to testWorld Update queue
-            SystemsRegistry.AddToUpdate(system, testWorld);
+            SystemsManager.AddToUpdate(system, testWorld);
             
             // Check queue in testWorld
-            var testQueue = SystemsRegistry.GetUpdateQueue(testWorld);
+            var testQueue = SystemsManager.GetUpdateQueue(testWorld);
             Assert(testQueue.Contains(system), "TestWorld queue should contain system");
             
             // Check queue in global world
-            var globalQueue = SystemsRegistry.GetUpdateQueue(null);
+            var globalQueue = SystemsManager.GetUpdateQueue(null);
             Assert(!globalQueue.Contains(system), "Global queue should not contain system");
         });
     }
     
-    // ========== System-003: SystemsRegistry - FixedUpdate Queue Management ==========
+    // ========== System-003: SystemsManager - FixedUpdate Queue Management ==========
     
     [ContextMenu("Run Test: AddToFixedUpdate Without Order")]
     public void Test_FixedUpdate_001()
@@ -428,16 +428,16 @@ public class SystemTests : TestBase
             SystemHandler system1 = new SystemHandler();
             
             // Call AddToFixedUpdate(System1)
-            SystemsRegistry.AddToFixedUpdate(system1);
+            SystemsManager.AddToFixedUpdate(system1);
             
             // Create System2
             SystemHandler system2 = new SystemHandler();
             
             // Call AddToFixedUpdate(System2)
-            SystemsRegistry.AddToFixedUpdate(system2);
+            SystemsManager.AddToFixedUpdate(system2);
             
             // Check queue order
-            var queue = SystemsRegistry.GetFixedUpdateQueue();
+            var queue = SystemsManager.GetFixedUpdateQueue();
             AssertEquals(2, queue.Count, "Queue should have 2 systems");
             Assert(queue[0] == system1, "First system should be System1");
             Assert(queue[1] == system2, "Second system should be System2");
@@ -455,19 +455,19 @@ public class SystemTests : TestBase
             SystemHandler system2 = new SystemHandler();
             
             // Add System1 to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(system1);
+            SystemsManager.AddToFixedUpdate(system1);
             
             // Add System2 to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(system2);
+            SystemsManager.AddToFixedUpdate(system2);
             
             // Create System3
             SystemHandler system3 = new SystemHandler();
             
             // Call AddToFixedUpdate(System3, order: 0)
-            SystemsRegistry.AddToFixedUpdate(system3, 0);
+            SystemsManager.AddToFixedUpdate(system3, 0);
             
             // Check queue order
-            var queue = SystemsRegistry.GetFixedUpdateQueue();
+            var queue = SystemsManager.GetFixedUpdateQueue();
             AssertEquals(3, queue.Count, "Queue should have 3 systems");
             Assert(queue[0] == system3, "First system should be System3");
             Assert(queue[1] == system1, "Second system should be System1");
@@ -487,18 +487,18 @@ public class SystemTests : TestBase
             SystemHandler system3 = new SystemHandler();
             
             // Add all to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(system1);
-            SystemsRegistry.AddToFixedUpdate(system2);
-            SystemsRegistry.AddToFixedUpdate(system3);
+            SystemsManager.AddToFixedUpdate(system1);
+            SystemsManager.AddToFixedUpdate(system2);
+            SystemsManager.AddToFixedUpdate(system3);
             
             // Create System4
             SystemHandler system4 = new SystemHandler();
             
             // Call AddToFixedUpdate(System4, order: 1)
-            SystemsRegistry.AddToFixedUpdate(system4, 1);
+            SystemsManager.AddToFixedUpdate(system4, 1);
             
             // Check queue order
-            var queue = SystemsRegistry.GetFixedUpdateQueue();
+            var queue = SystemsManager.GetFixedUpdateQueue();
             AssertEquals(4, queue.Count, "Queue should have 4 systems");
             Assert(queue[0] == system1, "First system should be System1");
             Assert(queue[1] == system4, "Second system should be System4");
@@ -517,7 +517,7 @@ public class SystemTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                SystemsRegistry.AddToFixedUpdate(null);
+                SystemsManager.AddToFixedUpdate(null);
             }
             catch (ArgumentNullException)
             {
@@ -541,7 +541,7 @@ public class SystemTests : TestBase
             bool negativeExceptionThrown = false;
             try
             {
-                SystemsRegistry.AddToFixedUpdate(system, -1);
+                SystemsManager.AddToFixedUpdate(system, -1);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -554,7 +554,7 @@ public class SystemTests : TestBase
             bool outOfRangeExceptionThrown = false;
             try
             {
-                SystemsRegistry.AddToFixedUpdate(system, 10);
+                SystemsManager.AddToFixedUpdate(system, 10);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -578,7 +578,7 @@ public class SystemTests : TestBase
             system.AddToFixedUpdate();
             
             // Check queue
-            var queue = SystemsRegistry.GetFixedUpdateQueue();
+            var queue = SystemsManager.GetFixedUpdateQueue();
             Assert(queue.Contains(system), "Queue should contain system");
         });
     }
@@ -596,19 +596,19 @@ public class SystemTests : TestBase
             SystemHandler system = new SystemHandler();
             
             // Add System to testWorld FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(system, testWorld);
+            SystemsManager.AddToFixedUpdate(system, testWorld);
             
             // Check queue in testWorld
-            var testQueue = SystemsRegistry.GetFixedUpdateQueue(testWorld);
+            var testQueue = SystemsManager.GetFixedUpdateQueue(testWorld);
             Assert(testQueue.Contains(system), "TestWorld queue should contain system");
             
             // Check queue in global world
-            var globalQueue = SystemsRegistry.GetFixedUpdateQueue(null);
+            var globalQueue = SystemsManager.GetFixedUpdateQueue(null);
             Assert(!globalQueue.Contains(system), "Global queue should not contain system");
         });
     }
     
-    // ========== System-004: SystemsRegistry - Manual Execution ==========
+    // ========== System-004: SystemsManager - Manual Execution ==========
     
     [ContextMenu("Run Test: ExecuteOnce Executes System")]
     public void Test_ExecuteOnce_001()
@@ -621,7 +621,7 @@ public class SystemTests : TestBase
             TestSystem testSystem = new TestSystem(() => { flag = true; });
             
             // Call ExecuteOnce(TestSystem)
-            SystemsRegistry.ExecuteOnce(testSystem);
+            SystemsManager.ExecuteOnce(testSystem);
             
             // Check flag
             Assert(flag, "Flag should be true after ExecuteOnce()");
@@ -638,14 +638,14 @@ public class SystemTests : TestBase
             SystemHandler system = new SystemHandler();
             
             // Call ExecuteOnce(System)
-            SystemsRegistry.ExecuteOnce(system);
+            SystemsManager.ExecuteOnce(system);
             
             // Check Update queue
-            var updateQueue = SystemsRegistry.GetUpdateQueue();
+            var updateQueue = SystemsManager.GetUpdateQueue();
             Assert(!updateQueue.Contains(system), "Update queue should not contain system");
             
             // Check FixedUpdate queue
-            var fixedUpdateQueue = SystemsRegistry.GetFixedUpdateQueue();
+            var fixedUpdateQueue = SystemsManager.GetFixedUpdateQueue();
             Assert(!fixedUpdateQueue.Contains(system), "FixedUpdate queue should not contain system");
         });
     }
@@ -661,9 +661,9 @@ public class SystemTests : TestBase
             TestSystem testSystem = new TestSystem(() => { counter++; });
             
             // Call ExecuteOnce(TestSystem) three times
-            SystemsRegistry.ExecuteOnce(testSystem);
-            SystemsRegistry.ExecuteOnce(testSystem);
-            SystemsRegistry.ExecuteOnce(testSystem);
+            SystemsManager.ExecuteOnce(testSystem);
+            SystemsManager.ExecuteOnce(testSystem);
+            SystemsManager.ExecuteOnce(testSystem);
             
             // Check counter
             AssertEquals(3, counter, "Counter should be 3");
@@ -680,7 +680,7 @@ public class SystemTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                SystemsRegistry.ExecuteOnce(null);
+                SystemsManager.ExecuteOnce(null);
             }
             catch (ArgumentNullException)
             {
@@ -722,7 +722,7 @@ public class SystemTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                SystemsRegistry.ExecuteOnce(testSystem);
+                SystemsManager.ExecuteOnce(testSystem);
             }
             catch (Exception ex)
             {
@@ -734,7 +734,7 @@ public class SystemTests : TestBase
         });
     }
     
-    // ========== System-005: SystemsRegistry - Queue Execution (Sync) ==========
+    // ========== System-005: SystemsManager - Queue Execution (Sync) ==========
     
     [ContextMenu("Run Test: ExecuteUpdate Empty Queue")]
     public void Test_ExecuteUpdate_001()
@@ -743,14 +743,14 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Ensure Update queue is empty
-            var queue = SystemsRegistry.GetUpdateQueue();
+            var queue = SystemsManager.GetUpdateQueue();
             queue.Clear();
             
             // Call ExecuteUpdate()
             // Should not throw exception
             try
             {
-                SystemsRegistry.ExecuteUpdate();
+                SystemsManager.ExecuteUpdate();
             }
             catch (Exception ex)
             {
@@ -770,10 +770,10 @@ public class SystemTests : TestBase
             TestSystem testSystem = new TestSystem(() => { flag = true; });
             
             // Add TestSystem to Update queue
-            SystemsRegistry.AddToUpdate(testSystem);
+            SystemsManager.AddToUpdate(testSystem);
             
             // Call ExecuteUpdate()
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check flag
             Assert(flag, "Flag should be true after ExecuteUpdate()");
@@ -795,12 +795,12 @@ public class SystemTests : TestBase
             TestSystem system3 = new TestSystem(() => { executionOrder[2] = currentOrder++; });
             
             // Add all to Update queue
-            SystemsRegistry.AddToUpdate(system1);
-            SystemsRegistry.AddToUpdate(system2);
-            SystemsRegistry.AddToUpdate(system3);
+            SystemsManager.AddToUpdate(system1);
+            SystemsManager.AddToUpdate(system2);
+            SystemsManager.AddToUpdate(system3);
             
             // Call ExecuteUpdate()
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check execution order
             AssertEquals(0, executionOrder[0], "System1 should execute at order 0");
@@ -821,14 +821,14 @@ public class SystemTests : TestBase
             TestSystem system2 = new TestSystem(() => { flag = true; });
             
             // Add both to Update queue
-            SystemsRegistry.AddToUpdate(system1);
-            SystemsRegistry.AddToUpdate(system2);
+            SystemsManager.AddToUpdate(system1);
+            SystemsManager.AddToUpdate(system2);
             
             // Call ExecuteUpdate()
             // Should not throw exception, should continue execution
             try
             {
-                SystemsRegistry.ExecuteUpdate();
+                SystemsManager.ExecuteUpdate();
             }
             catch (Exception ex)
             {
@@ -852,15 +852,15 @@ public class SystemTests : TestBase
             // Create System1 in global world
             bool system1Executed = false;
             TestSystem system1 = new TestSystem(() => { system1Executed = true; });
-            SystemsRegistry.AddToUpdate(system1, null);
+            SystemsManager.AddToUpdate(system1, null);
             
             // Create System2 in testWorld
             bool system2Executed = false;
             TestSystem system2 = new TestSystem(() => { system2Executed = true; });
-            SystemsRegistry.AddToUpdate(system2, testWorld);
+            SystemsManager.AddToUpdate(system2, testWorld);
             
             // Call ExecuteUpdate(testWorld)
-            SystemsRegistry.ExecuteUpdate(testWorld);
+            SystemsManager.ExecuteUpdate(testWorld);
             
             // Check execution flags
             Assert(!system1Executed, "System1 should not be executed");
@@ -875,14 +875,14 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Ensure FixedUpdate queue is empty
-            var queue = SystemsRegistry.GetFixedUpdateQueue();
+            var queue = SystemsManager.GetFixedUpdateQueue();
             queue.Clear();
             
             // Call ExecuteFixedUpdate()
             // Should not throw exception
             try
             {
-                SystemsRegistry.ExecuteFixedUpdate();
+                SystemsManager.ExecuteFixedUpdate();
             }
             catch (Exception ex)
             {
@@ -902,10 +902,10 @@ public class SystemTests : TestBase
             TestSystem testSystem = new TestSystem(() => { flag = true; });
             
             // Add TestSystem to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(testSystem);
+            SystemsManager.AddToFixedUpdate(testSystem);
             
             // Call ExecuteFixedUpdate()
-            SystemsRegistry.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
             
             // Check flag
             Assert(flag, "Flag should be true after ExecuteFixedUpdate()");
@@ -927,12 +927,12 @@ public class SystemTests : TestBase
             TestSystem system3 = new TestSystem(() => { executionOrder[2] = currentOrder++; });
             
             // Add all to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(system1);
-            SystemsRegistry.AddToFixedUpdate(system2);
-            SystemsRegistry.AddToFixedUpdate(system3);
+            SystemsManager.AddToFixedUpdate(system1);
+            SystemsManager.AddToFixedUpdate(system2);
+            SystemsManager.AddToFixedUpdate(system3);
             
             // Call ExecuteFixedUpdate()
-            SystemsRegistry.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
             
             // Check execution order
             AssertEquals(0, executionOrder[0], "System1 should execute at order 0");
@@ -953,14 +953,14 @@ public class SystemTests : TestBase
             TestSystem system2 = new TestSystem(() => { flag = true; });
             
             // Add both to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(system1);
-            SystemsRegistry.AddToFixedUpdate(system2);
+            SystemsManager.AddToFixedUpdate(system1);
+            SystemsManager.AddToFixedUpdate(system2);
             
             // Call ExecuteFixedUpdate()
             // Should not throw exception, should continue execution
             try
             {
-                SystemsRegistry.ExecuteFixedUpdate();
+                SystemsManager.ExecuteFixedUpdate();
             }
             catch (Exception ex)
             {
@@ -984,15 +984,15 @@ public class SystemTests : TestBase
             // Create System1 in global world
             bool system1Executed = false;
             TestSystem system1 = new TestSystem(() => { system1Executed = true; });
-            SystemsRegistry.AddToFixedUpdate(system1, null);
+            SystemsManager.AddToFixedUpdate(system1, null);
             
             // Create System2 in testWorld
             bool system2Executed = false;
             TestSystem system2 = new TestSystem(() => { system2Executed = true; });
-            SystemsRegistry.AddToFixedUpdate(system2, testWorld);
+            SystemsManager.AddToFixedUpdate(system2, testWorld);
             
             // Call ExecuteFixedUpdate(testWorld)
-            SystemsRegistry.ExecuteFixedUpdate(testWorld);
+            SystemsManager.ExecuteFixedUpdate(testWorld);
             
             // Check execution flags
             Assert(!system1Executed, "System1 should not be executed");
@@ -1064,20 +1064,20 @@ public class SystemTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add CounterComponent with Value=0
-            ComponentsRegistry.AddComponent(entity, new CounterComponent { Value = 0 });
+            ComponentsManager.AddComponent(entity, new CounterComponent { Value = 0 });
             
             // Create IncrementSystem that increments CounterComponent.Value in Execute()
             IncrementSystem incrementSystem = new IncrementSystem();
             
             // Add IncrementSystem to Update queue
-            SystemsRegistry.AddToUpdate(incrementSystem);
+            SystemsManager.AddToUpdate(incrementSystem);
             
             // Execute Update 2 times (simulating 2 frames)
-            SystemsRegistry.ExecuteUpdate();
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check CounterComponent.Value
-            var counter = ComponentsRegistry.GetComponent<CounterComponent>(entity);
+            var counter = ComponentsManager.GetComponent<CounterComponent>(entity);
             Assert(counter.HasValue, "CounterComponent should exist");
             Assert(counter.Value.Value >= 2, "CounterComponent.Value should be >= 2");
         });
@@ -1093,21 +1093,21 @@ public class SystemTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Position(X=0, Y=0) and Velocity(X=1, Y=1)
-            ComponentsRegistry.AddComponent(entity, new Position { X = 0f, Y = 0f, Z = 0f });
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 1f, Y = 1f, Z = 0f });
+            ComponentsManager.AddComponent(entity, new Position { X = 0f, Y = 0f, Z = 0f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 1f, Y = 1f, Z = 0f });
             
             // Create MovementSystem that adds Velocity to Position in Execute()
             MovementSystem movementSystem = new MovementSystem();
             
             // Add MovementSystem to Update queue
-            SystemsRegistry.AddToUpdate(movementSystem);
+            SystemsManager.AddToUpdate(movementSystem);
             
             // Execute Update 2 times (simulating 2 frames)
-            SystemsRegistry.ExecuteUpdate();
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check Position values
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
+            var position = ComponentsManager.GetComponent<Position>(entity);
             Assert(position.HasValue, "Position should exist");
             Assert(position.Value.X >= 2f, "Position.X should be >= 2");
             Assert(position.Value.Y >= 2f, "Position.Y should be >= 2");
@@ -1126,24 +1126,24 @@ public class SystemTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add Health to all with Amount=100
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 100f });
             
             // Create HealthSystem that decrements all Health.Amount by 1 in Execute()
             HealthSystem healthSystem = new HealthSystem();
             
             // Add HealthSystem to Update queue
-            SystemsRegistry.AddToUpdate(healthSystem);
+            SystemsManager.AddToUpdate(healthSystem);
             
             // Execute Update 2 times (simulating 2 frames)
-            SystemsRegistry.ExecuteUpdate();
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check Health values
-            var health1 = ComponentsRegistry.GetComponent<Health>(entity1);
-            var health2 = ComponentsRegistry.GetComponent<Health>(entity2);
-            var health3 = ComponentsRegistry.GetComponent<Health>(entity3);
+            var health1 = ComponentsManager.GetComponent<Health>(entity1);
+            var health2 = ComponentsManager.GetComponent<Health>(entity2);
+            var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
             Assert(health1.HasValue, "Entity1 Health should exist");
             AssertEquals(98f, health1.Value.Amount, "Entity1 Health.Amount should be 98");
@@ -1166,24 +1166,24 @@ public class SystemTests : TestBase
             Entity entity3 = World.CreateEntity();
             
             // Add Health to all with Amount=100
-            ComponentsRegistry.AddComponent(entity1, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity2, new Health { Amount = 100f });
-            ComponentsRegistry.AddComponent(entity3, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity2, new Health { Amount = 100f });
+            ComponentsManager.AddComponent(entity3, new Health { Amount = 100f });
             
             // Create HealthSystem that uses GetModifiableComponents<Health>() and modifies values
             ModifiableHealthSystem healthSystem = new ModifiableHealthSystem();
             
             // Add HealthSystem to Update queue
-            SystemsRegistry.AddToUpdate(healthSystem);
+            SystemsManager.AddToUpdate(healthSystem);
             
             // Execute Update 2 times (simulating 2 frames)
-            SystemsRegistry.ExecuteUpdate();
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check Health values
-            var health1 = ComponentsRegistry.GetComponent<Health>(entity1);
-            var health2 = ComponentsRegistry.GetComponent<Health>(entity2);
-            var health3 = ComponentsRegistry.GetComponent<Health>(entity3);
+            var health1 = ComponentsManager.GetComponent<Health>(entity1);
+            var health2 = ComponentsManager.GetComponent<Health>(entity2);
+            var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
             Assert(health1.HasValue, "Entity1 Health should exist");
             Assert(health2.HasValue, "Entity2 Health should exist");
@@ -1206,20 +1206,20 @@ public class SystemTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add CounterComponent with Value=0
-            ComponentsRegistry.AddComponent(entity, new CounterComponent { Value = 0 });
+            ComponentsManager.AddComponent(entity, new CounterComponent { Value = 0 });
             
             // Create IncrementSystem that increments CounterComponent.Value in Execute()
             IncrementSystem incrementSystem = new IncrementSystem();
             
             // Add IncrementSystem to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(incrementSystem);
+            SystemsManager.AddToFixedUpdate(incrementSystem);
             
             // Execute FixedUpdate 2 times (simulating 2 FixedUpdate cycles)
-            SystemsRegistry.ExecuteFixedUpdate();
-            SystemsRegistry.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
             
             // Check CounterComponent.Value
-            var counter = ComponentsRegistry.GetComponent<CounterComponent>(entity);
+            var counter = ComponentsManager.GetComponent<CounterComponent>(entity);
             Assert(counter.HasValue, "CounterComponent should exist");
             Assert(counter.Value.Value >= 2, "CounterComponent.Value should be >= 2");
         });
@@ -1235,23 +1235,23 @@ public class SystemTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Position(X=0, Y=0), Velocity(X=0, Y=0), Acceleration(X=1, Y=1)
-            ComponentsRegistry.AddComponent(entity, new Position { X = 0f, Y = 0f, Z = 0f });
-            ComponentsRegistry.AddComponent(entity, new Velocity { X = 0f, Y = 0f, Z = 0f });
-            ComponentsRegistry.AddComponent(entity, new Acceleration { X = 1f, Y = 1f, Z = 0f });
+            ComponentsManager.AddComponent(entity, new Position { X = 0f, Y = 0f, Z = 0f });
+            ComponentsManager.AddComponent(entity, new Velocity { X = 0f, Y = 0f, Z = 0f });
+            ComponentsManager.AddComponent(entity, new Acceleration { X = 1f, Y = 1f, Z = 0f });
             
             // Create PhysicsSystem that adds Acceleration to Velocity, then Velocity to Position in Execute()
             PhysicsSystem physicsSystem = new PhysicsSystem();
             
             // Add PhysicsSystem to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(physicsSystem);
+            SystemsManager.AddToFixedUpdate(physicsSystem);
             
             // Execute FixedUpdate 2 times (simulating 2 FixedUpdate cycles)
-            SystemsRegistry.ExecuteFixedUpdate();
-            SystemsRegistry.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
             
             // Check Position and Velocity values
-            var velocity = ComponentsRegistry.GetComponent<Velocity>(entity);
-            var position = ComponentsRegistry.GetComponent<Position>(entity);
+            var velocity = ComponentsManager.GetComponent<Velocity>(entity);
+            var position = ComponentsManager.GetComponent<Position>(entity);
             
             Assert(velocity.HasValue, "Velocity should exist");
             Assert(velocity.Value.X >= 2f, "Velocity.X should be >= 2");
@@ -1270,7 +1270,7 @@ public class SystemTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add CounterComponent with Value=0
-            ComponentsRegistry.AddComponent(entity, new CounterComponent { Value = 0 });
+            ComponentsManager.AddComponent(entity, new CounterComponent { Value = 0 });
             
             // Create System1 that sets Value=1
             SetValueSystem system1 = new SetValueSystem(1);
@@ -1279,16 +1279,16 @@ public class SystemTests : TestBase
             IncrementSystem system2 = new IncrementSystem();
             
             // Add System1 to Update queue at order 0
-            SystemsRegistry.AddToUpdate(system1, 0);
+            SystemsManager.AddToUpdate(system1, 0);
             
             // Add System2 to Update queue at order 1
-            SystemsRegistry.AddToUpdate(system2, 1);
+            SystemsManager.AddToUpdate(system2, 1);
             
             // Execute Update 1 time (simulating 1 frame)
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check CounterComponent.Value
-            var counter = ComponentsRegistry.GetComponent<CounterComponent>(entity);
+            var counter = ComponentsManager.GetComponent<CounterComponent>(entity);
             Assert(counter.HasValue, "CounterComponent should exist");
             // System1 sets to 1, then System2 increments to 2
             AssertEquals(2, counter.Value.Value, "CounterComponent.Value should be 2");
@@ -1305,8 +1305,8 @@ public class SystemTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add UpdateCounter(Value=0) and FixedUpdateCounter(Value=0)
-            ComponentsRegistry.AddComponent(entity, new UpdateCounter { Value = 0 });
-            ComponentsRegistry.AddComponent(entity, new FixedUpdateCounter { Value = 0 });
+            ComponentsManager.AddComponent(entity, new UpdateCounter { Value = 0 });
+            ComponentsManager.AddComponent(entity, new FixedUpdateCounter { Value = 0 });
             
             // Create UpdateSystem that increments UpdateCounter
             UpdateCounterSystem updateSystem = new UpdateCounterSystem();
@@ -1315,23 +1315,23 @@ public class SystemTests : TestBase
             FixedUpdateCounterSystem fixedUpdateSystem = new FixedUpdateCounterSystem();
             
             // Add UpdateSystem to Update queue
-            SystemsRegistry.AddToUpdate(updateSystem);
+            SystemsManager.AddToUpdate(updateSystem);
             
             // Add FixedUpdateSystem to FixedUpdate queue
-            SystemsRegistry.AddToFixedUpdate(fixedUpdateSystem);
+            SystemsManager.AddToFixedUpdate(fixedUpdateSystem);
             
             // Execute Update 3 times
-            SystemsRegistry.ExecuteUpdate();
-            SystemsRegistry.ExecuteUpdate();
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Execute FixedUpdate 2 times
-            SystemsRegistry.ExecuteFixedUpdate();
-            SystemsRegistry.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
+            SystemsManager.ExecuteFixedUpdate();
             
             // Check both counters
-            var updateCounter = ComponentsRegistry.GetComponent<UpdateCounter>(entity);
-            var fixedUpdateCounter = ComponentsRegistry.GetComponent<FixedUpdateCounter>(entity);
+            var updateCounter = ComponentsManager.GetComponent<UpdateCounter>(entity);
+            var fixedUpdateCounter = ComponentsManager.GetComponent<FixedUpdateCounter>(entity);
             
             Assert(updateCounter.HasValue, "UpdateCounter should exist");
             Assert(updateCounter.Value.Value > 0, "UpdateCounter value should be > 0");
@@ -1353,21 +1353,21 @@ public class SystemTests : TestBase
             Entity entity = World.CreateEntity();
             
             // Add Health(Amount=0) and Dead components
-            ComponentsRegistry.AddComponent(entity, new Health { Amount = 0f });
-            ComponentsRegistry.AddComponent(entity, new Dead());
+            ComponentsManager.AddComponent(entity, new Health { Amount = 0f });
+            ComponentsManager.AddComponent(entity, new Dead());
             
             // Create CleanupSystem that removes Dead component when Health.Amount <= 0
             CleanupSystem cleanupSystem = new CleanupSystem();
             cleanupSystem.SetEntityToCleanup(entity); // Set entity for cleanup
             
             // Add CleanupSystem to Update queue
-            SystemsRegistry.AddToUpdate(cleanupSystem);
+            SystemsManager.AddToUpdate(cleanupSystem);
             
             // Execute Update 1 time (simulating 1 frame)
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check Dead component
-            var dead = ComponentsRegistry.GetComponent<Dead>(entity);
+            var dead = ComponentsManager.GetComponent<Dead>(entity);
             Assert(!dead.HasValue, "Dead component should be removed");
         });
     }
@@ -1380,22 +1380,22 @@ public class SystemTests : TestBase
         {
             // Create Entity1 with Spawner component
             Entity entity1 = World.CreateEntity();
-            ComponentsRegistry.AddComponent(entity1, new Spawner { SpawnCount = 1 });
+            ComponentsManager.AddComponent(entity1, new Spawner { SpawnCount = 1 });
             
             // Create SpawnSystem that creates new entity when Spawner.SpawnCount > 0
             SpawnSystem spawnSystem = new SpawnSystem();
             
             // Add SpawnSystem to Update queue
-            SystemsRegistry.AddToUpdate(spawnSystem);
+            SystemsManager.AddToUpdate(spawnSystem);
             
             // Get initial entity count
-            int initialCount = EntityPool.GetAllocatedCount();
+            int initialCount = EntitiesManager.GetAllocatedCount();
             
             // Execute Update 1 time (simulating 1 frame)
-            SystemsRegistry.ExecuteUpdate();
+            SystemsManager.ExecuteUpdate();
             
             // Check entity count
-            int newCount = EntityPool.GetAllocatedCount();
+            int newCount = EntitiesManager.GetAllocatedCount();
             Assert(newCount > initialCount, "Entity count should increase");
         });
     }

@@ -201,7 +201,7 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Gets or creates a reference to the internal storage arrays.
-        /// Used internally by ComponentsRegistry for add/remove/get operations.
+        /// Used internally by ComponentsManager for add/remove/get operations.
         /// </summary>
         /// <returns>Internal storage arrays (components, entities, entity-to-index mapping)</returns>
         internal (T[] components, Entity[] entities, Dictionary<Entity, int> entityToIndex) GetInternalTable()
@@ -220,7 +220,7 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Ensures capacity and returns internal storage for modification.
-        /// Called by ComponentsRegistry before adding components.
+        /// Called by ComponentsManager before adding components.
         /// </summary>
         /// <param name="minCapacity">Minimum capacity needed</param>
         /// <returns>Internal table arrays ready for modification</returns>
