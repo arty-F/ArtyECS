@@ -259,9 +259,9 @@ public class WorldTests : TestBase
             World.Destroy(world1);
             
             // Check World2
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity2, world2), "GetComponent(Entity2, World2) should not be null");
             var component2 = ComponentsManager.GetComponent<TestComponent>(entity2, world2);
-            Assert(component2.HasValue, "GetComponent(Entity2, World2) should not be null");
-            AssertEquals(200, component2.Value.Value, "Component value should be 200");
+            AssertEquals(200, component2.Value, "Component value should be 200");
             AssertEquals(1, ComponentsManager.GetComponents<TestComponent>(world2).Length, "World2 should have 1 component");
         });
     }
@@ -349,14 +349,14 @@ public class WorldTests : TestBase
             // Add component without specifying world (null)
             ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, null);
             
+            // Verify component is in global world
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, null), "GetComponent(entity, null) should not be null");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, World.GetGlobalWorld()), "GetComponent(entity, globalWorld) should not be null");
+            
             // Get component without specifying world (null)
             var componentNull = ComponentsManager.GetComponent<TestComponent>(entity, null);
             var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
-            
-            // Verify component is in global world
-            Assert(componentNull.HasValue, "GetComponent(entity, null) should not be null");
-            Assert(componentGlobal.HasValue, "GetComponent(entity, globalWorld) should not be null");
-            AssertEquals(componentNull.Value.Value, componentGlobal.Value.Value, "Component values should be equal");
+            AssertEquals(componentNull.Value, componentGlobal.Value, "Component values should be equal");
         });
     }
     
@@ -423,9 +423,9 @@ public class WorldTests : TestBase
             ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, testWorld);
             
             // Get component with World parameter
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, testWorld), "GetComponent should return component");
             var component = ComponentsManager.GetComponent<TestComponent>(entity, testWorld);
-            Assert(component.HasValue, "GetComponent should return component");
-            AssertEquals(42, component.Value.Value, "Component value should be 42");
+            AssertEquals(42, component.Value, "Component value should be 42");
             
             // Remove component with World parameter
             bool removed = ComponentsManager.RemoveComponent<TestComponent>(entity, testWorld);
@@ -445,14 +445,14 @@ public class WorldTests : TestBase
             // Add component with null World parameter
             ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 100 }, null);
             
+            // Verify component added to global world
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, null), "GetComponent(entity, null) should not be null");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, World.GetGlobalWorld()), "GetComponent(entity, globalWorld) should not be null");
+            
             // Get component from global world
             var componentNull = ComponentsManager.GetComponent<TestComponent>(entity, null);
             var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
-            
-            // Verify component added to global world
-            Assert(componentNull.HasValue, "GetComponent(entity, null) should not be null");
-            Assert(componentGlobal.HasValue, "GetComponent(entity, globalWorld) should not be null");
-            AssertEquals(componentNull.Value.Value, componentGlobal.Value.Value, "Component values should be equal");
+            AssertEquals(componentNull.Value, componentGlobal.Value, "Component values should be equal");
         });
     }
     
@@ -526,10 +526,10 @@ public class WorldTests : TestBase
             var component2InWorld1 = ComponentsManager.GetComponent<TestComponent>(entity2, world1);
             var component2InWorld2 = ComponentsManager.GetComponent<TestComponent>(entity2, world2);
             
-            Assert(component1InWorld1.HasValue, "GetComponent(Entity1, World1) should not be null");
-            Assert(!component1InWorld2.HasValue, "GetComponent(Entity1, World2) should be null");
-            Assert(!component2InWorld1.HasValue, "GetComponent(Entity2, World1) should be null");
-            Assert(component2InWorld2.HasValue, "GetComponent(Entity2, World2) should not be null");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity1, world1), "GetComponent(Entity1, World1) should not be null");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity1, world2), "GetComponent(Entity1, World2) should be null");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity2, world1), "GetComponent(Entity2, World1) should be null");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity2, world2), "GetComponent(Entity2, World2) should not be null");
         });
     }
     
@@ -644,6 +644,8 @@ public class WorldTests : TestBase
         });
     }
     
+    // REMOVED - API-003: GetComponentsWithout methods removed as part of API simplification
+    /* REMOVED - API-003
     [ContextMenu("Run Test: GetComponentsWithout World Parameter")]
     public void Test_WorldScoped_010()
     {
@@ -670,6 +672,7 @@ public class WorldTests : TestBase
             AssertEquals(1, componentsTest.Length, "TestWorld should have 1 component");
         });
     }
+    */
     
     [ContextMenu("Run Test: GetModifiableComponents World Parameter")]
     public void Test_WorldScoped_011()
@@ -823,9 +826,9 @@ public class WorldTests : TestBase
             ComponentsManager.AddComponent<Health>(entity, new Health { Amount = 100f });
             
             // Remember component values
-            float posX = ComponentsManager.GetComponent<Position>(entity).Value.X;
-            float velX = ComponentsManager.GetComponent<Velocity>(entity).Value.X;
-            float healthAmount = ComponentsManager.GetComponent<Health>(entity).Value.Amount;
+            float posX = ComponentsManager.GetComponent<Position>(entity).X;
+            float velX = ComponentsManager.GetComponent<Velocity>(entity).X;
+            float healthAmount = ComponentsManager.GetComponent<Health>(entity).Amount;
             
             // Note: Actual scene loading test would require Unity scene management.
             // This test verifies components are stored in static dictionaries which persist.
@@ -836,12 +839,12 @@ public class WorldTests : TestBase
             var velocity = ComponentsManager.GetComponent<Velocity>(entity);
             var health = ComponentsManager.GetComponent<Health>(entity);
             
-            Assert(position.HasValue, "Position component should exist");
-            Assert(velocity.HasValue, "Velocity component should exist");
-            Assert(health.HasValue, "Health component should exist");
-            AssertEquals(posX, position.Value.X, "Position X should be unchanged");
-            AssertEquals(velX, velocity.Value.X, "Velocity X should be unchanged");
-            AssertEquals(healthAmount, health.Value.Amount, "Health Amount should be unchanged");
+            Assert(ComponentsManager.HasComponent<Position>(entity), "Position component should exist");
+            Assert(ComponentsManager.HasComponent<Velocity>(entity), "Velocity component should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity), "Health component should exist");
+            AssertEquals(posX, position.X, "Position X should be unchanged");
+            AssertEquals(velX, velocity.X, "Velocity X should be unchanged");
+            AssertEquals(healthAmount, health.Amount, "Health Amount should be unchanged");
         });
     }
     
@@ -944,8 +947,8 @@ public class WorldTests : TestBase
             var component1 = ComponentsManager.GetComponent<TestComponent>(entity1, null);
             var component2 = ComponentsManager.GetComponent<TestComponent>(entity2, testWorld);
             
-            Assert(component1.HasValue, "Entity1 component should exist in global world");
-            Assert(component2.HasValue, "Entity2 component should exist in TestWorld");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity1, null), "Entity1 component should exist in global world");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity2, testWorld), "Entity2 component should exist in TestWorld");
         });
     }
     
@@ -971,10 +974,10 @@ public class WorldTests : TestBase
             var position = ComponentsManager.GetComponent<Position>(entity);
             var health = ComponentsManager.GetComponent<Health>(entity);
             
-            AssertEquals(10f, position.Value.X, "Position X should be 10");
-            AssertEquals(20f, position.Value.Y, "Position Y should be 20");
-            AssertEquals(30f, position.Value.Z, "Position Z should be 30");
-            AssertEquals(100f, health.Value.Amount, "Health Amount should be 100");
+            AssertEquals(10f, position.X, "Position X should be 10");
+            AssertEquals(20f, position.Y, "Position Y should be 20");
+            AssertEquals(30f, position.Z, "Position Z should be 30");
+            AssertEquals(100f, health.Amount, "Health Amount should be 100");
         });
     }
     
@@ -1020,8 +1023,7 @@ public class WorldTests : TestBase
             // Simulate scene change by verifying state persists
             // (In real scenario, Unity scene would change, but ECS state remains)
             Assert(EntitiesManager.IsAllocated(entity1), "Entity1 should still be allocated");
-            var component = ComponentsManager.GetComponent<TestComponent>(entity1);
-            Assert(component.HasValue, "Component should still exist");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity1), "Component should still exist");
             
             // Create new entities (simulating Scene2)
             Entity entity2 = World.CreateEntity();

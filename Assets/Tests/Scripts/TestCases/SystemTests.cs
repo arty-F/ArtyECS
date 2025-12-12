@@ -1077,9 +1077,9 @@ public class SystemTests : TestBase
             SystemsManager.ExecuteUpdate();
             
             // Check CounterComponent.Value
+            Assert(ComponentsManager.HasComponent<CounterComponent>(entity), "CounterComponent should exist");
             var counter = ComponentsManager.GetComponent<CounterComponent>(entity);
-            Assert(counter.HasValue, "CounterComponent should exist");
-            Assert(counter.Value.Value >= 2, "CounterComponent.Value should be >= 2");
+            Assert(counter.Value >= 2, "CounterComponent.Value should be >= 2");
         });
     }
     
@@ -1107,10 +1107,10 @@ public class SystemTests : TestBase
             SystemsManager.ExecuteUpdate();
             
             // Check Position values
+            Assert(ComponentsManager.HasComponent<Position>(entity), "Position should exist");
             var position = ComponentsManager.GetComponent<Position>(entity);
-            Assert(position.HasValue, "Position should exist");
-            Assert(position.Value.X >= 2f, "Position.X should be >= 2");
-            Assert(position.Value.Y >= 2f, "Position.Y should be >= 2");
+            Assert(position.X >= 2f, "Position.X should be >= 2");
+            Assert(position.Y >= 2f, "Position.Y should be >= 2");
         });
     }
     
@@ -1145,12 +1145,12 @@ public class SystemTests : TestBase
             var health2 = ComponentsManager.GetComponent<Health>(entity2);
             var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
-            Assert(health1.HasValue, "Entity1 Health should exist");
-            AssertEquals(98f, health1.Value.Amount, "Entity1 Health.Amount should be 98");
-            Assert(health2.HasValue, "Entity2 Health should exist");
-            AssertEquals(98f, health2.Value.Amount, "Entity2 Health.Amount should be 98");
-            Assert(health3.HasValue, "Entity3 Health should exist");
-            AssertEquals(98f, health3.Value.Amount, "Entity3 Health.Amount should be 98");
+            Assert(ComponentsManager.HasComponent<Health>(entity1), "Entity1 Health should exist");
+            AssertEquals(98f, health1.Amount, "Entity1 Health.Amount should be 98");
+            Assert(ComponentsManager.HasComponent<Health>(entity2), "Entity2 Health should exist");
+            AssertEquals(98f, health2.Amount, "Entity2 Health.Amount should be 98");
+            Assert(ComponentsManager.HasComponent<Health>(entity3), "Entity3 Health should exist");
+            AssertEquals(98f, health3.Amount, "Entity3 Health.Amount should be 98");
         });
     }
     
@@ -1185,14 +1185,14 @@ public class SystemTests : TestBase
             var health2 = ComponentsManager.GetComponent<Health>(entity2);
             var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
-            Assert(health1.HasValue, "Entity1 Health should exist");
-            Assert(health2.HasValue, "Entity2 Health should exist");
-            Assert(health3.HasValue, "Entity3 Health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity1), "Entity1 Health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity2), "Entity2 Health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity3), "Entity3 Health should exist");
             
             // All should be reduced by 2 (2 frames * 1 per frame)
-            Assert(health1.Value.Amount <= 98f, "Entity1 Health should be reduced");
-            Assert(health2.Value.Amount <= 98f, "Entity2 Health should be reduced");
-            Assert(health3.Value.Amount <= 98f, "Entity3 Health should be reduced");
+            Assert(health1.Amount <= 98f, "Entity1 Health should be reduced");
+            Assert(health2.Amount <= 98f, "Entity2 Health should be reduced");
+            Assert(health3.Amount <= 98f, "Entity3 Health should be reduced");
         });
     }
     
@@ -1219,9 +1219,9 @@ public class SystemTests : TestBase
             SystemsManager.ExecuteFixedUpdate();
             
             // Check CounterComponent.Value
+            Assert(ComponentsManager.HasComponent<CounterComponent>(entity), "CounterComponent should exist");
             var counter = ComponentsManager.GetComponent<CounterComponent>(entity);
-            Assert(counter.HasValue, "CounterComponent should exist");
-            Assert(counter.Value.Value >= 2, "CounterComponent.Value should be >= 2");
+            Assert(counter.Value >= 2, "CounterComponent.Value should be >= 2");
         });
     }
     
@@ -1253,10 +1253,10 @@ public class SystemTests : TestBase
             var velocity = ComponentsManager.GetComponent<Velocity>(entity);
             var position = ComponentsManager.GetComponent<Position>(entity);
             
-            Assert(velocity.HasValue, "Velocity should exist");
-            Assert(velocity.Value.X >= 2f, "Velocity.X should be >= 2");
-            Assert(position.HasValue, "Position should exist");
-            Assert(position.Value.X >= 2f, "Position.X should be >= 2");
+            Assert(ComponentsManager.HasComponent<Velocity>(entity), "Velocity should exist");
+            Assert(velocity.X >= 2f, "Velocity.X should be >= 2");
+            Assert(ComponentsManager.HasComponent<Position>(entity), "Position should exist");
+            Assert(position.X >= 2f, "Position.X should be >= 2");
         });
     }
     
@@ -1288,10 +1288,10 @@ public class SystemTests : TestBase
             SystemsManager.ExecuteUpdate();
             
             // Check CounterComponent.Value
+            Assert(ComponentsManager.HasComponent<CounterComponent>(entity), "CounterComponent should exist");
             var counter = ComponentsManager.GetComponent<CounterComponent>(entity);
-            Assert(counter.HasValue, "CounterComponent should exist");
             // System1 sets to 1, then System2 increments to 2
-            AssertEquals(2, counter.Value.Value, "CounterComponent.Value should be 2");
+            AssertEquals(2, counter.Value, "CounterComponent.Value should be 2");
         });
     }
     
@@ -1333,13 +1333,13 @@ public class SystemTests : TestBase
             var updateCounter = ComponentsManager.GetComponent<UpdateCounter>(entity);
             var fixedUpdateCounter = ComponentsManager.GetComponent<FixedUpdateCounter>(entity);
             
-            Assert(updateCounter.HasValue, "UpdateCounter should exist");
-            Assert(updateCounter.Value.Value > 0, "UpdateCounter value should be > 0");
-            AssertEquals(3, updateCounter.Value.Value, "UpdateCounter should be 3");
+            Assert(ComponentsManager.HasComponent<UpdateCounter>(entity), "UpdateCounter should exist");
+            Assert(updateCounter.Value > 0, "UpdateCounter value should be > 0");
+            AssertEquals(3, updateCounter.Value, "UpdateCounter should be 3");
             
-            Assert(fixedUpdateCounter.HasValue, "FixedUpdateCounter should exist");
-            Assert(fixedUpdateCounter.Value.Value > 0, "FixedUpdateCounter value should be > 0");
-            AssertEquals(2, fixedUpdateCounter.Value.Value, "FixedUpdateCounter should be 2");
+            Assert(ComponentsManager.HasComponent<FixedUpdateCounter>(entity), "FixedUpdateCounter should exist");
+            Assert(fixedUpdateCounter.Value > 0, "FixedUpdateCounter value should be > 0");
+            AssertEquals(2, fixedUpdateCounter.Value, "FixedUpdateCounter should be 2");
         });
     }
     
@@ -1367,8 +1367,7 @@ public class SystemTests : TestBase
             SystemsManager.ExecuteUpdate();
             
             // Check Dead component
-            var dead = ComponentsManager.GetComponent<Dead>(entity);
-            Assert(!dead.HasValue, "Dead component should be removed");
+            Assert(!ComponentsManager.HasComponent<Dead>(entity), "Dead component should be removed");
         });
     }
     

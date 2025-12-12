@@ -16,10 +16,10 @@ namespace ArtyECS.Core
     /// Core-004: AddComponent method implementation (COMPLETED)
     /// Core-005: RemoveComponent method implementation (COMPLETED)
     /// Core-006: GetComponent method for single entity (COMPLETED)
-    /// Core-007: GetComponents method for single type query (COMPLETED)
-    /// Core-008: GetComponents method for multiple AND query (COMPLETED)
-    /// Core-009: GetComponentsWithout query for WITHOUT operations (COMPLETED)
-    /// Core-010: Deferred component modifications system (COMPLETED)
+        /// Core-007: GetComponents method for single type query (COMPLETED)
+        /// Core-008: GetComponents method for multiple AND query (COMPLETED)
+        /// Core-009: GetComponentsWithout query for WITHOUT operations (REMOVED - API-003)
+        /// Core-010: Deferred component modifications system (COMPLETED)
     /// Core-012: RemoveAllComponents method for entity destruction (COMPLETED)
     /// World-002: World-Scoped Storage Integration (COMPLETED)
     ///   - All methods support optional World? parameter (default: global world)
@@ -48,15 +48,9 @@ namespace ArtyECS.Core
         ///   - Entity set caching: considered but deferred - component sets change frequently, smallest-set optimization provides
         ///     significant benefit, HashSet creation is O(n) with pre-allocated capacity (relatively cheap). Can be added later
         ///     if profiling shows repeated queries with stable sets are common use case.
-        /// Perf-004: Query Optimization - Without Components (COMPLETED)
-        ///   - Efficient set difference: direct iteration through T1 table instead of creating HashSet for T1 entities
-        ///   - Minimized allocations: only creates HashSet for exclusion sets (T2, T3), not for T1
-        ///   - Single pass iteration: iterates through T1 table once, checking membership in exclusion set(s)
-        ///   - Early exit optimizations: returns immediately if T1 is empty or if exclusion sets are empty (all match)
-        ///   - Combined exclusion sets: for multiple exclusions, combines sets into single HashSet for efficient lookup
-        ///   - Zero-allocation filtering: uses pre-allocated result array, only trims if needed
-        ///   - Negative set caching: considered but deferred - component sets change frequently, direct iteration optimization
-        ///     provides significant benefit. Can be added later if profiling shows repeated queries with stable exclusion sets.
+        /// Perf-004: Query Optimization - Without Components (REMOVED - API-003)
+        ///   - GetComponentsWithout methods removed as part of API simplification
+        ///   - Users should filter results manually or use GetComponents with manual filtering
     /// </remarks>
     public static class ComponentsManager
     {
@@ -285,26 +279,33 @@ namespace ArtyECS.Core
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
         /// <param name="entity">Entity to get component for</param>
         /// <param name="world">Optional world instance (default: global world)</param>
-        /// <returns>Component value if found, null if entity doesn't have the component</returns>
+        /// <returns>Component value</returns>
+        /// <exception cref="ComponentNotFoundException">Thrown if entity doesn't have a component of type T</exception>
         /// <remarks>
         /// This method implements Core-006: GetComponent functionality.
+        /// API-002: Keep GetComponent with Exceptions (COMPLETED)
         /// 
         /// Features:
         /// - Fast O(1) lookup via entity-to-index mapping dictionary
-        /// - Returns nullable value (T?) - null if component not found, component value if found
+        /// - Returns component value (T) - throws ComponentNotFoundException if component not found
         /// - Zero-allocation lookup (only dictionary lookup, no allocations)
         /// - Supports optional World parameter with default to global world
+        /// - Exceptions are safe in builds (minimize overhead, no stack trace if not needed)
         /// 
         /// Usage:
         /// <code>
-        /// var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
-        /// if (hp.HasValue)
+        /// try
         /// {
-        ///     float currentHp = hp.Value.Amount;
+        ///     var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
+        ///     hp.Amount -= 1f;
+        /// }
+        /// catch (ComponentNotFoundException)
+        /// {
+        ///     // Component doesn't exist
         /// }
         /// </code>
         /// </remarks>
-        public static T? GetComponent<T>(Entity entity, World world = null) where T : struct, IComponent
+        public static T GetComponent<T>(Entity entity, World world = null) where T : struct, IComponent
         {
             // Get storage for component type T in the specified world
             var table = GetOrCreateTable<T>(world);
@@ -315,8 +316,40 @@ namespace ArtyECS.Core
                 return component;
             }
 
-            // Entity doesn't have this component, return null
-            return null;
+            // Entity doesn't have this component, throw exception
+            throw new ComponentNotFoundException(entity, typeof(T));
+        }
+
+        /// <summary>
+        /// Checks if the specified entity has a component of type T in the specified world.
+        /// </summary>
+        /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
+        /// <param name="entity">Entity to check</param>
+        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <returns>True if entity has the component, false otherwise</returns>
+        /// <remarks>
+        /// This method provides a way to check component existence without throwing exceptions.
+        /// Useful for conditional logic where you want to avoid exception overhead.
+        /// 
+        /// Features:
+        /// - Fast O(1) lookup via entity-to-index mapping dictionary
+        /// - Zero-allocation lookup (only dictionary lookup, no allocations)
+        /// - Supports optional World parameter with default to global world
+        /// 
+        /// Usage:
+        /// <code>
+        /// if (ComponentsManager.HasComponent&lt;Hp&gt;(entity))
+        /// {
+        ///     var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
+        ///     hp.Amount -= 1f;
+        /// }
+        /// </code>
+        /// </remarks>
+        public static bool HasComponent<T>(Entity entity, World world = null) where T : struct, IComponent
+        {
+            // Get storage for component type T in the specified world
+            var table = GetOrCreateTable<T>(world);
+            return table.HasComponent(entity);
         }
 
         /// <summary>
@@ -598,274 +631,6 @@ namespace ArtyECS.Core
             }
 
             return new ReadOnlySpan<T1>(result);
-        }
-
-        /// <summary>
-        /// Gets all components of type T1 in the specified world.
-        /// This is equivalent to GetComponents&lt;T1&gt;() when no exclusions are specified.
-        /// </summary>
-        /// <typeparam name="T1">Component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
-        /// <returns>ReadOnlySpan containing all components of type T1</returns>
-        /// <remarks>
-        /// This method implements Core-009: GetComponentsWithout Query functionality.
-        /// 
-        /// When no exclusion components are specified, this returns all entities with T1,
-        /// which is equivalent to GetComponents&lt;T1&gt;(). This method is provided for
-        /// API consistency with the multi-parameter GetComponentsWithout overloads.
-        /// 
-        /// Usage:
-        /// <code>
-        /// var allHealth = ComponentsManager.GetComponentsWithout&lt;Health&gt;();
-        /// // Equivalent to: ComponentsManager.GetComponents&lt;Health&gt;();
-        /// </code>
-        /// </remarks>
-        public static ReadOnlySpan<T1> GetComponentsWithout<T1>(World world = null) 
-            where T1 : struct, IComponent
-        {
-            // When no exclusions are specified, return all components of type T1
-            // This is equivalent to GetComponents<T1>()
-            return GetComponents<T1>(world);
-        }
-
-        /// <summary>
-        /// Gets all components of type T1 for entities that have T1 but NOT T2 (WITHOUT query).
-        /// Returns a ReadOnlySpan of T1 components for matching entities.
-        /// </summary>
-        /// <typeparam name="T1">Component type to query (must be struct implementing IComponent)</typeparam>
-        /// <typeparam name="T2">Component type to exclude (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
-        /// <returns>ReadOnlySpan containing T1 components for entities that have T1 but NOT T2</returns>
-        /// <remarks>
-        /// This method implements Core-009: GetComponentsWithout Query functionality.
-        /// Perf-004: Query Optimization - Without Components (COMPLETED)
-        /// 
-        /// Features:
-        /// - Returns entities that have T1 but NOT T2 (WITHOUT query)
-        /// - Efficient set difference algorithm using HashSet
-        /// - Returns ReadOnlySpan&lt;T1&gt; for zero-allocation iteration
-        /// - Supports optional World parameter with default to global world
-        /// 
-        /// Perf-004 Optimizations:
-        /// - Direct iteration through T1 table instead of creating HashSet for T1 entities
-        /// - Only creates HashSet for exclusion set (T2) for O(1) membership checks
-        /// - Single pass through T1 table to build result array
-        /// - Early exit if T1 storage is empty or T2 exclusion set is empty (all T1 entities match)
-        /// - Minimized allocations: only creates HashSet for exclusion set, not for T1
-        /// 
-        /// The algorithm:
-        /// 1. Gets storage for T1 and T2 component types
-        /// 2. Early exit if T1 storage is empty
-        /// 3. Creates HashSet for T2 entities (exclusion set) for O(1) lookup
-        /// 4. If T2 is empty, all T1 entities match (early exit optimization)
-        /// 5. Iterates through T1 table directly, checking if entity is NOT in T2 set
-        /// 6. Builds result array of T1 components for matching entities
-        /// 7. Returns span over result array
-        /// 
-        /// Usage:
-        /// <code>
-        /// var aliveEntities = ComponentsManager.GetComponentsWithout&lt;Health, Dead&gt;();
-        /// foreach (var health in aliveEntities)
-        /// {
-        ///     // This entity has Health but NOT Dead component
-        ///     health.Amount -= 1f;
-        /// }
-        /// </code>
-        /// 
-        /// Note: If no entities match the criteria, returns an empty span.
-        /// </remarks>
-        public static ReadOnlySpan<T1> GetComponentsWithout<T1, T2>(World world = null) 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-        {
-            // Get storage for both component types
-            var table1 = GetOrCreateTable<T1>(world);
-            var table2 = GetOrCreateTable<T2>(world);
-
-            // If T1 storage is empty, return empty span
-            if (table1.Count == 0)
-            {
-                return ReadOnlySpan<T1>.Empty;
-            }
-
-            // Perf-004: Create HashSet only for exclusion set (T2) for O(1) lookup
-            var exclusionSet = table2.GetEntitiesSet();
-
-            // Perf-004: If exclusion set is empty, all T1 entities match (early exit optimization)
-            if (exclusionSet.Count == 0)
-            {
-                // All entities with T1 match (no exclusions), return all T1 components
-                return table1.GetComponents();
-            }
-
-            // Perf-004: Direct iteration through T1 table, checking membership in exclusion set
-            // This avoids creating HashSet for T1 entities and modifying it
-            var entitiesSpan = table1.GetEntities();
-            var componentsSpan = table1.GetComponents();
-
-            // Perf-004: Pre-allocate result array with maximum possible size (T1.Count)
-            // Most entities will typically match, so this minimizes reallocations
-            var result = new T1[table1.Count];
-            int resultIndex = 0;
-
-            // Perf-004: Single pass through T1 table - check if entity is NOT in exclusion set
-            for (int i = 0; i < entitiesSpan.Length; i++)
-            {
-                if (!exclusionSet.Contains(entitiesSpan[i]))
-                {
-                    result[resultIndex++] = componentsSpan[i];
-                }
-            }
-
-            // Perf-004: If no matches, return empty span
-            if (resultIndex == 0)
-            {
-                return ReadOnlySpan<T1>.Empty;
-            }
-
-            // Perf-004: Return span over result array (zero-allocation iteration)
-            // If result array is full, use it as-is; otherwise create trimmed array
-            if (resultIndex == result.Length)
-            {
-                return new ReadOnlySpan<T1>(result);
-            }
-            else
-            {
-                // Trim array to actual size (only if needed)
-                var trimmedResult = new T1[resultIndex];
-                Array.Copy(result, 0, trimmedResult, 0, resultIndex);
-                return new ReadOnlySpan<T1>(trimmedResult);
-            }
-        }
-
-        /// <summary>
-        /// Gets all components of type T1 for entities that have T1 but NOT T2 and NOT T3 (WITHOUT query).
-        /// Returns a ReadOnlySpan of T1 components for matching entities.
-        /// </summary>
-        /// <typeparam name="T1">Component type to query (must be struct implementing IComponent)</typeparam>
-        /// <typeparam name="T2">First component type to exclude (must be struct implementing IComponent)</typeparam>
-        /// <typeparam name="T3">Second component type to exclude (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
-        /// <returns>ReadOnlySpan containing T1 components for entities that have T1 but NOT T2 and NOT T3</returns>
-        /// <remarks>
-        /// This method implements Core-009: GetComponentsWithout Query functionality.
-        /// Perf-004: Query Optimization - Without Components (COMPLETED)
-        /// 
-        /// Features:
-        /// - Returns entities that have T1 but NOT T2 and NOT T3 (WITHOUT query)
-        /// - Efficient set difference algorithm using HashSet
-        /// - Returns ReadOnlySpan&lt;T1&gt; for zero-allocation iteration
-        /// - Supports optional World parameter with default to global world
-        /// 
-        /// Perf-004 Optimizations:
-        /// - Direct iteration through T1 table instead of creating HashSet for T1 entities
-        /// - Only creates HashSets for exclusion sets (T2, T3) for O(1) membership checks
-        /// - Combines exclusion sets into single HashSet for efficient lookup (minimizes iterations)
-        /// - Single pass through T1 table to build result array
-        /// - Early exit optimizations: if T1 is empty, or if both exclusion sets are empty
-        /// - Minimized allocations: only creates HashSets for exclusion sets, not for T1
-        /// 
-        /// The algorithm:
-        /// 1. Gets storage for T1, T2, and T3 component types
-        /// 2. Early exit if T1 storage is empty
-        /// 3. Creates HashSets for T2 and T3 entities (exclusion sets)
-        /// 4. Combines exclusion sets into single HashSet for efficient lookup
-        /// 5. If both exclusion sets are empty, all T1 entities match (early exit optimization)
-        /// 6. Iterates through T1 table directly, checking if entity is NOT in combined exclusion set
-        /// 7. Builds result array of T1 components for matching entities
-        /// 8. Returns span over result array
-        /// 
-        /// Usage:
-        /// <code>
-        /// var activeEntities = ComponentsManager.GetComponentsWithout&lt;Health, Dead, Destroyed&gt;();
-        /// foreach (var health in activeEntities)
-        /// {
-        ///     // This entity has Health but NOT Dead and NOT Destroyed components
-        ///     health.Amount -= 1f;
-        /// }
-        /// </code>
-        /// 
-        /// Note: If no entities match the criteria, returns an empty span.
-        /// </remarks>
-        public static ReadOnlySpan<T1> GetComponentsWithout<T1, T2, T3>(World world = null) 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-            where T3 : struct, IComponent
-        {
-            // Get storage for all component types
-            var table1 = GetOrCreateTable<T1>(world);
-            var table2 = GetOrCreateTable<T2>(world);
-            var table3 = GetOrCreateTable<T3>(world);
-
-            // If T1 storage is empty, return empty span
-            if (table1.Count == 0)
-            {
-                return ReadOnlySpan<T1>.Empty;
-            }
-
-            // Perf-004: Create HashSets only for exclusion sets (T2, T3) for O(1) lookup
-            var exclusionSet2 = table2.GetEntitiesSet();
-            var exclusionSet3 = table3.GetEntitiesSet();
-
-            // Perf-004: If both exclusion sets are empty, all T1 entities match (early exit optimization)
-            if (exclusionSet2.Count == 0 && exclusionSet3.Count == 0)
-            {
-                // All entities with T1 match (no exclusions), return all T1 components
-                return table1.GetComponents();
-            }
-
-            // Perf-004: Combine exclusion sets into single HashSet for efficient lookup
-            // Use the smaller set as base to minimize operations
-            HashSet<Entity> combinedExclusionSet;
-            if (exclusionSet2.Count <= exclusionSet3.Count)
-            {
-                combinedExclusionSet = exclusionSet2;
-                combinedExclusionSet.UnionWith(exclusionSet3);
-            }
-            else
-            {
-                combinedExclusionSet = exclusionSet3;
-                combinedExclusionSet.UnionWith(exclusionSet2);
-            }
-
-            // Perf-004: Direct iteration through T1 table, checking membership in combined exclusion set
-            // This avoids creating HashSet for T1 entities and modifying it
-            var entitiesSpan = table1.GetEntities();
-            var componentsSpan = table1.GetComponents();
-
-            // Perf-004: Pre-allocate result array with maximum possible size (T1.Count)
-            // Most entities will typically match, so this minimizes reallocations
-            var result = new T1[table1.Count];
-            int resultIndex = 0;
-
-            // Perf-004: Single pass through T1 table - check if entity is NOT in combined exclusion set
-            for (int i = 0; i < entitiesSpan.Length; i++)
-            {
-                if (!combinedExclusionSet.Contains(entitiesSpan[i]))
-                {
-                    result[resultIndex++] = componentsSpan[i];
-                }
-            }
-
-            // Perf-004: If no matches, return empty span
-            if (resultIndex == 0)
-            {
-                return ReadOnlySpan<T1>.Empty;
-            }
-
-            // Perf-004: Return span over result array (zero-allocation iteration)
-            // If result array is full, use it as-is; otherwise create trimmed array
-            if (resultIndex == result.Length)
-            {
-                return new ReadOnlySpan<T1>(result);
-            }
-            else
-            {
-                // Trim array to actual size (only if needed)
-                var trimmedResult = new T1[resultIndex];
-                Array.Copy(result, 0, trimmedResult, 0, resultIndex);
-                return new ReadOnlySpan<T1>(trimmedResult);
-            }
         }
 
         /// <summary>

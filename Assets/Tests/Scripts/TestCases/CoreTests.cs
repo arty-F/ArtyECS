@@ -247,10 +247,10 @@ public class CoreTests : TestBase
             var comp2World2 = ComponentsManager.GetComponent<TestComponent>(entity2, world2);
             
             // Verify isolation
-            Assert(comp1World1.HasValue, "Entity1 should have component in World1");
-            Assert(!comp1World2.HasValue, "Entity1 should not have component in World2");
-            Assert(!comp2World1.HasValue, "Entity2 should not have component in World1");
-            Assert(comp2World2.HasValue, "Entity2 should have component in World2");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity1, world1), "Entity1 should have component in World1");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity1, world2), "Entity1 should not have component in World2");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity2, world1), "Entity2 should not have component in World1");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity2, world2), "Entity2 should have component in World2");
         });
     }
     
@@ -267,9 +267,9 @@ public class CoreTests : TestBase
             ComponentsManager.AddComponent(entity, new TestComponent { Value = 1 });
             
             // Verify that storage is created (can be verified through component addition)
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity), "Component should be successfully added");
             var component = ComponentsManager.GetComponent<TestComponent>(entity);
-            Assert(component.HasValue, "Component should be successfully added");
-            AssertEquals(1, component.Value.Value, "Component value should be 1");
+            AssertEquals(1, component.Value, "Component value should be 1");
         });
     }
     
@@ -335,11 +335,9 @@ public class CoreTests : TestBase
             ComponentsManager.AddComponent(entity, component);
             
             // Get component back
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity), "Component should exist");
             var retrieved = ComponentsManager.GetComponent<TestComponent>(entity);
-            
-            // Verify component was added
-            Assert(retrieved.HasValue, "Component should exist");
-            AssertEquals(42, retrieved.Value.Value, "Component value should be 42");
+            AssertEquals(42, retrieved.Value, "Component value should be 42");
         });
     }
     
@@ -362,14 +360,12 @@ public class CoreTests : TestBase
             ComponentsManager.AddComponent(entity, new Health { Amount = 100f });
             
             // Get all components
+            Assert(ComponentsManager.HasComponent<Position>(entity), "Position component should exist");
+            Assert(ComponentsManager.HasComponent<Velocity>(entity), "Velocity component should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity), "Health component should exist");
             var position = ComponentsManager.GetComponent<Position>(entity);
             var velocity = ComponentsManager.GetComponent<Velocity>(entity);
             var health = ComponentsManager.GetComponent<Health>(entity);
-            
-            // Verify all components added
-            Assert(position.HasValue, "Position component should exist");
-            Assert(velocity.HasValue, "Velocity component should exist");
-            Assert(health.HasValue, "Health component should exist");
         });
     }
     
@@ -424,9 +420,9 @@ public class CoreTests : TestBase
             var comp3 = ComponentsManager.GetComponent<TestComponent>(entity3);
             
             // Verify each entity has its own component
-            AssertEquals(1, comp1.Value.Value, "Entity1 should have value 1");
-            AssertEquals(2, comp2.Value.Value, "Entity2 should have value 2");
-            AssertEquals(3, comp3.Value.Value, "Entity3 should have value 3");
+            AssertEquals(1, comp1.Value, "Entity1 should have value 1");
+            AssertEquals(2, comp2.Value, "Entity2 should have value 2");
+            AssertEquals(3, comp3.Value, "Entity3 should have value 3");
         });
     }
     
@@ -452,8 +448,8 @@ public class CoreTests : TestBase
             var compGlobal = ComponentsManager.GetComponent<TestComponent>(entity, null);
             
             // Verify component accessible only in specified world
-            Assert(compInWorld.HasValue, "Component should exist in testWorld");
-            Assert(!compGlobal.HasValue, "Component should not exist in global world");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, testWorld), "Component should exist in testWorld");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity, null), "Component should not exist in global world");
         });
     }
     
@@ -476,8 +472,7 @@ public class CoreTests : TestBase
             
             // Verify that component is removed
             Assert(removed, "RemoveComponent should return true");
-            var component = ComponentsManager.GetComponent<TestComponent>(entity);
-            Assert(!component.HasValue, "Component should not exist after removal");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity), "Component should not exist after removal");
         });
     }
     
@@ -521,9 +516,9 @@ public class CoreTests : TestBase
             var health = ComponentsManager.GetComponent<Health>(entity);
             
             // Verify Position and Health remain, Velocity removed
-            Assert(position.HasValue, "Position should still exist");
-            Assert(!velocity.HasValue, "Velocity should be removed");
-            Assert(health.HasValue, "Health should still exist");
+            Assert(ComponentsManager.HasComponent<Position>(entity), "Position should still exist");
+            Assert(!ComponentsManager.HasComponent<Velocity>(entity), "Velocity should be removed");
+            Assert(ComponentsManager.HasComponent<Health>(entity), "Health should still exist");
         });
     }
     
@@ -551,9 +546,9 @@ public class CoreTests : TestBase
             var comp2 = ComponentsManager.GetComponent<TestComponent>(entity2);
             var comp3 = ComponentsManager.GetComponent<TestComponent>(entity3);
             
-            Assert(comp1.HasValue, "Entity1 should still have component");
-            Assert(!comp2.HasValue, "Entity2 should not have component");
-            Assert(comp3.HasValue, "Entity3 should still have component");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity1), "Entity1 should still have component");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity2), "Entity2 should not have component");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity3), "Entity3 should still have component");
         });
     }
     
@@ -581,8 +576,8 @@ public class CoreTests : TestBase
             var compGlobal = ComponentsManager.GetComponent<TestComponent>(entity, null);
             
             // Verify component removed only from specified world
-            Assert(!compTest.HasValue, "Component should be removed from testWorld");
-            Assert(compGlobal.HasValue, "Component should remain in global world");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity, testWorld), "Component should be removed from testWorld");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, null), "Component should remain in global world");
         });
     }
     
@@ -600,12 +595,12 @@ public class CoreTests : TestBase
             // Add TestComponent with known value
             ComponentsManager.AddComponent(entity, new TestComponent { Value = 42 });
             
+            // Verify component returned with correct value
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity), "Component should exist");
+            
             // Get component
             var component = ComponentsManager.GetComponent<TestComponent>(entity);
-            
-            // Verify component returned with correct value
-            Assert(component.HasValue, "Component should exist");
-            AssertEquals(42, component.Value.Value, "Component value should be 42");
+            AssertEquals(42, component.Value, "Component value should be 42");
         });
     }
     
@@ -618,11 +613,17 @@ public class CoreTests : TestBase
             // Create Entity without component
             Entity entity = World.CreateEntity();
             
-            // Get non-existent component
-            var component = ComponentsManager.GetComponent<TestComponent>(entity);
-            
-            // Verify returns null (nullable struct)
-            Assert(!component.HasValue, "Component should not exist");
+            // Get non-existent component - should throw exception
+            bool exceptionThrown = false;
+            try
+            {
+                var component = ComponentsManager.GetComponent<TestComponent>(entity);
+            }
+            catch (ComponentNotFoundException)
+            {
+                exceptionThrown = true;
+            }
+            Assert(exceptionThrown, "ComponentNotFoundException should be thrown");
         });
     }
     
@@ -641,11 +642,17 @@ public class CoreTests : TestBase
             // Remove TestComponent
             ComponentsManager.RemoveComponent<TestComponent>(entity);
             
-            // Get TestComponent
-            var component = ComponentsManager.GetComponent<TestComponent>(entity);
-            
-            // Verify returns null
-            Assert(!component.HasValue, "Component should not exist after removal");
+            // Get TestComponent - should throw exception
+            bool exceptionThrown = false;
+            try
+            {
+                var component = ComponentsManager.GetComponent<TestComponent>(entity);
+            }
+            catch (ComponentNotFoundException)
+            {
+                exceptionThrown = true;
+            }
+            Assert(exceptionThrown, "ComponentNotFoundException should be thrown after removal");
         });
     }
     
@@ -671,8 +678,8 @@ public class CoreTests : TestBase
             var compGlobal = ComponentsManager.GetComponent<TestComponent>(entity, null);
             
             // Verify component accessible only in specified world
-            Assert(compTest.HasValue, "Component should exist in testWorld");
-            Assert(!compGlobal.HasValue, "Component should not exist in global world");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, testWorld), "Component should exist in testWorld");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity, null), "Component should not exist in global world");
         });
     }
     
@@ -1015,7 +1022,10 @@ public class CoreTests : TestBase
     }
     
     // ========== Core-009: ComponentsManager - GetComponentsWithout Query ==========
+    // REMOVED - API-003: GetComponentsWithout methods removed as part of API simplification
+    // Users should filter results manually or use GetComponents with manual filtering
     
+    /* REMOVED - API-003
     [ContextMenu("Run Test: GetComponentsWithout Single Type (No Exclusions)")]
     public void Test_Query_014()
     {
@@ -1194,6 +1204,7 @@ public class CoreTests : TestBase
             AssertEquals(100f, components[0].Amount, "Health amount should be 100f");
         });
     }
+    */
     
     // ========== Core-010: ComponentsManager - Deferred Component Modifications ==========
     
@@ -1219,12 +1230,12 @@ public class CoreTests : TestBase
                 }
             } // Dispose collection
             
+            // Verify changes applied after Dispose
+            Assert(ComponentsManager.HasComponent<Health>(entity), "Health component should exist");
+            
             // Get component back
             var health = ComponentsManager.GetComponent<Health>(entity);
-            
-            // Verify changes applied after Dispose
-            Assert(health.HasValue, "Health component should exist");
-            AssertEquals(50f, health.Value.Amount, "Health Amount should be 50");
+            AssertEquals(50f, health.Amount, "Health Amount should be 50");
         });
     }
     
@@ -1260,12 +1271,12 @@ public class CoreTests : TestBase
             var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
             // Verify all changes applied
-            Assert(health1.HasValue, "Entity1 health should exist");
-            Assert(health2.HasValue, "Entity2 health should exist");
-            Assert(health3.HasValue, "Entity3 health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity1), "Entity1 health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity2), "Entity2 health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity3), "Entity3 health should exist");
             
             // Values may be in different order, so check that all expected values exist
-            var amounts = new float[] { health1.Value.Amount, health2.Value.Amount, health3.Value.Amount };
+            var amounts = new float[] { health1.Amount, health2.Amount, health3.Amount };
             Assert(amounts.Contains(50f), "Should contain 50f");
             Assert(amounts.Contains(60f), "Should contain 60f");
             Assert(amounts.Contains(70f), "Should contain 70f");
@@ -1294,12 +1305,12 @@ public class CoreTests : TestBase
             }
             
             // DON'T call Dispose
+            // Verify changes NOT applied (remains 100)
+            Assert(ComponentsManager.HasComponent<Health>(entity), "Health component should exist");
+            
             // Get component back
             var health = ComponentsManager.GetComponent<Health>(entity);
-            
-            // Verify changes NOT applied (remains 100)
-            Assert(health.HasValue, "Health component should exist");
-            AssertEquals(100f, health.Value.Amount, "Health Amount should remain 100 (not disposed)");
+            AssertEquals(100f, health.Amount, "Health Amount should remain 100 (not disposed)");
             
             // Dispose now to clean up
             components.Dispose();
@@ -1337,12 +1348,12 @@ public class CoreTests : TestBase
             var health2 = ComponentsManager.GetComponent<Health>(entity2);
             var health3 = ComponentsManager.GetComponent<Health>(entity3);
             
-            Assert(health1.HasValue, "Entity1 health should exist");
-            Assert(health2.HasValue, "Entity2 health should exist");
-            Assert(health3.HasValue, "Entity3 health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity1), "Entity1 health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity2), "Entity2 health should exist");
+            Assert(ComponentsManager.HasComponent<Health>(entity3), "Entity3 health should exist");
             
             // All should be reduced by 10
-            var amounts = new float[] { health1.Value.Amount, health2.Value.Amount, health3.Value.Amount };
+            var amounts = new float[] { health1.Amount, health2.Amount, health3.Amount };
             Assert(amounts.Contains(90f), "Should contain 90f");
             Assert(amounts.Contains(190f), "Should contain 190f");
             Assert(amounts.Contains(290f), "Should contain 290f");
@@ -1375,15 +1386,15 @@ public class CoreTests : TestBase
                 }
             } // Dispose collection
             
+            // Verify changes applied only in specified world
+            Assert(ComponentsManager.HasComponent<Health>(entity, testWorld), "Health should exist in testWorld");
+            Assert(ComponentsManager.HasComponent<Health>(entity, null), "Health should exist in global world");
+            
             // Check components in both worlds
             var healthTest = ComponentsManager.GetComponent<Health>(entity, testWorld);
             var healthGlobal = ComponentsManager.GetComponent<Health>(entity, null);
-            
-            // Verify changes applied only in specified world
-            Assert(healthTest.HasValue, "Health should exist in testWorld");
-            AssertEquals(50f, healthTest.Value.Amount, "Health Amount in testWorld should be 50");
-            Assert(healthGlobal.HasValue, "Health should exist in global world");
-            AssertEquals(200f, healthGlobal.Value.Amount, "Health Amount in global world should remain 200");
+            AssertEquals(50f, healthTest.Amount, "Health Amount in testWorld should be 50");
+            AssertEquals(200f, healthGlobal.Amount, "Health Amount in global world should remain 200");
         });
     }
     
@@ -1793,12 +1804,9 @@ public class CoreTests : TestBase
             
             // Verify that all components are removed
             Assert(destroyed, "DestroyEntity should return true");
-            var position = ComponentsManager.GetComponent<Position>(entity);
-            var velocity = ComponentsManager.GetComponent<Velocity>(entity);
-            var health = ComponentsManager.GetComponent<Health>(entity);
-            Assert(!position.HasValue, "Position should be removed");
-            Assert(!velocity.HasValue, "Velocity should be removed");
-            Assert(!health.HasValue, "Health should be removed");
+            Assert(!ComponentsManager.HasComponent<Position>(entity), "Position should be removed");
+            Assert(!ComponentsManager.HasComponent<Velocity>(entity), "Velocity should be removed");
+            Assert(!ComponentsManager.HasComponent<Health>(entity), "Health should be removed");
             Assert(!EntitiesManager.IsAllocated(entity), "Entity should not be allocated");
         });
     }
@@ -1827,10 +1835,10 @@ public class CoreTests : TestBase
             
             // Verify that all components are removed
             Assert(destroyed, "DestroyEntity should return true");
-            Assert(!ComponentsManager.GetComponent<Position>(entity).HasValue, "Position should be removed");
-            Assert(!ComponentsManager.GetComponent<Velocity>(entity).HasValue, "Velocity should be removed");
-            Assert(!ComponentsManager.GetComponent<Health>(entity).HasValue, "Health should be removed");
-            Assert(!ComponentsManager.GetComponent<TestComponent>(entity).HasValue, "TestComponent should be removed");
+            Assert(!ComponentsManager.HasComponent<Position>(entity), "Position should be removed");
+            Assert(!ComponentsManager.HasComponent<Velocity>(entity), "Velocity should be removed");
+            Assert(!ComponentsManager.HasComponent<Health>(entity), "Health should be removed");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity), "TestComponent should be removed");
         });
     }
     
@@ -1894,8 +1902,8 @@ public class CoreTests : TestBase
             
             // Verify components removed only from specified world, entity deallocated
             Assert(destroyed, "DestroyEntity should return true");
-            Assert(!compTest.HasValue, "Component should be removed from testWorld");
-            Assert(compGlobal.HasValue, "Component should remain in global world");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity, testWorld), "Component should be removed from testWorld");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, null), "Component should remain in global world");
             Assert(!EntitiesManager.IsAllocated(entity, testWorld), "Entity should not be allocated in testWorld");
         });
     }
@@ -1950,8 +1958,7 @@ public class CoreTests : TestBase
             // Verify that Entity2 can use recycled ID
             // Note: ID recycling may not happen immediately
             // Components should not be recycled
-            var component = ComponentsManager.GetComponent<TestComponent>(entity2);
-            Assert(!component.HasValue, "Entity2 should not have recycled components");
+            Assert(!ComponentsManager.HasComponent<TestComponent>(entity2), "Entity2 should not have recycled components");
         });
     }
     
@@ -1991,8 +1998,7 @@ public class CoreTests : TestBase
             
             // Verify final state
             Assert(!EntitiesManager.IsAllocated(entity), "Entity should not be allocated");
-            var position = ComponentsManager.GetComponent<Position>(entity);
-            Assert(!position.HasValue, "Position should be removed");
+            Assert(!ComponentsManager.HasComponent<Position>(entity), "Position should be removed");
         });
     }
     

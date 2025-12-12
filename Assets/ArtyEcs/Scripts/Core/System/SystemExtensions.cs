@@ -95,15 +95,28 @@ namespace ArtyECS.Core
         /// The system is executed synchronously without being added to any queue.
         /// </summary>
         /// <param name="system">System instance (this)</param>
-        /// <param name="world">Optional world instance (default: global world). Note: This parameter is for API consistency but doesn't affect execution since systems are not world-scoped during execution.</param>
+        /// <param name="world">Optional world instance (default: global world). The system will be executed in the context of this world.</param>
         /// <remarks>
+        /// This method implements API-001: Fix ExecuteOnce World Parameter ✅
+        /// 
         /// This is an extension method that calls SystemsManager.ExecuteOnce().
         /// The system will be executed immediately without being added to any queue.
+        /// The World parameter is passed to system.Execute(world) to provide world context.
         /// 
         /// This method is useful for:
         /// - One-time system execution (e.g., initialization systems)
         /// - Testing systems in isolation
         /// - Manual system execution outside of normal update loops
+        /// - Executing systems in specific world contexts
+        /// 
+        /// Usage:
+        /// <code>
+        /// var initializationSystem = new InitializationSystem();
+        /// initializationSystem.ExecuteOnce(); // Executes in global world
+        /// 
+        /// var localWorld = new World("Local");
+        /// initializationSystem.ExecuteOnce(localWorld); // Executes in Local world
+        /// </code>
         /// </remarks>
         public static void ExecuteOnce(this SystemHandler system, World world = null)
         {

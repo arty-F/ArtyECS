@@ -11,7 +11,7 @@ public class TestSystem : SystemHandler
         this.executeAction = executeAction;
     }
     
-    public override void Execute()
+    public override void Execute(World world = null)
     {
         executeAction?.Invoke();
     }
@@ -24,9 +24,9 @@ public class StatefulSystem : SystemHandler
 
 public class IncrementSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>();
+        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>(world);
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -39,10 +39,10 @@ public class IncrementSystem : SystemHandler
 
 public class MovementSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var positions = ComponentsManager.GetModifiableComponents<Position>();
-        var velocities = ComponentsManager.GetComponents<Velocity>();
+        var positions = ComponentsManager.GetModifiableComponents<Position>(world);
+        var velocities = ComponentsManager.GetComponents<Velocity>(world);
         
         using (positions)
         {
@@ -62,9 +62,9 @@ public class MovementSystem : SystemHandler
 
 public class HealthSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var healths = ComponentsManager.GetModifiableComponents<Health>();
+        var healths = ComponentsManager.GetModifiableComponents<Health>(world);
         using (healths)
         {
             for (int i = 0; i < healths.Count; i++)
@@ -77,9 +77,9 @@ public class HealthSystem : SystemHandler
 
 public class ModifiableHealthSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var healths = ComponentsManager.GetModifiableComponents<Health>();
+        var healths = ComponentsManager.GetModifiableComponents<Health>(world);
         using (healths)
         {
             for (int i = 0; i < healths.Count; i++)
@@ -92,10 +92,10 @@ public class ModifiableHealthSystem : SystemHandler
 
 public class PhysicsSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var velocities = ComponentsManager.GetModifiableComponents<Velocity>();
-        var accelerations = ComponentsManager.GetComponents<Acceleration>();
+        var velocities = ComponentsManager.GetModifiableComponents<Velocity>(world);
+        var accelerations = ComponentsManager.GetComponents<Acceleration>(world);
         
         using (velocities)
         {
@@ -110,8 +110,8 @@ public class PhysicsSystem : SystemHandler
             }
         }
         
-        var positions = ComponentsManager.GetModifiableComponents<Position>();
-        var velocitiesRead = ComponentsManager.GetComponents<Velocity>();
+        var positions = ComponentsManager.GetModifiableComponents<Position>(world);
+        var velocitiesRead = ComponentsManager.GetComponents<Velocity>(world);
         
         using (positions)
         {
@@ -137,9 +137,9 @@ public class SetValueSystem : SystemHandler
         this.valueToSet = value;
     }
     
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>();
+        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>(world);
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -152,9 +152,9 @@ public class SetValueSystem : SystemHandler
 
 public class UpdateCounterSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var counters = ComponentsManager.GetModifiableComponents<UpdateCounter>();
+        var counters = ComponentsManager.GetModifiableComponents<UpdateCounter>(world);
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -167,9 +167,9 @@ public class UpdateCounterSystem : SystemHandler
 
 public class FixedUpdateCounterSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var counters = ComponentsManager.GetModifiableComponents<FixedUpdateCounter>();
+        var counters = ComponentsManager.GetModifiableComponents<FixedUpdateCounter>(world);
         using (counters)
         {
             for (int i = 0; i < counters.Count; i++)
@@ -190,16 +190,19 @@ public class CleanupSystem : SystemHandler
         entityToCleanup = entity;
     }
     
-    public override void Execute()
+    public override void Execute(World world = null)
     {
         // Simplified: remove Dead component from entity with Health <= 0
         // In a real system, we'd iterate through all entities with Health and Dead components
         if (entityToCleanup.HasValue)
         {
-            var health = ComponentsManager.GetComponent<Health>(entityToCleanup.Value);
-            if (health.HasValue && health.Value.Amount <= 0f)
+            if (ComponentsManager.HasComponent<Health>(entityToCleanup.Value, world))
             {
-                ComponentsManager.RemoveComponent<Dead>(entityToCleanup.Value);
+                var health = ComponentsManager.GetComponent<Health>(entityToCleanup.Value, world);
+                if (health.Amount <= 0f)
+                {
+                    ComponentsManager.RemoveComponent<Dead>(entityToCleanup.Value, world);
+                }
             }
         }
         else
@@ -207,7 +210,7 @@ public class CleanupSystem : SystemHandler
             // Fallback: try to find and remove Dead from any entity with Health <= 0
             // This is a limitation - we can't easily iterate entities in current API
             // For this test, we'll use a workaround: check if we can find entities with both components
-            var healthAndDead = ComponentsManager.GetComponents<Health, Dead>();
+            var healthAndDead = ComponentsManager.GetComponents<Health, Dead>(world);
             // Note: We can't get Entity from component in current API
             // This demonstrates a limitation that would need to be addressed in real implementation
         }
@@ -216,22 +219,22 @@ public class CleanupSystem : SystemHandler
 
 public class SpawnSystem : SystemHandler
 {
-    public override void Execute()
+    public override void Execute(World world = null)
     {
-        var spawners = ComponentsManager.GetComponents<Spawner>();
+        var spawners = ComponentsManager.GetComponents<Spawner>(world);
         
         for (int i = 0; i < spawners.Length; i++)
         {
             if (spawners[i].SpawnCount > 0)
             {
-                // Create new entity
-                Entity newEntity = World.CreateEntity();
+                // Create new entity in the same world context
+                Entity newEntity = World.CreateEntity(world);
                 
                 // Add some component to new entity (optional)
-                ComponentsManager.AddComponent(newEntity, new TestComponent { Value = 42 });
+                ComponentsManager.AddComponent(newEntity, new TestComponent { Value = 42 }, world);
                 
                 // Decrement spawn count
-                var modifiableSpawners = ComponentsManager.GetModifiableComponents<Spawner>();
+                var modifiableSpawners = ComponentsManager.GetModifiableComponents<Spawner>(world);
                 using (modifiableSpawners)
                 {
                     if (i < modifiableSpawners.Count)

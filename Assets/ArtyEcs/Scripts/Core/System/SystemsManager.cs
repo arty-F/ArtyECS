@@ -14,6 +14,10 @@ namespace ArtyECS.Core
     /// - System-003: SystemsManager - FixedUpdate Queue Management ✅
     /// - System-004: SystemsManager - Manual Execution ✅
     /// - System-005: SystemsManager - Queue Execution (Sync) ✅
+    /// - API-001: Fix ExecuteOnce World Parameter ✅
+    ///   - ExecuteOnce() passes World parameter to system.Execute(world)
+    ///   - Queue execution methods pass world context to system.Execute(world)
+    ///   - Systems can use World parameter for component queries
     /// - World-002: World-Scoped Storage Integration ✅
     ///   - All methods support optional World? parameter (default: global world)
     ///   - Automatic world resolution via ResolveWorld() method (null → global world)
@@ -264,12 +268,15 @@ namespace ArtyECS.Core
         /// Executes all systems in the Update queue for the specified world in order.
         /// Systems are executed sequentially (index 0, 1, 2, ...).
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">Optional world instance (default: global world). The world context is passed to each system's Execute() method.</param>
         /// <remarks>
-        /// This method implements System-005: SystemsManager - Queue Execution (Sync).
+        /// This method implements:
+        /// - System-005: SystemsManager - Queue Execution (Sync) ✅
+        /// - API-001: Fix ExecuteOnce World Parameter ✅
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
+        /// - World context is passed to each system's Execute(world) method
         /// - If a system throws an exception, execution continues with the next system
         /// - Errors are logged but do not stop queue execution (graceful error handling)
         /// - Empty queues are handled gracefully (no-op if queue is empty)
@@ -281,8 +288,11 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour Update() method:
         /// void Update()
         /// {
-        ///     SystemsManager.ExecuteUpdate();
+        ///     SystemsManager.ExecuteUpdate(); // Executes systems in global world
         /// }
+        /// 
+        /// var localWorld = new World("Local");
+        /// SystemsManager.ExecuteUpdate(localWorld); // Executes systems in Local world
         /// </code>
         /// 
         /// Note: Async system support will be added in Async-002. Currently, all systems
@@ -290,23 +300,24 @@ namespace ArtyECS.Core
         /// </remarks>
         public static void ExecuteUpdate(World world = null)
         {
-            var storage = GetWorldStorage(world);
+            var targetWorld = ResolveWorld(world);
+            var storage = GetWorldStorage(targetWorld);
             var queue = storage.UpdateQueue;
 
-            // Execute all systems in order
+            // Execute all systems in order, passing world context
             for (int i = 0; i < queue.Count; i++)
             {
                 var system = queue[i];
                 try
                 {
-                    system.Execute();
+                    system.Execute(targetWorld);
                 }
                 catch (Exception ex)
                 {
                     // Log error but continue execution with next system
                     // This allows other systems to continue even if one fails
                     // In production, you might want to use a proper logging system
-                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed: {ex}");
+                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{targetWorld.Name}': {ex}");
                 }
             }
         }
@@ -409,12 +420,15 @@ namespace ArtyECS.Core
         /// Executes all systems in the FixedUpdate queue for the specified world in order.
         /// Systems are executed sequentially (index 0, 1, 2, ...).
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">Optional world instance (default: global world). The world context is passed to each system's Execute() method.</param>
         /// <remarks>
-        /// This method implements System-005: SystemsManager - Queue Execution (Sync).
+        /// This method implements:
+        /// - System-005: SystemsManager - Queue Execution (Sync) ✅
+        /// - API-001: Fix ExecuteOnce World Parameter ✅
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
+        /// - World context is passed to each system's Execute(world) method
         /// - If a system throws an exception, execution continues with the next system
         /// - Errors are logged but do not stop queue execution (graceful error handling)
         /// - Empty queues are handled gracefully (no-op if queue is empty)
@@ -426,8 +440,11 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour FixedUpdate() method:
         /// void FixedUpdate()
         /// {
-        ///     SystemsManager.ExecuteFixedUpdate();
+        ///     SystemsManager.ExecuteFixedUpdate(); // Executes systems in global world
         /// }
+        /// 
+        /// var localWorld = new World("Local");
+        /// SystemsManager.ExecuteFixedUpdate(localWorld); // Executes systems in Local world
         /// </code>
         /// 
         /// Note: Async system support will be added in Async-002. Currently, all systems
@@ -435,23 +452,24 @@ namespace ArtyECS.Core
         /// </remarks>
         public static void ExecuteFixedUpdate(World world = null)
         {
-            var storage = GetWorldStorage(world);
+            var targetWorld = ResolveWorld(world);
+            var storage = GetWorldStorage(targetWorld);
             var queue = storage.FixedUpdateQueue;
 
-            // Execute all systems in order
+            // Execute all systems in order, passing world context
             for (int i = 0; i < queue.Count; i++)
             {
                 var system = queue[i];
                 try
                 {
-                    system.Execute();
+                    system.Execute(targetWorld);
                 }
                 catch (Exception ex)
                 {
                     // Log error but continue execution with next system
                     // This allows other systems to continue even if one fails
                     // In production, you might want to use a proper logging system
-                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed: {ex}");
+                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{targetWorld.Name}': {ex}");
                 }
             }
         }
@@ -461,32 +479,43 @@ namespace ArtyECS.Core
         /// The system is executed synchronously without being added to any queue.
         /// </summary>
         /// <param name="system">System to execute immediately</param>
-        /// <param name="world">Optional world instance (default: global world). Note: This parameter is for API consistency but doesn't affect execution since systems are not world-scoped during execution.</param>
+        /// <param name="world">Optional world instance (default: global world). The system will be executed in the context of this world.</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <remarks>
-        /// This method implements System-004: SystemsManager - Manual Execution.
+        /// This method implements:
+        /// - System-004: SystemsManager - Manual Execution ✅
+        /// - API-001: Fix ExecuteOnce World Parameter ✅
         /// 
         /// Execution behavior:
         /// - System is executed immediately without being added to any queue
         /// - No side effects on Update or FixedUpdate queues
         /// - If a system throws an exception, it propagates to the caller (not caught)
-        /// - World parameter is accepted for API consistency but doesn't affect execution
+        /// - World parameter is passed to system.Execute(world) to provide world context
+        /// - When World is provided, the system should use this world for component queries
+        /// - When World is null, the system should use the global world (default behavior)
         /// 
         /// This method is useful for:
         /// - One-time system execution (e.g., initialization systems)
         /// - Testing systems in isolation
         /// - Manual system execution outside of normal update loops
+        /// - Executing systems in specific world contexts
         /// 
         /// Usage:
         /// <code>
         /// var initializationSystem = new InitializationSystem();
-        /// SystemsManager.ExecuteOnce(initializationSystem);
+        /// SystemsManager.ExecuteOnce(initializationSystem); // Executes in global world
+        /// 
+        /// var localWorld = new World("Local");
+        /// SystemsManager.ExecuteOnce(initializationSystem, localWorld); // Executes in Local world
         /// </code>
         /// 
         /// Or using extension method:
         /// <code>
         /// var initializationSystem = new InitializationSystem();
-        /// initializationSystem.ExecuteOnce();
+        /// initializationSystem.ExecuteOnce(); // Executes in global world
+        /// 
+        /// var localWorld = new World("Local");
+        /// initializationSystem.ExecuteOnce(localWorld); // Executes in Local world
         /// </code>
         /// 
         /// Note: Async system support will be added in Async-001 and Async-002.
@@ -500,9 +529,9 @@ namespace ArtyECS.Core
             }
 
             // Execute system immediately without adding to any queue
-            // World parameter is accepted for API consistency but doesn't affect execution
-            // since systems execute in the context of ComponentsManager queries, not world queues
-            system.Execute();
+            // Pass World parameter to system.Execute(world) to provide world context
+            // Systems can use this world parameter for component queries
+            system.Execute(world);
         }
 
         /// <summary>
@@ -540,12 +569,15 @@ namespace ArtyECS.Core
         /// This method iterates through all worlds and executes their Update queues.
         /// </summary>
         /// <remarks>
+        /// This method implements API-001: Fix ExecuteOnce World Parameter ✅
+        /// 
         /// This method executes Update systems for all worlds that have been initialized.
         /// Each world's systems are executed sequentially in the order they appear in that world's queue.
         /// 
         /// Execution behavior:
         /// - All worlds are processed in the order they appear in the internal storage
         /// - For each world, systems are executed in the order they appear in the Update queue
+        /// - World context is passed to each system's Execute(world) method
         /// - If a system throws an exception, execution continues with the next system
         /// - Errors are logged but do not stop queue execution (graceful error handling)
         /// 
@@ -564,20 +596,21 @@ namespace ArtyECS.Core
         {
             foreach (var kvp in WorldStorages)
             {
+                var world = kvp.Key;
                 var queue = kvp.Value.UpdateQueue;
 
-                // Execute all systems in order
+                // Execute all systems in order, passing world context
                 for (int i = 0; i < queue.Count; i++)
                 {
                     var system = queue[i];
                     try
                     {
-                        system.Execute();
+                        system.Execute(world);
                     }
                     catch (Exception ex)
                     {
                         // Log error but continue execution with next system
-                        UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{kvp.Key.Name}': {ex}");
+                        UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{world.Name}': {ex}");
                     }
                 }
             }
@@ -588,12 +621,15 @@ namespace ArtyECS.Core
         /// This method iterates through all worlds and executes their FixedUpdate queues.
         /// </summary>
         /// <remarks>
+        /// This method implements API-001: Fix ExecuteOnce World Parameter ✅
+        /// 
         /// This method executes FixedUpdate systems for all worlds that have been initialized.
         /// Each world's systems are executed sequentially in the order they appear in that world's queue.
         /// 
         /// Execution behavior:
         /// - All worlds are processed in the order they appear in the internal storage
         /// - For each world, systems are executed in the order they appear in the FixedUpdate queue
+        /// - World context is passed to each system's Execute(world) method
         /// - If a system throws an exception, execution continues with the next system
         /// - Errors are logged but do not stop queue execution (graceful error handling)
         /// 
@@ -612,20 +648,21 @@ namespace ArtyECS.Core
         {
             foreach (var kvp in WorldStorages)
             {
+                var world = kvp.Key;
                 var queue = kvp.Value.FixedUpdateQueue;
 
-                // Execute all systems in order
+                // Execute all systems in order, passing world context
                 for (int i = 0; i < queue.Count; i++)
                 {
                     var system = queue[i];
                     try
                     {
-                        system.Execute();
+                        system.Execute(world);
                     }
                     catch (Exception ex)
                     {
                         // Log error but continue execution with next system
-                        UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{kvp.Key.Name}': {ex}");
+                        UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{world.Name}': {ex}");
                     }
                 }
             }
