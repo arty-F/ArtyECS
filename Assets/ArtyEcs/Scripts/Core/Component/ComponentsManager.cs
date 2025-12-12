@@ -76,12 +76,6 @@ namespace ArtyECS.Core
     public static class ComponentsManager
     {
         /// <summary>
-        /// Gets the global/default world instance. Used when no world is specified.
-        /// Uses World.GetOrCreate() to ensure shared singleton instance.
-        /// </summary>
-        private static World GlobalWorld => World.GetOrCreate();
-
-        /// <summary>
         /// Registry of worlds to their component storage instances.
         /// Each world has its own dictionary mapping component types to storage.
         /// Uses IComponentTable interface to allow type-erased removal without reflection.

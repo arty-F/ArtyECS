@@ -66,12 +66,6 @@ namespace ArtyECS.Core
     internal static class SystemsManager
     {
         /// <summary>
-        /// Gets the global/default world instance. Used when no world is specified.
-        /// Uses World.GetOrCreate() to ensure shared singleton instance.
-        /// </summary>
-        private static World GlobalWorld => World.GetOrCreate();
-
-        /// <summary>
         /// Internal class to hold system queues for a single world.
         /// Each world has its own Update and FixedUpdate queues.
         /// </summary>

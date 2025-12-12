@@ -73,12 +73,6 @@ namespace ArtyECS.Core
             new Dictionary<World, EntityPoolInstance>();
 
         /// <summary>
-        /// Global/default world instance. Used when no world is specified.
-        /// Lazily initialized to ensure World is ready.
-        /// </summary>
-        private static World GlobalWorld => World.GetOrCreate();
-
-        /// <summary>
         /// Gets or creates the entity pool instance for the specified world.
         /// Uses lazy pre-allocation for faster allocations without changing pool semantics (Perf-000).
         /// </summary>

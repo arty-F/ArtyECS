@@ -26,8 +26,7 @@ public class IncrementSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>(world);
-        using (counters)
+        using (var counters = world.GetModifiableComponents<CounterComponent>())
         {
             for (int i = 0; i < counters.Count; i++)
             {
@@ -41,20 +40,18 @@ public class MovementSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var positions = ComponentsManager.GetModifiableComponents<Position>(world);
-        var velocities = ComponentsManager.GetComponents<Velocity>(world);
+        // Use GetEntitiesWith pattern for entities with both Position and Velocity
+        var entities = world.GetEntitiesWith<Position, Velocity>();
         
-        using (positions)
+        using (var positions = world.GetModifiableComponents<Position>())
         {
-            for (int i = 0; i < positions.Count; i++)
+            for (int i = 0; i < entities.Length && i < positions.Count; i++)
             {
-                // Find corresponding velocity (simplified - assumes same index)
-                if (i < velocities.Length)
-                {
-                    positions[i].X += velocities[i].X;
-                    positions[i].Y += velocities[i].Y;
-                    positions[i].Z += velocities[i].Z;
-                }
+                // Get velocity for this entity
+                Velocity velocity = world.GetComponent<Velocity>(entities[i]);
+                positions[i].X += velocity.X;
+                positions[i].Y += velocity.Y;
+                positions[i].Z += velocity.Z;
             }
         }
     }
@@ -64,8 +61,7 @@ public class HealthSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var healths = ComponentsManager.GetModifiableComponents<Health>(world);
-        using (healths)
+        using (var healths = world.GetModifiableComponents<Health>())
         {
             for (int i = 0; i < healths.Count; i++)
             {
@@ -79,8 +75,7 @@ public class ModifiableHealthSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var healths = ComponentsManager.GetModifiableComponents<Health>(world);
-        using (healths)
+        using (var healths = world.GetModifiableComponents<Health>())
         {
             for (int i = 0; i < healths.Count; i++)
             {
@@ -94,36 +89,29 @@ public class PhysicsSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var velocities = ComponentsManager.GetModifiableComponents<Velocity>(world);
-        var accelerations = ComponentsManager.GetComponents<Acceleration>(world);
-        
-        using (velocities)
+        // Update velocities with acceleration
+        var entitiesWithAccel = world.GetEntitiesWith<Velocity, Acceleration>();
+        foreach (var entity in entitiesWithAccel)
         {
-            for (int i = 0; i < velocities.Count; i++)
-            {
-                if (i < accelerations.Length)
-                {
-                    velocities[i].X += accelerations[i].X;
-                    velocities[i].Y += accelerations[i].Y;
-                    velocities[i].Z += accelerations[i].Z;
-                }
-            }
+            Velocity velocity = world.GetComponent<Velocity>(entity);
+            Acceleration acceleration = world.GetComponent<Acceleration>(entity);
+            
+            ref var velRef = ref world.GetModifiableComponent<Velocity>(entity);
+            velRef.X += acceleration.X;
+            velRef.Y += acceleration.Y;
+            velRef.Z += acceleration.Z;
         }
         
-        var positions = ComponentsManager.GetModifiableComponents<Position>(world);
-        var velocitiesRead = ComponentsManager.GetComponents<Velocity>(world);
-        
-        using (positions)
+        // Update positions with velocity
+        var entitiesWithVel = world.GetEntitiesWith<Position, Velocity>();
+        foreach (var entity in entitiesWithVel)
         {
-            for (int i = 0; i < positions.Count; i++)
-            {
-                if (i < velocitiesRead.Length)
-                {
-                    positions[i].X += velocitiesRead[i].X;
-                    positions[i].Y += velocitiesRead[i].Y;
-                    positions[i].Z += velocitiesRead[i].Z;
-                }
-            }
+            Velocity velocity = world.GetComponent<Velocity>(entity);
+            
+            ref var posRef = ref world.GetModifiableComponent<Position>(entity);
+            posRef.X += velocity.X;
+            posRef.Y += velocity.Y;
+            posRef.Z += velocity.Z;
         }
     }
 }
@@ -139,8 +127,7 @@ public class SetValueSystem : SystemHandler
     
     public override void Execute(World world)
     {
-        var counters = ComponentsManager.GetModifiableComponents<CounterComponent>(world);
-        using (counters)
+        using (var counters = world.GetModifiableComponents<CounterComponent>())
         {
             for (int i = 0; i < counters.Count; i++)
             {
@@ -154,8 +141,7 @@ public class UpdateCounterSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var counters = ComponentsManager.GetModifiableComponents<UpdateCounter>(world);
-        using (counters)
+        using (var counters = world.GetModifiableComponents<UpdateCounter>())
         {
             for (int i = 0; i < counters.Count; i++)
             {
@@ -169,8 +155,7 @@ public class FixedUpdateCounterSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var counters = ComponentsManager.GetModifiableComponents<FixedUpdateCounter>(world);
-        using (counters)
+        using (var counters = world.GetModifiableComponents<FixedUpdateCounter>())
         {
             for (int i = 0; i < counters.Count; i++)
             {
@@ -192,29 +177,30 @@ public class CleanupSystem : SystemHandler
     
     public override void Execute(World world)
     {
-        // Simplified: remove Dead component from entity with Health <= 0
-        // In a real system, we'd iterate through all entities with Health and Dead components
-        if (entityToCleanup.HasValue)
+        // Use GetEntitiesWith to find entities with both Health and Dead components
+        var entities = world.GetEntitiesWith<Health, Dead>();
+        
+        foreach (var entity in entities)
         {
-            if (ComponentsManager.HasComponent<Health>(entityToCleanup.Value, world))
+            Health health = world.GetComponent<Health>(entity);
+            if (health.Amount <= 0f)
             {
-                var health = ComponentsManager.GetComponent<Health>(entityToCleanup.Value, world);
-                if (health.Amount <= 0f)
-                {
-                    ComponentsManager.RemoveComponent<Dead>(entityToCleanup.Value, world);
-                }
+                world.RemoveComponent<Dead>(entity);
             }
         }
-        else
+        
+        // Also handle specific entity if set (for testing)
+        if (entityToCleanup.HasValue)
         {
-            // REMOVED - API-004: GetComponents with multiple type parameters removed
-            // Fallback: try to find and remove Dead from any entity with Health <= 0
-            // This is a limitation - we can't easily iterate entities in current API
-            // For this test, we'll use a workaround: check if we can find entities with both components
-            // var healthAndDead = ComponentsManager.GetComponents<Health, Dead>(world);
-            // Note: We can't get Entity from component in current API
-            // This demonstrates a limitation that would need to be addressed in real implementation
-            // TODO: Restore after API-005 (GetEntitiesWith) is implemented
+            Entity entity = entityToCleanup.Value;
+            if (entity.Has<Health>(world))
+            {
+                Health health = world.GetComponent<Health>(entity);
+                if (health.Amount <= 0f && entity.Has<Dead>(world))
+                {
+                    world.RemoveComponent<Dead>(entity);
+                }
+            }
         }
     }
 }
@@ -223,27 +209,24 @@ public class SpawnSystem : SystemHandler
 {
     public override void Execute(World world)
     {
-        var spawners = ComponentsManager.GetComponents<Spawner>(world);
+        // Use GetEntitiesWith to find entities with Spawner component
+        var entities = world.GetEntitiesWith<Spawner>();
         
-        for (int i = 0; i < spawners.Length; i++)
+        foreach (var entity in entities)
         {
-            if (spawners[i].SpawnCount > 0)
+            Spawner spawner = world.GetComponent<Spawner>(entity);
+            if (spawner.SpawnCount > 0)
             {
                 // Create new entity in the same world context
                 Entity newEntity = world.CreateEntity();
                 
-                // Add some component to new entity (optional)
-                ComponentsManager.AddComponent(newEntity, new TestComponent { Value = 42 }, world);
+                // Add some component to new entity
+                world.AddComponent(newEntity, new TestComponent { Value = 42 });
                 
                 // Decrement spawn count
-                var modifiableSpawners = ComponentsManager.GetModifiableComponents<Spawner>(world);
-                using (modifiableSpawners)
-                {
-                    if (i < modifiableSpawners.Count)
-                    {
-                        modifiableSpawners[i].SpawnCount--;
-                    }
-                }
+                ref var spawnerRef = ref world.GetModifiableComponent<Spawner>(entity);
+                spawnerRef.SpawnCount--;
+                
                 break; // Only spawn one per frame
             }
         }
