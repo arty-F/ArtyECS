@@ -46,7 +46,7 @@ namespace ArtyECS.Core
     ///   - All methods support optional World? parameter (default: global world)
     ///   - Automatic world resolution via ResolveWorld() method (null → global world)
     ///   - World-scoped storage via Dictionary&lt;World, Dictionary&lt;Type, IComponentTable&gt;&gt;
-    ///   - Uses shared global world singleton from World.GetOrCreate()
+    ///   - Uses shared global world singleton from World.GetGlobalWorld()
     /// World-003: World Persistence Across Scenes (COMPLETED)
     ///   - Component storage uses static dictionaries that persist across Unity scene changes
     ///   - All component data remains valid after scene transitions
@@ -75,6 +75,12 @@ namespace ArtyECS.Core
     /// </remarks>
     public static class ComponentsManager
     {
+        /// <summary>
+        /// Gets the global/default world instance. Used when no world is specified.
+        /// Uses World.GetGlobalWorld() to ensure shared singleton instance.
+        /// </summary>
+        private static World GlobalWorld => World.GetGlobalWorld();
+
         /// <summary>
         /// Registry of worlds to their component storage instances.
         /// Each world has its own dictionary mapping component types to storage.
@@ -218,6 +224,14 @@ namespace ArtyECS.Core
             return WorldTables.ContainsKey(world);
         }
 
+        /// <summary>
+        /// Gets the global world instance.
+        /// </summary>
+        /// <returns>Global world instance</returns>
+        public static World GetGlobalWorld()
+        {
+            return GlobalWorld;
+        }
 
         /// <summary>
         /// Adds a component to the specified entity in the specified world.

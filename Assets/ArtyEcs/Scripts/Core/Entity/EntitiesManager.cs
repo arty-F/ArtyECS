@@ -3,84 +3,15 @@ using System.Collections.Generic;
 
 namespace ArtyECS.Core
 {
-    /// <summary>
-    /// Manager for reusable entity IDs with generation tracking for safety.
-    /// Provides fast allocation and deallocation of entities with ID recycling.
-    /// Optimized for zero-allocation reuse and large entity counts (Perf-000).
-    /// </summary>
-    /// <remarks>
-    /// **API-009: This class is internal implementation. Use World API instead.**
-    /// 
-    /// This class is kept public for internal framework use, but should not be used directly
-    /// by framework users. Use World class methods instead:
-    /// - World.CreateEntity() instead of EntitiesManager.Allocate()
-    /// - World.DestroyEntity(entity) instead of EntitiesManager.Deallocate(entity)
-    /// 
-    /// See World class documentation for the public API.
-    /// 
-    /// This class implements Core-011: Entity Pool Implementation.
-    /// World-003: World Persistence Across Scenes (COMPLETED)
-    /// Perf-000: Entity Pooling Optimization (COMPLETED)
-    /// 
-    /// Features:
-    /// - Entity ID recycling for memory efficiency
-    /// - Generation number tracking for safety (prevents use-after-free bugs)
-    /// - Fast O(1) allocation and deallocation
-    /// - World-scoped pools (each world has its own entity pool)
-    /// - Zero-allocation in hot path (only allocates on pool growth)
-    /// - Entity pools use static dictionaries that persist across Unity scene changes
-    /// - Pre-allocated entity IDs for faster initial allocations (Perf-000)
-    /// - Optimized for large entity counts with increased default capacity (Perf-000)
-    /// 
-    /// The manager maintains:
-    /// - A stack of available entity IDs for fast allocation
-    /// - A dictionary tracking generation numbers per entity ID
-    /// - A global counter for unique entity IDs across all worlds
-    /// 
-    /// When an entity is deallocated, its ID is returned to the pool and its generation is incremented.
-    /// When an entity is allocated, if the pool has available IDs, one is reused with incremented generation.
-    /// Otherwise, a new ID is assigned from the global counter.
-    /// 
-    /// Generation numbers ensure that old entity references become invalid when IDs are recycled,
-    /// preventing accidental use of destroyed entities.
-    /// 
-    /// Perf-000 Optimizations:
-    /// - Lazy pre-allocation: pre-allocates 256 entity IDs on first Allocate() (reduces global counter access)
-    /// - Increased default capacity from 64 to 256 for better performance with large entity counts
-    /// - Dictionary pre-allocated with capacity to reduce rehashing overhead
-    /// - Removed unused fields to minimize memory overhead
-    /// - Maintains correct pool semantics (GetAvailableCount returns 0 for new pools)
-    /// </remarks>
-    public static class EntitiesManager
+    internal static class EntitiesManager
     {
-        /// <summary>
-        /// Default initial capacity for entity pools.
-        /// Increased from 64 to 256 for better performance with large entity counts (Perf-000).
-        /// </summary>
         private const int DefaultInitialCapacity = 256;
 
-        /// <summary>
-        /// Global counter for entity IDs to ensure uniqueness across all worlds.
-        /// This prevents entity ID collisions when different worlds allocate entities after clearing.
-        /// </summary>
         private static int _globalNextId = 0;
 
-        /// <summary>
-        /// Registry of worlds to their entity pool instances.
-        /// Each world has its own isolated entity pool.
-        /// </summary>
         private static readonly Dictionary<World, EntityPoolInstance> WorldPools =
             new Dictionary<World, EntityPoolInstance>();
 
-        /// <summary>
-        /// Gets or creates the entity pool instance for the specified world.
-        /// Uses lazy pre-allocation for faster allocations without changing pool semantics (Perf-000).
-        /// </summary>
-        /// <param name="world">World instance (required)</param>
-        /// <returns>Entity pool instance for the specified world</returns>
-        /// <remarks>
-        /// API-010: World is now required parameter (not optional)
-        /// </remarks>
         private static EntityPoolInstance GetOrCreatePool(World world)
         {
             if (world == null)
@@ -88,8 +19,6 @@ namespace ArtyECS.Core
 
             if (!WorldPools.TryGetValue(world, out var pool))
             {
-                // Create pool with lazy pre-allocation (Perf-000)
-                // Pre-allocation happens on first Allocate() to maintain correct pool semantics
                 pool = new EntityPoolInstance(DefaultInitialCapacity, ref _globalNextId);
                 WorldPools[world] = pool;
             }
@@ -97,66 +26,13 @@ namespace ArtyECS.Core
             return pool;
         }
 
-        /// <summary>
-        /// Allocates a new entity from the pool in the specified world.
-        /// Reuses an available entity ID if possible, otherwise creates a new one.
-        /// </summary>
-        /// <param name="world">World instance (required)</param>
-        /// <returns>Newly allocated entity with unique ID and generation</returns>
-        /// <remarks>
-        /// API-010: World is now required parameter (not optional)
-        /// 
-        /// This method provides fast O(1) entity allocation.
-        /// 
-        /// If the pool has available recycled IDs, one is reused with incremented generation.
-        /// Otherwise, a new ID is assigned using a global counter to ensure uniqueness across all worlds.
-        /// 
-        /// The returned entity is guaranteed to be unique (different ID or generation) from
-        /// any currently active entities in the same world, and unique ID across all worlds.
-        /// 
-        /// Usage:
-        /// <code>
-        /// var entity = EntitiesManager.Allocate(world);
-        /// // Use entity...
-        /// EntitiesManager.Deallocate(entity, world);
-        /// </code>
-        /// </remarks>
-        public static Entity Allocate(World world)
+        internal static Entity Allocate(World world)
         {
             var pool = GetOrCreatePool(world);
             return pool.Allocate(ref _globalNextId);
         }
 
-        /// <summary>
-        /// Deallocates an entity, returning its ID to the pool for reuse.
-        /// Increments the generation number to invalidate old references.
-        /// </summary>
-        /// <param name="entity">Entity to deallocate</param>
-        /// <param name="world">World instance (required)</param>
-        /// <returns>True if entity was deallocated, false if entity was invalid or already deallocated</returns>
-        /// <remarks>
-        /// API-010: World is now required parameter (not optional)
-        /// 
-        /// This method provides fast O(1) entity deallocation.
-        /// 
-        /// When an entity is deallocated:
-        /// 1. Its ID is added to the available pool stack
-        /// 2. Its generation number is incremented
-        /// 3. The next allocation of this ID will use the new generation
-        /// 
-        /// This ensures that any old references to the entity become invalid
-        /// (they will have the old generation number and won't match).
-        /// 
-        /// Note: This method does NOT remove components from ComponentsManager.
-        /// Component cleanup should be handled separately (see Core-012).
-        /// 
-        /// Usage:
-        /// <code>
-        /// EntitiesManager.Deallocate(entity, world);
-        /// // Entity ID is now available for reuse
-        /// </code>
-        /// </remarks>
-        public static bool Deallocate(Entity entity, World world)
+        internal static bool Deallocate(Entity entity, World world)
         {
             if (!entity.IsValid)
             {
@@ -167,21 +43,7 @@ namespace ArtyECS.Core
             return pool.Deallocate(entity);
         }
 
-        /// <summary>
-        /// Checks if an entity is currently allocated (not in the pool).
-        /// </summary>
-        /// <param name="entity">Entity to check</param>
-        /// <param name="world">World instance (required)</param>
-        /// <returns>True if entity is allocated, false if invalid or deallocated</returns>
-        /// <remarks>
-        /// API-010: World is now required parameter (not optional)
-        /// 
-        /// This method checks if the entity's ID and generation match the current
-        /// generation for that ID in the pool. If the generation matches, the entity
-        /// is considered allocated. If the generation is lower, the entity was
-        /// deallocated and its ID was recycled.
-        /// </remarks>
-        public static bool IsAllocated(Entity entity, World world)
+        internal static bool IsAllocated(Entity entity, World world)
         {
             if (!entity.IsValid)
             {
@@ -192,54 +54,18 @@ namespace ArtyECS.Core
             return pool.IsAllocated(entity);
         }
 
-        /// <summary>
-        /// Gets the number of entities currently allocated in the specified world.
-        /// </summary>
-        /// <param name="world">World instance (required)</param>
-        /// <returns>Number of allocated entities</returns>
-        /// <remarks>
-        /// API-010: World is now required parameter (not optional)
-        /// </remarks>
-        public static int GetAllocatedCount(World world)
+        internal static int GetAllocatedCount(World world)
         {
             var pool = GetOrCreatePool(world);
             return pool.GetAllocatedCount();
         }
 
-        /// <summary>
-        /// Gets the number of entity IDs available for reuse in the specified world.
-        /// </summary>
-        /// <param name="world">World instance (required)</param>
-        /// <returns>Number of available entity IDs in the pool</returns>
-        /// <remarks>
-        /// API-010: World is now required parameter (not optional)
-        /// </remarks>
-        public static int GetAvailableCount(World world)
+        internal static int GetAvailableCount(World world)
         {
             var pool = GetOrCreatePool(world);
             return pool.GetAvailableCount();
         }
 
-        /// <summary>
-        /// Clears the entity pool for the specified world, resetting all state.
-        /// Removes the pool instance from the registry.
-        /// </summary>
-        /// <param name="world">World instance to clear</param>
-        /// <remarks>
-        /// This method is used by World.Destroy() to clean up world resources.
-        /// 
-        /// Features:
-        /// - Removes entity pool instance for the specified world
-        /// - All entities in the world become invalid
-        /// - Pool is removed from registry
-        /// 
-        /// Usage:
-        /// <code>
-        /// var localWorld = new World("Local");
-        /// // ... use world ... 
-        /// EntitiesManager.ClearWorld(localWorld); // Clean up entity pool
-        /// </code>
-        /// </remarks>
         internal static void ClearWorld(World world)
         {
             if (world == null)
@@ -250,20 +76,7 @@ namespace ArtyECS.Core
             WorldPools.Remove(world);
         }
 
-        /// <summary>
-        /// Clears the entity pool for the specified world, resetting all state.
-        /// All entities become invalid after this operation.
-        /// </summary>
-        /// <param name="world">World instance (required)</param>
-        /// <remarks>
-        /// API-010: World is now required parameter (not optional)
-        /// 
-        /// This method should be used with caution. It resets the entire pool,
-        /// making all previously allocated entities invalid.
-        /// 
-        /// Typically used for cleanup or world reset scenarios.
-        /// </remarks>
-        public static void Clear(World world)
+        internal static void Clear(World world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -274,22 +87,9 @@ namespace ArtyECS.Core
             }
         }
 
-        /// <summary>
-        /// Clears all entity pools for all worlds.
-        /// This is primarily used for testing to reset state between tests.
-        /// Note: Global ID counter is NOT reset to maintain uniqueness across test runs.
-        /// </summary>
-        /// <remarks>
-        /// WARNING: This method clears ALL entity pool data from ALL worlds.
-        /// Use with caution - typically only for testing scenarios.
-        /// 
-        /// The global ID counter (_globalNextId) is NOT reset to ensure that
-        /// entities created in different worlds after clearing will have unique IDs.
-        /// </remarks>
-        public static void ClearAll()
+        internal static void ClearAll()
         {
             WorldPools.Clear();
-            // Note: _globalNextId is NOT reset to maintain ID uniqueness across worlds
         }
     }
 }
