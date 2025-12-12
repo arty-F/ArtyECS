@@ -25,7 +25,18 @@ namespace ArtyECS.Core
             return table;
         }
 
-        private static void ValidateEntity(Entity entity, World world)
+        private static void ValidateEntityForRead(Entity entity, World world)
+        {
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
+            if (!entity.IsValid)
+            {
+                throw new InvalidEntityException(entity);
+            }
+        }
+
+        private static void ValidateEntityForWrite(Entity entity, World world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -81,7 +92,7 @@ namespace ArtyECS.Core
 
         internal static void AddComponent<T>(Entity entity, T component, World world) where T : struct, IComponent
         {
-            ValidateEntity(entity, world);
+            ValidateEntityForWrite(entity, world);
 
             var table = GetOrCreateTable<T>(world);
 
@@ -104,7 +115,7 @@ namespace ArtyECS.Core
 
         internal static bool RemoveComponent<T>(Entity entity, World world) where T : struct, IComponent
         {
-            ValidateEntity(entity, world);
+            ValidateEntityForWrite(entity, world);
 
             var table = GetOrCreateTable<T>(world);
 
@@ -119,7 +130,7 @@ namespace ArtyECS.Core
 
         internal static T GetComponent<T>(Entity entity, World world) where T : struct, IComponent
         {
-            ValidateEntity(entity, world);
+            ValidateEntityForRead(entity, world);
 
             var table = GetOrCreateTable<T>(world);
 
@@ -133,7 +144,7 @@ namespace ArtyECS.Core
 
         internal static bool HasComponent<T>(Entity entity, World world) where T : struct, IComponent
         {
-            ValidateEntity(entity, world);
+            ValidateEntityForRead(entity, world);
 
             var table = GetOrCreateTable<T>(world);
             return table.HasComponent(entity);
@@ -141,7 +152,7 @@ namespace ArtyECS.Core
 
         internal static ref T GetModifiableComponent<T>(Entity entity, World world) where T : struct, IComponent
         {
-            ValidateEntity(entity, world);
+            ValidateEntityForRead(entity, world);
 
             var table = GetOrCreateTable<T>(world);
             
