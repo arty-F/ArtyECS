@@ -6,10 +6,12 @@ namespace ArtyECS.Core
     /// <summary>
     /// Manager for reusable entity IDs with generation tracking for safety.
     /// Provides fast allocation and deallocation of entities with ID recycling.
+    /// Optimized for zero-allocation reuse and large entity counts (Perf-000).
     /// </summary>
     /// <remarks>
     /// This class implements Core-011: Entity Pool Implementation.
     /// World-003: World Persistence Across Scenes (COMPLETED)
+    /// Perf-000: Entity Pooling Optimization (COMPLETED)
     /// 
     /// Features:
     /// - Entity ID recycling for memory efficiency
@@ -18,25 +20,35 @@ namespace ArtyECS.Core
     /// - World-scoped pools (each world has its own entity pool)
     /// - Zero-allocation in hot path (only allocates on pool growth)
     /// - Entity pools use static dictionaries that persist across Unity scene changes
+    /// - Pre-allocated entity IDs for faster initial allocations (Perf-000)
+    /// - Optimized for large entity counts with increased default capacity (Perf-000)
     /// 
     /// The manager maintains:
     /// - A stack of available entity IDs for fast allocation
     /// - A dictionary tracking generation numbers per entity ID
-    /// - A counter for the next new entity ID
+    /// - A global counter for unique entity IDs across all worlds
     /// 
     /// When an entity is deallocated, its ID is returned to the pool and its generation is incremented.
     /// When an entity is allocated, if the pool has available IDs, one is reused with incremented generation.
-    /// Otherwise, a new ID is assigned.
+    /// Otherwise, a new ID is assigned from the global counter.
     /// 
     /// Generation numbers ensure that old entity references become invalid when IDs are recycled,
     /// preventing accidental use of destroyed entities.
+    /// 
+    /// Perf-000 Optimizations:
+    /// - Lazy pre-allocation: pre-allocates 256 entity IDs on first Allocate() (reduces global counter access)
+    /// - Increased default capacity from 64 to 256 for better performance with large entity counts
+    /// - Dictionary pre-allocated with capacity to reduce rehashing overhead
+    /// - Removed unused fields to minimize memory overhead
+    /// - Maintains correct pool semantics (GetAvailableCount returns 0 for new pools)
     /// </remarks>
     public static class EntitiesManager
     {
         /// <summary>
         /// Default initial capacity for entity pools.
+        /// Increased from 64 to 256 for better performance with large entity counts (Perf-000).
         /// </summary>
-        private const int DefaultInitialCapacity = 64;
+        private const int DefaultInitialCapacity = 256;
 
         /// <summary>
         /// Global counter for entity IDs to ensure uniqueness across all worlds.
@@ -59,6 +71,7 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Gets or creates the entity pool instance for the specified world.
+        /// Uses lazy pre-allocation for faster allocations without changing pool semantics (Perf-000).
         /// </summary>
         /// <param name="world">World instance, or null for global world</param>
         /// <returns>Entity pool instance for the specified world</returns>
@@ -68,7 +81,9 @@ namespace ArtyECS.Core
 
             if (!WorldPools.TryGetValue(targetWorld, out var pool))
             {
-                pool = new EntityPoolInstance(DefaultInitialCapacity);
+                // Create pool with lazy pre-allocation (Perf-000)
+                // Pre-allocation happens on first Allocate() to maintain correct pool semantics
+                pool = new EntityPoolInstance(DefaultInitialCapacity, ref _globalNextId);
                 WorldPools[targetWorld] = pool;
             }
 
