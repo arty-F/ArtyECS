@@ -46,7 +46,7 @@ namespace ArtyECS.Core
     ///   - All methods support optional World? parameter (default: global world)
     ///   - Automatic world resolution via ResolveWorld() method (null → global world)
     ///   - World-scoped storage via Dictionary&lt;World, Dictionary&lt;Type, IComponentTable&gt;&gt;
-    ///   - Uses shared global world singleton from World.GetGlobalWorld()
+    ///   - Uses shared global world singleton from World.GetOrCreate()
     /// World-003: World Persistence Across Scenes (COMPLETED)
     ///   - Component storage uses static dictionaries that persist across Unity scene changes
     ///   - All component data remains valid after scene transitions
@@ -77,9 +77,9 @@ namespace ArtyECS.Core
     {
         /// <summary>
         /// Gets the global/default world instance. Used when no world is specified.
-        /// Uses World.GetGlobalWorld() to ensure shared singleton instance.
+        /// Uses World.GetOrCreate() to ensure shared singleton instance.
         /// </summary>
-        private static World GlobalWorld => World.GetGlobalWorld();
+        private static World GlobalWorld => World.GetOrCreate();
 
         /// <summary>
         /// Registry of worlds to their component storage instances.
@@ -107,30 +107,20 @@ namespace ArtyECS.Core
         /// Gets the storage dictionary for the specified world.
         /// Creates a new storage dictionary if the world doesn't exist yet.
         /// </summary>
-        /// <param name="world">World instance, or null for global world</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Dictionary mapping component types to their storage instances</returns>
-        private static Dictionary<Type, IComponentTable> GetWorldTable(World world = null)
+        private static Dictionary<Type, IComponentTable> GetWorldTable(World world)
         {
-            World targetWorld = world ?? GlobalWorld;
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
 
-            if (!WorldTables.TryGetValue(targetWorld, out var table))
+            if (!WorldTables.TryGetValue(world, out var table))
             {
                 table = new Dictionary<Type, IComponentTable>();
-                WorldTables[targetWorld] = table;
+                WorldTables[world] = table;
             }
 
             return table;
-        }
-
-        /// <summary>
-        /// Resolves the world instance from the optional parameter.
-        /// Returns global world if null is provided.
-        /// </summary>
-        /// <param name="world">Optional world instance</param>
-        /// <returns>World instance to use</returns>
-        private static World ResolveWorld(World world = null)
-        {
-            return world ?? GlobalWorld;
         }
 
         /// <summary>
@@ -138,24 +128,27 @@ namespace ArtyECS.Core
         /// Throws InvalidEntityException if entity is invalid or deallocated.
         /// </summary>
         /// <param name="entity">Entity to validate</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <remarks>
         /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
+        /// API-010: World is now required parameter (not optional)
         /// - Validates entity is valid (Id >= 0)
         /// - Validates entity is allocated (generation matches current generation in pool)
         /// - Throws InvalidEntityException if validation fails
         /// - Lightweight validation with minimal overhead
         /// </remarks>
-        private static void ValidateEntity(Entity entity, World world = null)
+        private static void ValidateEntity(Entity entity, World world)
         {
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
             if (!entity.IsValid)
             {
                 throw new InvalidEntityException(entity);
             }
 
-            World targetWorld = ResolveWorld(world);
-            if (!EntitiesManager.IsAllocated(entity, targetWorld))
+            if (!EntitiesManager.IsAllocated(entity, world))
             {
                 throw new InvalidEntityException(entity);
             }
@@ -166,9 +159,11 @@ namespace ArtyECS.Core
         /// Perf-002: Uses table cache to avoid repeated dictionary lookups in hot paths.
         /// </summary>
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Storage instance for component type T</returns>
         /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// 
         /// Creates ComponentTable&lt;T&gt; on first access for the specified world.
         /// 
         /// Perf-002 Optimization:
@@ -176,11 +171,13 @@ namespace ArtyECS.Core
         /// - If not in cache, performs dictionary lookup and adds to cache
         /// - Subsequent calls for same world+type use cached reference (zero dictionary lookups)
         /// </remarks>
-        internal static ComponentTable<T> GetOrCreateTable<T>(World world = null) where T : struct, IComponent
+        internal static ComponentTable<T> GetOrCreateTable<T>(World world) where T : struct, IComponent
         {
-            World targetWorld = ResolveWorld(world);
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
             Type componentType = typeof(T);
-            var cacheKey = (targetWorld, componentType);
+            var cacheKey = (world, componentType);
 
             // Perf-002: Check cache first for fast lookup
             if (TableCache.TryGetValue(cacheKey, out var cachedTable))
@@ -189,7 +186,7 @@ namespace ArtyECS.Core
             }
 
             // Cache miss: perform dictionary lookup and update cache
-            var worldTable = GetWorldTable(targetWorld);
+            var worldTable = GetWorldTable(world);
 
             if (!worldTable.TryGetValue(componentType, out var table))
             {
@@ -215,22 +212,18 @@ namespace ArtyECS.Core
         /// <summary>
         /// Checks if a world has been initialized (has storage dictionary).
         /// </summary>
-        /// <param name="world">World to check, or null for global world</param>
+        /// <param name="world">World to check (required)</param>
         /// <returns>True if world has been initialized</returns>
-        public static bool IsWorldInitialized(World world = null)
+        /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// </remarks>
+        public static bool IsWorldInitialized(World world)
         {
-            World targetWorld = ResolveWorld(world);
-            return WorldTables.ContainsKey(targetWorld);
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+            return WorldTables.ContainsKey(world);
         }
 
-        /// <summary>
-        /// Gets the global world instance.
-        /// </summary>
-        /// <returns>Global world instance</returns>
-        public static World GetGlobalWorld()
-        {
-            return GlobalWorld;
-        }
 
         /// <summary>
         /// Adds a component to the specified entity in the specified world.
@@ -238,12 +231,13 @@ namespace ArtyECS.Core
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
         /// <param name="entity">Entity to add component to</param>
         /// <param name="component">Component value to add</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <exception cref="DuplicateComponentException">Thrown if entity already has a component of type T</exception>
         /// <remarks>
         /// This method implements Core-004: AddComponent functionality.
         /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
@@ -260,7 +254,7 @@ namespace ArtyECS.Core
         /// <code>
         /// try
         /// {
-        ///     ComponentsManager.AddComponent&lt;Hp&gt;(entity, new Hp { Amount = 100f });
+        ///     ComponentsManager.AddComponent&lt;Hp&gt;(entity, new Hp { Amount = 100f }, world);
         /// }
         /// catch (InvalidEntityException)
         /// {
@@ -272,7 +266,7 @@ namespace ArtyECS.Core
         /// }
         /// </code>
         /// </remarks>
-        public static void AddComponent<T>(Entity entity, T component, World world = null) where T : struct, IComponent
+        public static void AddComponent<T>(Entity entity, T component, World world) where T : struct, IComponent
         {
             // API-006: Validate entity is valid and allocated
             ValidateEntity(entity, world);
@@ -307,12 +301,13 @@ namespace ArtyECS.Core
         /// </summary>
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
         /// <param name="entity">Entity to remove component from</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>True if component was removed, false if entity didn't have the component</returns>
         /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <remarks>
         /// This method implements Core-005: RemoveComponent functionality.
         /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
@@ -333,7 +328,7 @@ namespace ArtyECS.Core
         /// Note: Returns false (instead of throwing) if component doesn't exist, as component absence
         /// is not an error condition. Entity validation still throws InvalidEntityException.
         /// </remarks>
-        public static bool RemoveComponent<T>(Entity entity, World world = null) where T : struct, IComponent
+        public static bool RemoveComponent<T>(Entity entity, World world) where T : struct, IComponent
         {
             // API-006: Validate entity is valid and allocated
             ValidateEntity(entity, world);
@@ -357,7 +352,7 @@ namespace ArtyECS.Core
         /// </summary>
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
         /// <param name="entity">Entity to get component for</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Component value</returns>
         /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <exception cref="ComponentNotFoundException">Thrown if entity doesn't have a component of type T</exception>
@@ -365,20 +360,20 @@ namespace ArtyECS.Core
         /// This method implements Core-006: GetComponent functionality.
         /// API-002: Keep GetComponent with Exceptions (COMPLETED)
         /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
         /// - Fast O(1) lookup via entity-to-index mapping dictionary
         /// - Returns component value (T) - throws ComponentNotFoundException if component not found
         /// - Zero-allocation lookup (only dictionary lookup, no allocations)
-        /// - Supports optional World parameter with default to global world
         /// - Exceptions are safe in builds (minimize overhead, no stack trace if not needed)
         /// 
         /// Usage:
         /// <code>
         /// try
         /// {
-        ///     var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
+        ///     var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity, world);
         ///     hp.Amount -= 1f;
         /// }
         /// catch (InvalidEntityException)
@@ -391,7 +386,7 @@ namespace ArtyECS.Core
         /// }
         /// </code>
         /// </remarks>
-        public static T GetComponent<T>(Entity entity, World world = null) where T : struct, IComponent
+        public static T GetComponent<T>(Entity entity, World world) where T : struct, IComponent
         {
             // API-006: Validate entity is valid and allocated
             ValidateEntity(entity, world);
@@ -414,28 +409,28 @@ namespace ArtyECS.Core
         /// </summary>
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
         /// <param name="entity">Entity to check</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>True if entity has the component, false otherwise</returns>
         /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <remarks>
         /// This method provides a way to check component existence without throwing exceptions.
         /// Useful for conditional logic where you want to avoid exception overhead.
         /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
         /// - Fast O(1) lookup via entity-to-index mapping dictionary
         /// - Zero-allocation lookup (only dictionary lookup, no allocations)
-        /// - Supports optional World parameter with default to global world
         /// - Returns false if component doesn't exist (no exception thrown for performance)
         /// 
         /// Usage:
         /// <code>
         /// try
         /// {
-        ///     if (ComponentsManager.HasComponent&lt;Hp&gt;(entity))
+        ///     if (ComponentsManager.HasComponent&lt;Hp&gt;(entity, world))
         ///     {
-        ///         var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
+        ///         var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity, world);
         ///         hp.Amount -= 1f;
         ///     }
         /// }
@@ -445,7 +440,7 @@ namespace ArtyECS.Core
         /// }
         /// </code>
         /// </remarks>
-        public static bool HasComponent<T>(Entity entity, World world = null) where T : struct, IComponent
+        public static bool HasComponent<T>(Entity entity, World world) where T : struct, IComponent
         {
             // API-006: Validate entity is valid and allocated
             ValidateEntity(entity, world);
@@ -456,20 +451,72 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
+        /// Gets a modifiable reference to a component for the specified entity in the specified world.
+        /// Changes are applied immediately (no deferred application needed for single component).
+        /// </summary>
+        /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
+        /// <param name="entity">Entity to get component for</param>
+        /// <param name="world">World instance (required)</param>
+        /// <returns>Reference to the component</returns>
+        /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
+        /// <exception cref="ComponentNotFoundException">Thrown if entity doesn't have a component of type T</exception>
+        /// <remarks>
+        /// API-010: Added for single component modification support.
+        /// 
+        /// This method provides direct ref access to a component for modification.
+        /// Changes are applied immediately (no deferred application needed for single component).
+        /// 
+        /// Features:
+        /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
+        /// - Fast O(1) lookup via entity-to-index mapping dictionary
+        /// - Returns ref T for direct modification
+        /// - Zero-allocation lookup (only dictionary lookup, no allocations)
+        /// - Exceptions are safe in builds (minimize overhead, no stack trace if not needed)
+        /// 
+        /// Usage:
+        /// <code>
+        /// try
+        /// {
+        ///     ref var hp = ComponentsManager.GetModifiableComponent&lt;Hp&gt;(entity, world);
+        ///     hp.Amount -= 1f; // Direct modification
+        /// }
+        /// catch (InvalidEntityException)
+        /// {
+        ///     // Entity is invalid or deallocated
+        /// }
+        /// catch (ComponentNotFoundException)
+        /// {
+        ///     // Component doesn't exist
+        /// }
+        /// </code>
+        /// </remarks>
+        public static ref T GetModifiableComponent<T>(Entity entity, World world) where T : struct, IComponent
+        {
+            // API-006: Validate entity is valid and allocated
+            ValidateEntity(entity, world);
+
+            // Get storage for component type T in the specified world
+            var table = GetOrCreateTable<T>(world);
+            
+            // Get modifiable reference to component
+            return ref table.GetModifiableComponentRef(entity);
+        }
+
+        /// <summary>
         /// Gets all components of type T in the specified world as a ReadOnlySpan for zero-allocation iteration.
         /// </summary>
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ReadOnlySpan containing all components of type T</returns>
         /// <remarks>
         /// This method implements Core-007: GetComponents (Single Type Query) functionality.
         /// Perf-002: Query Optimization - Single Component (COMPLETED)
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Returns ReadOnlySpan&lt;T&gt; for zero-allocation iteration
         /// - Efficient iteration support over all components of type T
         /// - Handles sparse components (only entities that have the component are included)
-        /// - Supports optional World parameter with default to global world
         /// 
         /// Perf-002 Optimizations:
         /// - Zero-allocation ReadOnlySpan return: span is created over existing array (no allocations)
@@ -483,14 +530,14 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// // For read-only iteration:
-        /// var hpComponents = ComponentsManager.GetComponents&lt;Hp&gt;();
+        /// var hpComponents = ComponentsManager.GetComponents&lt;Hp&gt;(world);
         /// foreach (var hp in hpComponents)
         /// {
         ///     // Read component values
         /// }
         /// 
         /// // For modifiable iteration with deferred application:
-        /// using (var components = ComponentsManager.GetModifiableComponents&lt;Hp&gt;())
+        /// using (var components = ComponentsManager.GetModifiableComponents&lt;Hp&gt;(world))
         /// {
         ///     for (int i = 0; i &lt; components.Count; i++)
         ///     {
@@ -504,7 +551,7 @@ namespace ArtyECS.Core
         /// API-004: GetComponents with multiple type parameters (GetComponents&lt;T1, T2&gt;(), GetComponents&lt;T1, T2, T3&gt;()) 
         /// have been removed. Use the entity-centric pattern with GetEntitiesWith&lt;T1, T2&gt;() and entity.Get&lt;T&gt;() instead.
         /// </remarks>
-        public static ReadOnlySpan<T> GetComponents<T>(World world = null) where T : struct, IComponent
+        public static ReadOnlySpan<T> GetComponents<T>(World world) where T : struct, IComponent
         {
             // Perf-002: GetOrCreateTable uses cache to avoid repeated dictionary lookups
             var table = GetOrCreateTable<T>(world);
@@ -518,27 +565,27 @@ namespace ArtyECS.Core
         /// Gets all entities that have component type T1 in the specified world.
         /// </summary>
         /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ReadOnlySpan containing all entities with component T1</returns>
         /// <remarks>
         /// This method implements API-005: Entity-Component Mapping Support.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Returns ReadOnlySpan&lt;Entity&gt; for zero-allocation iteration
         /// - Returns all entities that have component type T1
-        /// - Supports optional World parameter with default to global world
         /// 
         /// Usage:
         /// <code>
-        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position&gt;();
+        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position&gt;(world);
         /// foreach (var entity in entities)
         /// {
-        ///     var pos = entity.Get&lt;Position&gt;();
+        ///     var pos = entity.Get&lt;Position&gt;(world);
         ///     // Process entity with Position component
         /// }
         /// </code>
         /// </remarks>
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1>(World world = null) where T1 : struct, IComponent
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1>(World world) where T1 : struct, IComponent
         {
             var table = GetOrCreateTable<T1>(world);
             return table.GetEntities();
@@ -549,35 +596,34 @@ namespace ArtyECS.Core
         /// </summary>
         /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ReadOnlySpan containing all entities with both T1 and T2 components</returns>
         /// <remarks>
         /// This method implements API-005: Entity-Component Mapping Support.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Returns ReadOnlySpan&lt;Entity&gt; for zero-allocation iteration
         /// - Returns entities that have ALL specified components (AND query)
         /// - Uses efficient set intersection algorithm
-        /// - Supports optional World parameter with default to global world
         /// 
         /// Usage:
         /// <code>
-        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position, Velocity&gt;();
+        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position, Velocity&gt;(world);
         /// foreach (var entity in entities)
         /// {
-        ///     var pos = entity.Get&lt;Position&gt;();
-        ///     var vel = entity.Get&lt;Velocity&gt;();
+        ///     var pos = entity.Get&lt;Position&gt;(world);
+        ///     var vel = entity.Get&lt;Velocity&gt;(world);
         ///     // Process entities with both Position and Velocity
         /// }
         /// </code>
         /// </remarks>
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>(World world = null) 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>(World world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
         {
-            World targetWorld = ResolveWorld(world);
-            var table1 = GetOrCreateTable<T1>(targetWorld);
-            var table2 = GetOrCreateTable<T2>(targetWorld);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
 
             // Early exit if either table is empty
             if (table1.Count == 0 || table2.Count == 0)
@@ -629,38 +675,37 @@ namespace ArtyECS.Core
         /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T3">Third component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ReadOnlySpan containing all entities with T1, T2, and T3 components</returns>
         /// <remarks>
         /// This method implements API-005: Entity-Component Mapping Support.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Returns ReadOnlySpan&lt;Entity&gt; for zero-allocation iteration
         /// - Returns entities that have ALL specified components (AND query)
         /// - Uses efficient set intersection algorithm
-        /// - Supports optional World parameter with default to global world
         /// 
         /// Usage:
         /// <code>
-        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position, Velocity, Health&gt;();
+        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position, Velocity, Health&gt;(world);
         /// foreach (var entity in entities)
         /// {
-        ///     var pos = entity.Get&lt;Position&gt;();
-        ///     var vel = entity.Get&lt;Velocity&gt;();
-        ///     var health = entity.Get&lt;Health&gt;();
+        ///     var pos = entity.Get&lt;Position&gt;(world);
+        ///     var vel = entity.Get&lt;Velocity&gt;(world);
+        ///     var health = entity.Get&lt;Health&gt;(world);
         ///     // Process entities with all three components
         /// }
         /// </code>
         /// </remarks>
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3>(World world = null) 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3>(World world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
         {
-            World targetWorld = ResolveWorld(world);
-            var table1 = GetOrCreateTable<T1>(targetWorld);
-            var table2 = GetOrCreateTable<T2>(targetWorld);
-            var table3 = GetOrCreateTable<T3>(targetWorld);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
 
             // Early exit if any table is empty
             if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0)
@@ -721,22 +766,22 @@ namespace ArtyECS.Core
         /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T3">Third component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T4">Fourth component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ReadOnlySpan containing all entities with T1, T2, T3, and T4 components</returns>
         /// <remarks>
         /// This method implements API-005: Entity-Component Mapping Support.
+        /// API-010: World is now required parameter (not optional)
         /// </remarks>
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>(World world = null) 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>(World world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
             where T4 : struct, IComponent
         {
-            World targetWorld = ResolveWorld(world);
-            var table1 = GetOrCreateTable<T1>(targetWorld);
-            var table2 = GetOrCreateTable<T2>(targetWorld);
-            var table3 = GetOrCreateTable<T3>(targetWorld);
-            var table4 = GetOrCreateTable<T4>(targetWorld);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
+            var table4 = GetOrCreateTable<T4>(world);
 
             // Early exit if any table is empty
             if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0 || table4.Count == 0)
@@ -809,24 +854,24 @@ namespace ArtyECS.Core
         /// <typeparam name="T3">Third component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T4">Fourth component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T5">Fifth component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ReadOnlySpan containing all entities with T1, T2, T3, T4, and T5 components</returns>
         /// <remarks>
         /// This method implements API-005: Entity-Component Mapping Support.
+        /// API-010: World is now required parameter (not optional)
         /// </remarks>
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>(World world = null) 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>(World world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
             where T4 : struct, IComponent
             where T5 : struct, IComponent
         {
-            World targetWorld = ResolveWorld(world);
-            var table1 = GetOrCreateTable<T1>(targetWorld);
-            var table2 = GetOrCreateTable<T2>(targetWorld);
-            var table3 = GetOrCreateTable<T3>(targetWorld);
-            var table4 = GetOrCreateTable<T4>(targetWorld);
-            var table5 = GetOrCreateTable<T5>(targetWorld);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
+            var table4 = GetOrCreateTable<T4>(world);
+            var table5 = GetOrCreateTable<T5>(world);
 
             // Early exit if any table is empty
             if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0 || table4.Count == 0 || table5.Count == 0)
@@ -913,12 +958,13 @@ namespace ArtyECS.Core
         /// <typeparam name="T4">Fourth component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T5">Fifth component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T6">Sixth component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ReadOnlySpan containing all entities with T1, T2, T3, T4, T5, and T6 components</returns>
         /// <remarks>
         /// This method implements API-005: Entity-Component Mapping Support.
+        /// API-010: World is now required parameter (not optional)
         /// </remarks>
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>(World world = null) 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>(World world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
@@ -926,13 +972,12 @@ namespace ArtyECS.Core
             where T5 : struct, IComponent
             where T6 : struct, IComponent
         {
-            World targetWorld = ResolveWorld(world);
-            var table1 = GetOrCreateTable<T1>(targetWorld);
-            var table2 = GetOrCreateTable<T2>(targetWorld);
-            var table3 = GetOrCreateTable<T3>(targetWorld);
-            var table4 = GetOrCreateTable<T4>(targetWorld);
-            var table5 = GetOrCreateTable<T5>(targetWorld);
-            var table6 = GetOrCreateTable<T6>(targetWorld);
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
+            var table4 = GetOrCreateTable<T4>(world);
+            var table5 = GetOrCreateTable<T5>(world);
+            var table6 = GetOrCreateTable<T6>(world);
 
             // Early exit if any table is empty
             if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0 || table4.Count == 0 || table5.Count == 0 || table6.Count == 0)
@@ -1033,10 +1078,11 @@ namespace ArtyECS.Core
         /// All modifications are automatically applied when the collection is disposed.
         /// </summary>
         /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>ModifiableComponentCollection that provides ref access to components</returns>
         /// <remarks>
         /// This method implements Core-010: Deferred Component Modifications functionality.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Zero-allocation iteration (uses existing storage arrays)
@@ -1047,7 +1093,7 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// using (var components = ComponentsManager.GetModifiableComponents&lt;Hp&gt;())
+        /// using (var components = ComponentsManager.GetModifiableComponents&lt;Hp&gt;(world))
         /// {
         ///     for (int i = 0; i &lt; components.Count; i++)
         ///     {
@@ -1059,10 +1105,10 @@ namespace ArtyECS.Core
         /// Note: The collection must be disposed (via using statement) to apply modifications.
         /// If not disposed, modifications will be lost.
         /// </remarks>
-        public static ModifiableComponentCollection<T> GetModifiableComponents<T>(World world = null) where T : struct, IComponent
+        public static ModifiableComponentCollection<T> GetModifiableComponents<T>(World world) where T : struct, IComponent
         {
             var table = GetOrCreateTable<T>(world);
-            return new ModifiableComponentCollection<T>(table, ResolveWorld(world));
+            return new ModifiableComponentCollection<T>(table, world);
         }
 
         /// <summary>
@@ -1070,10 +1116,11 @@ namespace ArtyECS.Core
         /// Used for entity destruction to clean up all associated components.
         /// </summary>
         /// <param name="entity">Entity to remove all components from</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Number of components removed</returns>
         /// <remarks>
         /// This method is used internally by entity destruction (Core-012).
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// Features:
         /// - Iterates through all component storages in the world
@@ -1085,16 +1132,18 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// // Called automatically by World.DestroyEntity()
-        /// int removedCount = ComponentsManager.RemoveAllComponents(entity);
+        /// int removedCount = ComponentsManager.RemoveAllComponents(entity, world);
         /// </code>
         /// </remarks>
-        internal static int RemoveAllComponents(Entity entity, World world = null)
+        internal static int RemoveAllComponents(Entity entity, World world)
         {
-            World targetWorld = ResolveWorld(world);
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
             int removedCount = 0;
 
             // Get world storage (may not exist if world was never used)
-            if (!WorldTables.TryGetValue(targetWorld, out var worldTable))
+            if (!WorldTables.TryGetValue(world, out var worldTable))
             {
                 return 0; // No components to remove
             }

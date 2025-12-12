@@ -83,7 +83,7 @@ namespace ArtyECS.Core
         /// </remarks>
         public static T Get<T>(this Entity entity, World world = null) where T : struct, IComponent
         {
-            world ??= World.GetGlobalWorld();
+            world ??= World.GetOrCreate();
             return world.GetComponent<T>(entity);
         }
 
@@ -123,7 +123,7 @@ namespace ArtyECS.Core
         /// </remarks>
         public static bool Has<T>(this Entity entity, World world = null) where T : struct, IComponent
         {
-            world ??= World.GetGlobalWorld();
+            world ??= World.GetOrCreate();
             try
             {
                 world.GetComponent<T>(entity);
@@ -154,7 +154,7 @@ namespace ArtyECS.Core
         /// </remarks>
         public static void AddComponent<T>(this Entity entity, T component, World world = null) where T : struct, IComponent
         {
-            world ??= World.GetGlobalWorld();
+            world ??= World.GetOrCreate();
             world.AddComponent(entity, component);
         }
 
@@ -176,7 +176,7 @@ namespace ArtyECS.Core
         /// </remarks>
         public static bool RemoveComponent<T>(this Entity entity, World world = null) where T : struct, IComponent
         {
-            world ??= World.GetGlobalWorld();
+            world ??= World.GetOrCreate();
             return world.RemoveComponent<T>(entity);
         }
     }

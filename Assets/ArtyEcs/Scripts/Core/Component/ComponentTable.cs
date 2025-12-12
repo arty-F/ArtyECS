@@ -205,6 +205,36 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
+        /// Gets a modifiable reference to the component for the specified entity.
+        /// </summary>
+        /// <param name="entity">Entity to get component for</param>
+        /// <returns>Reference to the component</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if entity doesn't have a component of this type</exception>
+        /// <remarks>
+        /// API-010: Added for single component modification support.
+        /// 
+        /// This method provides direct ref access to a component for modification.
+        /// Changes are applied immediately (no deferred application needed for single component).
+        /// 
+        /// Zero-allocation lookup using entity-to-index mapping.
+        /// 
+        /// Usage:
+        /// <code>
+        /// ref var hp = table.GetModifiableComponentRef(entity);
+        /// hp.Amount -= 1f; // Direct modification
+        /// </code>
+        /// </remarks>
+        internal ref T GetModifiableComponentRef(Entity entity)
+        {
+            if (!_entityToIndex.TryGetValue(entity, out int index))
+            {
+                throw new KeyNotFoundException($"Entity {entity} does not have a component of type {typeof(T).Name}");
+            }
+
+            return ref _components[index];
+        }
+
+        /// <summary>
         /// Ensures the storage has at least the specified capacity.
         /// Grows the arrays if necessary using doubling strategy (amortized O(1)).
         /// </summary>

@@ -74,26 +74,30 @@ namespace ArtyECS.Core
 
         /// <summary>
         /// Global/default world instance. Used when no world is specified.
-        /// Lazily initialized to ensure ComponentsManager is ready.
+        /// Lazily initialized to ensure World is ready.
         /// </summary>
-        private static World GlobalWorld => ComponentsManager.GetGlobalWorld();
+        private static World GlobalWorld => World.GetOrCreate();
 
         /// <summary>
         /// Gets or creates the entity pool instance for the specified world.
         /// Uses lazy pre-allocation for faster allocations without changing pool semantics (Perf-000).
         /// </summary>
-        /// <param name="world">World instance, or null for global world</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Entity pool instance for the specified world</returns>
-        private static EntityPoolInstance GetOrCreatePool(World world = null)
+        /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// </remarks>
+        private static EntityPoolInstance GetOrCreatePool(World world)
         {
-            World targetWorld = world ?? GlobalWorld;
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
 
-            if (!WorldPools.TryGetValue(targetWorld, out var pool))
+            if (!WorldPools.TryGetValue(world, out var pool))
             {
                 // Create pool with lazy pre-allocation (Perf-000)
                 // Pre-allocation happens on first Allocate() to maintain correct pool semantics
                 pool = new EntityPoolInstance(DefaultInitialCapacity, ref _globalNextId);
-                WorldPools[targetWorld] = pool;
+                WorldPools[world] = pool;
             }
 
             return pool;
@@ -103,9 +107,11 @@ namespace ArtyECS.Core
         /// Allocates a new entity from the pool in the specified world.
         /// Reuses an available entity ID if possible, otherwise creates a new one.
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Newly allocated entity with unique ID and generation</returns>
         /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// 
         /// This method provides fast O(1) entity allocation.
         /// 
         /// If the pool has available recycled IDs, one is reused with incremented generation.
@@ -116,12 +122,12 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// var entity = EntitiesManager.Allocate();
+        /// var entity = EntitiesManager.Allocate(world);
         /// // Use entity...
-        /// EntitiesManager.Deallocate(entity);
+        /// EntitiesManager.Deallocate(entity, world);
         /// </code>
         /// </remarks>
-        public static Entity Allocate(World world = null)
+        public static Entity Allocate(World world)
         {
             var pool = GetOrCreatePool(world);
             return pool.Allocate(ref _globalNextId);
@@ -132,9 +138,11 @@ namespace ArtyECS.Core
         /// Increments the generation number to invalidate old references.
         /// </summary>
         /// <param name="entity">Entity to deallocate</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>True if entity was deallocated, false if entity was invalid or already deallocated</returns>
         /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// 
         /// This method provides fast O(1) entity deallocation.
         /// 
         /// When an entity is deallocated:
@@ -150,11 +158,11 @@ namespace ArtyECS.Core
         /// 
         /// Usage:
         /// <code>
-        /// EntitiesManager.Deallocate(entity);
+        /// EntitiesManager.Deallocate(entity, world);
         /// // Entity ID is now available for reuse
         /// </code>
         /// </remarks>
-        public static bool Deallocate(Entity entity, World world = null)
+        public static bool Deallocate(Entity entity, World world)
         {
             if (!entity.IsValid)
             {
@@ -169,15 +177,17 @@ namespace ArtyECS.Core
         /// Checks if an entity is currently allocated (not in the pool).
         /// </summary>
         /// <param name="entity">Entity to check</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>True if entity is allocated, false if invalid or deallocated</returns>
         /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// 
         /// This method checks if the entity's ID and generation match the current
         /// generation for that ID in the pool. If the generation matches, the entity
         /// is considered allocated. If the generation is lower, the entity was
         /// deallocated and its ID was recycled.
         /// </remarks>
-        public static bool IsAllocated(Entity entity, World world = null)
+        public static bool IsAllocated(Entity entity, World world)
         {
             if (!entity.IsValid)
             {
@@ -191,9 +201,12 @@ namespace ArtyECS.Core
         /// <summary>
         /// Gets the number of entities currently allocated in the specified world.
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Number of allocated entities</returns>
-        public static int GetAllocatedCount(World world = null)
+        /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// </remarks>
+        public static int GetAllocatedCount(World world)
         {
             var pool = GetOrCreatePool(world);
             return pool.GetAllocatedCount();
@@ -202,9 +215,12 @@ namespace ArtyECS.Core
         /// <summary>
         /// Gets the number of entity IDs available for reuse in the specified world.
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>Number of available entity IDs in the pool</returns>
-        public static int GetAvailableCount(World world = null)
+        /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// </remarks>
+        public static int GetAvailableCount(World world)
         {
             var pool = GetOrCreatePool(world);
             return pool.GetAvailableCount();
@@ -244,17 +260,21 @@ namespace ArtyECS.Core
         /// Clears the entity pool for the specified world, resetting all state.
         /// All entities become invalid after this operation.
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// 
         /// This method should be used with caution. It resets the entire pool,
         /// making all previously allocated entities invalid.
         /// 
         /// Typically used for cleanup or world reset scenarios.
         /// </remarks>
-        public static void Clear(World world = null)
+        public static void Clear(World world)
         {
-            World targetWorld = world ?? GlobalWorld;
-            if (WorldPools.TryGetValue(targetWorld, out var pool))
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
+            if (WorldPools.TryGetValue(world, out var pool))
             {
                 pool.Clear();
             }

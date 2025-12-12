@@ -9,11 +9,13 @@ namespace ArtyECS.Core
     /// <remarks>
     /// This class implements System-006: System Execution Integration with Unity.
     /// World-003: World Persistence Across Scenes (COMPLETED)
+    /// API-010: Uses internal SystemsManager methods (ExecuteUpdateAllWorlds, ExecuteFixedUpdateAllWorlds)
     /// 
     /// Features:
     /// - Calls SystemsManager.ExecuteUpdateAllWorlds() in Update() for all registered worlds
     /// - Calls SystemsManager.ExecuteFixedUpdateAllWorlds() in FixedUpdate() for all registered worlds
     /// - Always executes systems for all initialized worlds (no configuration needed)
+    /// - SystemsManager is now internal, but UpdateProvider can access it (same namespace)
     /// - **DontDestroyOnLoad for persistence across scene changes** - ensures UpdateProvider 
     ///   and system execution continue across scene transitions
     /// - Initialization in Awake() to ensure early setup
@@ -142,7 +144,7 @@ namespace ArtyECS.Core
             // Initialize global ECS World (ensure it exists)
             // This is done implicitly when first accessing ComponentsManager or SystemsManager,
             // but we can explicitly ensure it's initialized here
-            var globalWorld = SystemsManager.GetGlobalWorld();
+            var globalWorld = World.GetOrCreate();
             UnityEngine.Debug.Log($"UpdateProvider initialized. Global world: {globalWorld}");
         }
 

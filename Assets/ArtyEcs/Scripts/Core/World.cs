@@ -7,14 +7,16 @@ namespace ArtyECS.Core
     /// Represents an ECS World scope for component and system isolation.
     /// Multiple worlds can exist simultaneously, each with its own component and system storage.
     /// 
-    /// **API-009: This is the main public API for the ECS framework.**
+    /// **API-009, API-010: This is the main public API for the ECS framework.**
     /// All operations should be performed through World class methods (static for global world, instance for scoped worlds).
+    /// All manager methods require World parameter (passed through World API).
     /// </summary>
     /// <remarks>
     /// This class implements:
     /// - World-000: World Class Implementation ✅
     /// - World-003: World Persistence Across Scenes ✅
     /// - API-009: Unified External API (World + Extension Methods) ✅
+    /// - API-010: World as Required Parameter and System Management ✅
     /// 
     /// Features:
     /// - World identifier/name for identification and debugging
@@ -118,7 +120,18 @@ namespace ArtyECS.Core
             // Return global world if name is null or empty
             if (string.IsNullOrEmpty(name))
             {
-                return GetGlobalWorld();
+                // Lazy initialization of global world
+                if (_globalWorld == null)
+                {
+                    lock (_globalWorldLock)
+                    {
+                        if (_globalWorld == null)
+                        {
+                            _globalWorld = new World("Global");
+                        }
+                    }
+                }
+                return _globalWorld;
             }
 
             // Check if world already exists
@@ -136,39 +149,6 @@ namespace ArtyECS.Core
             }
         }
 
-        /// <summary>
-        /// Gets the global/default world instance.
-        /// Creates the instance on first access (lazy initialization).
-        /// This is a singleton instance shared across ComponentsManager, SystemsManager, and EntitiesManager.
-        /// </summary>
-        /// <returns>Global world instance</returns>
-        /// <remarks>
-        /// This method implements World-000: Global World Singleton.
-        /// 
-        /// The global world is created lazily on first access and reused for all subsequent calls.
-        /// This ensures that ComponentsManager, SystemsManager, and EntitiesManager all use the same
-        /// global world instance for consistency.
-        /// 
-        /// Thread-safe: uses double-checked locking pattern for lazy initialization.
-        /// 
-        /// Internal access: This method is internal to allow access from ComponentsManager, SystemsManager, and EntitiesManager.
-        /// Public API should use World.GetOrCreate() instead.
-        /// </remarks>
-        internal static World GetGlobalWorld()
-        {
-            if (_globalWorld == null)
-            {
-                lock (_globalWorldLock)
-                {
-                    if (_globalWorld == null)
-                    {
-                        _globalWorld = new World("Global");
-                    }
-                }
-            }
-
-            return _globalWorld;
-        }
 
 
 
@@ -361,10 +341,36 @@ namespace ArtyECS.Core
         /// <exception cref="ComponentNotFoundException">Thrown if entity doesn't have a component of type T</exception>
         /// <remarks>
         /// This method implements API-009: Unified External API (World + Extension Methods).
+        /// API-010: World is now required parameter in ComponentsManager (passed as this).
         /// </remarks>
         public T GetComponent<T>(Entity entity) where T : struct, IComponent
         {
             return ComponentsManager.GetComponent<T>(entity, this);
+        }
+
+        /// <summary>
+        /// Gets a modifiable reference to a component of type T for the specified entity in this world.
+        /// Changes are applied immediately (no deferred application needed for single component).
+        /// </summary>
+        /// <typeparam name="T">Component type (must be struct implementing IComponent)</typeparam>
+        /// <param name="entity">Entity to get component for</param>
+        /// <returns>Reference to the component</returns>
+        /// <exception cref="ComponentNotFoundException">Thrown if entity doesn't have a component of type T</exception>
+        /// <remarks>
+        /// API-010: Added for single component modification support.
+        /// 
+        /// This method provides direct ref access to a component for modification.
+        /// Changes are applied immediately (no deferred application needed for single component).
+        /// 
+        /// Usage:
+        /// <code>
+        /// ref var hp = world.GetModifiableComponent&lt;Hp&gt;(entity);
+        /// hp.Amount -= 1f; // Direct modification
+        /// </code>
+        /// </remarks>
+        public ref T GetModifiableComponent<T>(Entity entity) where T : struct, IComponent
+        {
+            return ref ComponentsManager.GetModifiableComponent<T>(entity, this);
         }
 
         /// <summary>
@@ -486,10 +492,109 @@ namespace ArtyECS.Core
         /// <param name="system">SystemHandler instance to execute immediately</param>
         /// <remarks>
         /// This method implements API-009: Unified External API (World + Extension Methods).
+        /// API-010: World is now required parameter in SystemsManager (passed as this).
         /// </remarks>
         public void ExecuteOnce(SystemHandler system)
         {
             SystemsManager.ExecuteOnce(system, this);
+        }
+
+        /// <summary>
+        /// Executes all systems in the Update queue for this world in order.
+        /// Systems are executed sequentially (index 0, 1, 2, ...).
+        /// </summary>
+        /// <remarks>
+        /// API-010: Added for world-specific system execution.
+        /// 
+        /// Execution behavior:
+        /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
+        /// - World context is passed to each system's Execute(world) method
+        /// - If a system throws an exception, execution continues with the next system
+        /// - Errors are logged but do not stop queue execution (graceful error handling)
+        /// - Empty queues are handled gracefully (no-op if queue is empty)
+        /// 
+        /// Usage:
+        /// <code>
+        /// // Execute Update systems for this world
+        /// world.ExecuteUpdate();
+        /// </code>
+        /// </remarks>
+        public void ExecuteUpdate()
+        {
+            SystemsManager.ExecuteUpdate(this);
+        }
+
+        /// <summary>
+        /// Executes all systems in the FixedUpdate queue for this world in order.
+        /// Systems are executed sequentially (index 0, 1, 2, ...).
+        /// </summary>
+        /// <remarks>
+        /// API-010: Added for world-specific system execution.
+        /// 
+        /// Execution behavior:
+        /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
+        /// - World context is passed to each system's Execute(world) method
+        /// - If a system throws an exception, execution continues with the next system
+        /// - Errors are logged but do not stop queue execution (graceful error handling)
+        /// - Empty queues are handled gracefully (no-op if queue is empty)
+        /// 
+        /// Usage:
+        /// <code>
+        /// // Execute FixedUpdate systems for this world
+        /// world.ExecuteFixedUpdate();
+        /// </code>
+        /// </remarks>
+        public void ExecuteFixedUpdate()
+        {
+            SystemsManager.ExecuteFixedUpdate(this);
+        }
+
+        /// <summary>
+        /// Removes a system from the Update queue for this world.
+        /// </summary>
+        /// <param name="system">SystemHandler instance to remove from the Update queue</param>
+        /// <returns>True if system was removed, false if system was not found in the queue</returns>
+        /// <remarks>
+        /// API-010: Added for system removal support.
+        /// 
+        /// This method removes the first occurrence of the system from the Update queue.
+        /// If the system appears multiple times in the queue, only the first occurrence is removed.
+        /// 
+        /// Usage:
+        /// <code>
+        /// var movementSystem = new MovementSystem();
+        /// world.AddToUpdate(movementSystem);
+        /// // ... later ...
+        /// world.RemoveFromUpdate(movementSystem); // Remove from Update queue
+        /// </code>
+        /// </remarks>
+        public bool RemoveFromUpdate(SystemHandler system)
+        {
+            return SystemsManager.RemoveFromUpdate(system, this);
+        }
+
+        /// <summary>
+        /// Removes a system from the FixedUpdate queue for this world.
+        /// </summary>
+        /// <param name="system">SystemHandler instance to remove from the FixedUpdate queue</param>
+        /// <returns>True if system was removed, false if system was not found in the queue</returns>
+        /// <remarks>
+        /// API-010: Added for system removal support.
+        /// 
+        /// This method removes the first occurrence of the system from the FixedUpdate queue.
+        /// If the system appears multiple times in the queue, only the first occurrence is removed.
+        /// 
+        /// Usage:
+        /// <code>
+        /// var physicsSystem = new PhysicsSystem();
+        /// world.AddToFixedUpdate(physicsSystem);
+        /// // ... later ...
+        /// world.RemoveFromFixedUpdate(physicsSystem); // Remove from FixedUpdate queue
+        /// </code>
+        /// </remarks>
+        public bool RemoveFromFixedUpdate(SystemHandler system)
+        {
+            return SystemsManager.RemoveFromFixedUpdate(system, this);
         }
 
         /// <summary>

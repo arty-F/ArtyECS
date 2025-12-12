@@ -8,13 +8,17 @@ namespace ArtyECS.Core
     /// Manages system execution queues (Update and FixedUpdate) per world.
     /// </summary>
     /// <remarks>
-    /// **API-009: This class is internal implementation. Use World API instead.**
+    /// **API-010: This class is internal implementation. Use World API instead.**
     /// 
-    /// This class is kept public for internal framework use, but should not be used directly
-    /// by framework users. Use World class methods instead:
+    /// This class is internal and should not be used directly by framework users.
+    /// Use World class methods instead:
     /// - World.AddToUpdate(system) instead of SystemsManager.AddToUpdate(system)
     /// - World.AddToFixedUpdate(system) instead of SystemsManager.AddToFixedUpdate(system)
     /// - World.ExecuteOnce(system) instead of SystemsManager.ExecuteOnce(system)
+    /// - World.ExecuteUpdate() instead of SystemsManager.ExecuteUpdate()
+    /// - World.ExecuteFixedUpdate() instead of SystemsManager.ExecuteFixedUpdate()
+    /// - World.RemoveFromUpdate(system) instead of SystemsManager.RemoveFromUpdate(system)
+    /// - World.RemoveFromFixedUpdate(system) instead of SystemsManager.RemoveFromFixedUpdate(system)
     /// 
     /// See World class documentation for the public API.
     /// 
@@ -28,11 +32,14 @@ namespace ArtyECS.Core
     ///   - ExecuteOnce() passes World parameter to system.Execute(world)
     ///   - Queue execution methods pass world context to system.Execute(world)
     ///   - Systems can use World parameter for component queries
+    /// - API-010: World is now required parameter (not optional)
+    ///   - All methods require World parameter
+    ///   - SystemsManager is now internal (not public)
+    ///   - Added RemoveFromUpdate() and RemoveFromFixedUpdate() methods
     /// - World-002: World-Scoped Storage Integration ✅
-    ///   - All methods support optional World? parameter (default: global world)
-    ///   - Automatic world resolution via ResolveWorld() method (null → global world)
+    ///   - All methods require World parameter
     ///   - World-scoped storage via Dictionary&lt;World, SystemStorageInstance&gt;
-    ///   - Uses shared global world singleton from World.GetGlobalWorld()
+    ///   - Uses shared global world singleton from World.GetOrCreate()
     /// - World-003: World Persistence Across Scenes ✅
     ///   - System queues use static dictionaries that persist across Unity scene changes
     ///   - All system queues remain valid after scene transitions
@@ -41,11 +48,11 @@ namespace ArtyECS.Core
     /// Features:
     /// - World-scoped instance support: each world has its own system queues
     /// - Two separate queues: Update queue and FixedUpdate queue
-    /// - Support for optional World parameter (default: global world)
-    /// - Singleton/static access pattern for global world
+    /// - World parameter is required (not optional)
     /// - Update queue management: add to end or insert at specific index
     /// - FixedUpdate queue management: add to end or insert at specific index
     /// - Queue execution: ExecuteUpdate() and ExecuteFixedUpdate() execute all systems in respective queues
+    /// - System removal: RemoveFromUpdate() and RemoveFromFixedUpdate() remove systems from queues
     /// - Sequential execution in order (index 0, 1, 2, ...)
     /// - Graceful error handling: continues execution even if one system fails
     /// - Manual execution: ExecuteOnce() executes a system immediately without adding to any queue
@@ -56,13 +63,13 @@ namespace ArtyECS.Core
     /// Future tasks:
     /// - Async-002: Async Queue Execution (async system support)
     /// </remarks>
-    public static class SystemsManager
+    internal static class SystemsManager
     {
         /// <summary>
         /// Gets the global/default world instance. Used when no world is specified.
-        /// Uses World.GetGlobalWorld() to ensure shared singleton instance.
+        /// Uses World.GetOrCreate() to ensure shared singleton instance.
         /// </summary>
-        private static World GlobalWorld => World.GetGlobalWorld();
+        private static World GlobalWorld => World.GetOrCreate();
 
         /// <summary>
         /// Internal class to hold system queues for a single world.
@@ -94,37 +101,33 @@ namespace ArtyECS.Core
         /// Gets the storage instance for the specified world.
         /// Creates a new storage instance if the world doesn't exist yet.
         /// </summary>
-        /// <param name="world">World instance, or null for global world</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>SystemStorageInstance containing Update and FixedUpdate queues</returns>
-        private static SystemStorageInstance GetWorldStorage(World world = null)
+        /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// </remarks>
+        private static SystemStorageInstance GetWorldStorage(World world)
         {
-            World targetWorld = world ?? GlobalWorld;
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
 
-            if (!WorldStorages.TryGetValue(targetWorld, out var storage))
+            if (!WorldStorages.TryGetValue(world, out var storage))
             {
                 storage = new SystemStorageInstance();
-                WorldStorages[targetWorld] = storage;
+                WorldStorages[world] = storage;
             }
 
             return storage;
         }
 
         /// <summary>
-        /// Resolves the world instance from the optional parameter.
-        /// Returns global world if null is provided.
-        /// </summary>
-        /// <param name="world">Optional world instance</param>
-        /// <returns>World instance to use</returns>
-        private static World ResolveWorld(World world = null)
-        {
-            return world ?? GlobalWorld;
-        }
-
-        /// <summary>
         /// Gets the number of worlds currently registered.
         /// </summary>
         /// <returns>Number of worlds (including global world)</returns>
-        public static int GetWorldCount()
+        /// <remarks>
+        /// API-010: This method is internal.
+        /// </remarks>
+        internal static int GetWorldCount()
         {
             return WorldStorages.Count;
         }
@@ -132,34 +135,32 @@ namespace ArtyECS.Core
         /// <summary>
         /// Checks if a world has been initialized (has system storage).
         /// </summary>
-        /// <param name="world">World to check, or null for global world</param>
+        /// <param name="world">World to check (required)</param>
         /// <returns>True if world has been initialized</returns>
-        public static bool IsWorldInitialized(World world = null)
+        /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// </remarks>
+        internal static bool IsWorldInitialized(World world)
         {
-            World targetWorld = ResolveWorld(world);
-            return WorldStorages.ContainsKey(targetWorld);
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+            return WorldStorages.ContainsKey(world);
         }
 
-        /// <summary>
-        /// Gets the global world instance.
-        /// </summary>
-        /// <returns>Global world instance</returns>
-        public static World GetGlobalWorld()
-        {
-            return GlobalWorld;
-        }
 
         /// <summary>
         /// Gets the Update queue for the specified world.
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>List of systems in the Update queue</returns>
         /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// 
         /// This method provides access to the Update queue for a specific world.
         /// The queue will be managed by System-002: Update Queue Management.
         /// Primarily used for testing and debugging.
         /// </remarks>
-        public static List<SystemHandler> GetUpdateQueue(World world = null)
+        internal static List<SystemHandler> GetUpdateQueue(World world)
         {
             var storage = GetWorldStorage(world);
             return storage.UpdateQueue;
@@ -168,14 +169,16 @@ namespace ArtyECS.Core
         /// <summary>
         /// Gets the FixedUpdate queue for the specified world.
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <returns>List of systems in the FixedUpdate queue</returns>
         /// <remarks>
+        /// API-010: World is now required parameter (not optional)
+        /// 
         /// This method provides access to the FixedUpdate queue for a specific world.
         /// The queue will be managed by System-003: FixedUpdate Queue Management.
         /// Primarily used for testing and debugging.
         /// </remarks>
-        public static List<SystemHandler> GetFixedUpdateQueue(World world = null)
+        internal static List<SystemHandler> GetFixedUpdateQueue(World world)
         {
             var storage = GetWorldStorage(world);
             return storage.FixedUpdateQueue;
@@ -185,9 +188,10 @@ namespace ArtyECS.Core
         /// Adds a system to the end of the Update queue for the specified world.
         /// </summary>
         /// <param name="system">SystemHandler instance to add to the Update queue</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <remarks>
         /// This method implements System-002: Update Queue Management.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// The system will be added to the end of the Update queue and will be executed
         /// after all existing systems in the queue.
@@ -195,16 +199,10 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var movementSystem = new MovementSystem();
-        /// SystemsManager.AddToUpdate(movementSystem);
-        /// </code>
-        /// 
-        /// Or using extension method:
-        /// <code>
-        /// var movementSystem = new MovementSystem();
-        /// movementSystem.AddToUpdate();
+        /// SystemsManager.AddToUpdate(movementSystem, world);
         /// </code>
         /// </remarks>
-        public static void AddToUpdate(SystemHandler system, World world = null)
+        internal static void AddToUpdate(SystemHandler system, World world)
         {
             if (system == null)
             {
@@ -221,11 +219,12 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="system">SystemHandler instance to insert into the Update queue</param>
         /// <param name="order">Index at which to insert the system (0-based)</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown if order is negative or greater than queue count</exception>
         /// <remarks>
         /// This method implements System-002: Update Queue Management.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// The system will be inserted at the specified index. If the index is occupied,
         /// all systems from that index onwards will be shifted forward by one position.
@@ -238,16 +237,10 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var movementSystem = new MovementSystem();
-        /// SystemsManager.AddToUpdate(movementSystem, order: 3); // Insert at index 3
-        /// </code>
-        /// 
-        /// Or using extension method:
-        /// <code>
-        /// var movementSystem = new MovementSystem();
-        /// movementSystem.AddToUpdate(3); // Insert at index 3
+        /// SystemsManager.AddToUpdate(movementSystem, order: 3, world); // Insert at index 3
         /// </code>
         /// </remarks>
-        public static void AddToUpdate(SystemHandler system, int order, World world = null)
+        internal static void AddToUpdate(SystemHandler system, int order, World world)
         {
             if (system == null)
             {
@@ -278,11 +271,12 @@ namespace ArtyECS.Core
         /// Executes all systems in the Update queue for the specified world in order.
         /// Systems are executed sequentially (index 0, 1, 2, ...).
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world). The world context is passed to each system's Execute() method.</param>
+        /// <param name="world">World instance (required). The world context is passed to each system's Execute() method.</param>
         /// <remarks>
         /// This method implements:
         /// - System-005: SystemsManager - Queue Execution (Sync) ✅
         /// - API-001: Fix ExecuteOnce World Parameter ✅
+        /// - API-010: World is now required parameter (not optional)
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
@@ -298,20 +292,16 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour Update() method:
         /// void Update()
         /// {
-        ///     SystemsManager.ExecuteUpdate(); // Executes systems in global world
+        ///     SystemsManager.ExecuteUpdate(world); // Executes systems in specified world
         /// }
-        /// 
-        /// var localWorld = new World("Local");
-        /// SystemsManager.ExecuteUpdate(localWorld); // Executes systems in Local world
         /// </code>
         /// 
         /// Note: Async system support will be added in Async-002. Currently, all systems
         /// are executed synchronously.
         /// </remarks>
-        public static void ExecuteUpdate(World world = null)
+        internal static void ExecuteUpdate(World world)
         {
-            var targetWorld = ResolveWorld(world);
-            var storage = GetWorldStorage(targetWorld);
+            var storage = GetWorldStorage(world);
             var queue = storage.UpdateQueue;
 
             // Execute all systems in order, passing world context
@@ -320,14 +310,14 @@ namespace ArtyECS.Core
                 var system = queue[i];
                 try
                 {
-                    system.Execute(targetWorld);
+                    system.Execute(world);
                 }
                 catch (Exception ex)
                 {
                     // Log error but continue execution with next system
                     // This allows other systems to continue even if one fails
                     // In production, you might want to use a proper logging system
-                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{targetWorld.Name}': {ex}");
+                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{world.Name}': {ex}");
                 }
             }
         }
@@ -336,10 +326,11 @@ namespace ArtyECS.Core
         /// Adds a system to the end of the FixedUpdate queue for the specified world.
         /// </summary>
         /// <param name="system">SystemHandler instance to add to the FixedUpdate queue</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <remarks>
         /// This method implements System-003: FixedUpdate Queue Management.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// The system will be added to the end of the FixedUpdate queue and will be executed
         /// after all existing systems in the queue.
@@ -347,16 +338,10 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var physicsSystem = new PhysicsSystem();
-        /// SystemsManager.AddToFixedUpdate(physicsSystem);
-        /// </code>
-        /// 
-        /// Or using extension method:
-        /// <code>
-        /// var physicsSystem = new PhysicsSystem();
-        /// physicsSystem.AddToFixedUpdate();
+        /// SystemsManager.AddToFixedUpdate(physicsSystem, world);
         /// </code>
         /// </remarks>
-        public static void AddToFixedUpdate(SystemHandler system, World world = null)
+        internal static void AddToFixedUpdate(SystemHandler system, World world)
         {
             if (system == null)
             {
@@ -373,11 +358,12 @@ namespace ArtyECS.Core
         /// </summary>
         /// <param name="system">SystemHandler instance to insert into the FixedUpdate queue</param>
         /// <param name="order">Index at which to insert the system (0-based)</param>
-        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <param name="world">World instance (required)</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown if order is negative or greater than queue count</exception>
         /// <remarks>
         /// This method implements System-003: FixedUpdate Queue Management.
+        /// API-010: World is now required parameter (not optional)
         /// 
         /// The system will be inserted at the specified index. If the index is occupied,
         /// all systems from that index onwards will be shifted forward by one position.
@@ -390,16 +376,10 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var physicsSystem = new PhysicsSystem();
-        /// SystemsManager.AddToFixedUpdate(physicsSystem, order: 3); // Insert at index 3
-        /// </code>
-        /// 
-        /// Or using extension method:
-        /// <code>
-        /// var physicsSystem = new PhysicsSystem();
-        /// physicsSystem.AddToFixedUpdate(3); // Insert at index 3
+        /// SystemsManager.AddToFixedUpdate(physicsSystem, order: 3, world); // Insert at index 3
         /// </code>
         /// </remarks>
-        public static void AddToFixedUpdate(SystemHandler system, int order, World world = null)
+        internal static void AddToFixedUpdate(SystemHandler system, int order, World world)
         {
             if (system == null)
             {
@@ -430,11 +410,12 @@ namespace ArtyECS.Core
         /// Executes all systems in the FixedUpdate queue for the specified world in order.
         /// Systems are executed sequentially (index 0, 1, 2, ...).
         /// </summary>
-        /// <param name="world">Optional world instance (default: global world). The world context is passed to each system's Execute() method.</param>
+        /// <param name="world">World instance (required). The world context is passed to each system's Execute() method.</param>
         /// <remarks>
         /// This method implements:
         /// - System-005: SystemsManager - Queue Execution (Sync) ✅
         /// - API-001: Fix ExecuteOnce World Parameter ✅
+        /// - API-010: World is now required parameter (not optional)
         /// 
         /// Execution behavior:
         /// - Systems are executed in the order they appear in the queue (index 0, 1, 2, ...)
@@ -450,20 +431,16 @@ namespace ArtyECS.Core
         /// // In MonoBehaviour FixedUpdate() method:
         /// void FixedUpdate()
         /// {
-        ///     SystemsManager.ExecuteFixedUpdate(); // Executes systems in global world
+        ///     SystemsManager.ExecuteFixedUpdate(world); // Executes systems in specified world
         /// }
-        /// 
-        /// var localWorld = new World("Local");
-        /// SystemsManager.ExecuteFixedUpdate(localWorld); // Executes systems in Local world
         /// </code>
         /// 
         /// Note: Async system support will be added in Async-002. Currently, all systems
         /// are executed synchronously.
         /// </remarks>
-        public static void ExecuteFixedUpdate(World world = null)
+        internal static void ExecuteFixedUpdate(World world)
         {
-            var targetWorld = ResolveWorld(world);
-            var storage = GetWorldStorage(targetWorld);
+            var storage = GetWorldStorage(world);
             var queue = storage.FixedUpdateQueue;
 
             // Execute all systems in order, passing world context
@@ -472,14 +449,14 @@ namespace ArtyECS.Core
                 var system = queue[i];
                 try
                 {
-                    system.Execute(targetWorld);
+                    system.Execute(world);
                 }
                 catch (Exception ex)
                 {
                     // Log error but continue execution with next system
                     // This allows other systems to continue even if one fails
                     // In production, you might want to use a proper logging system
-                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{targetWorld.Name}': {ex}");
+                    UnityEngine.Debug.LogError($"System '{system.GetType().Name}' execution failed in world '{world.Name}': {ex}");
                 }
             }
         }
@@ -489,20 +466,20 @@ namespace ArtyECS.Core
         /// The system is executed synchronously without being added to any queue.
         /// </summary>
         /// <param name="system">SystemHandler instance to execute immediately</param>
-        /// <param name="world">Optional world instance (default: global world). The system will be executed in the context of this world.</param>
+        /// <param name="world">World instance (required). The system will be executed in the context of this world.</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <remarks>
         /// This method implements:
         /// - System-004: SystemsManager - Manual Execution ✅
         /// - API-001: Fix ExecuteOnce World Parameter ✅
+        /// - API-010: World is now required parameter (not optional)
         /// 
         /// Execution behavior:
         /// - System is executed immediately without being added to any queue
         /// - No side effects on Update or FixedUpdate queues
         /// - If a system throws an exception, it propagates to the caller (not caught)
         /// - World parameter is passed to system.Execute(world) to provide world context
-        /// - When World is provided, the system should use this world for component queries
-        /// - When World is null, the system should use the global world (default behavior)
+        /// - The system should use this world for component queries
         /// 
         /// This method is useful for:
         /// - One-time system execution (e.g., initialization systems)
@@ -513,25 +490,13 @@ namespace ArtyECS.Core
         /// Usage:
         /// <code>
         /// var initializationSystem = new InitializationSystem();
-        /// SystemsManager.ExecuteOnce(initializationSystem); // Executes in global world
-        /// 
-        /// var localWorld = new World("Local");
-        /// SystemsManager.ExecuteOnce(initializationSystem, localWorld); // Executes in Local world
-        /// </code>
-        /// 
-        /// Or using extension method:
-        /// <code>
-        /// var initializationSystem = new InitializationSystem();
-        /// initializationSystem.ExecuteOnce(); // Executes in global world
-        /// 
-        /// var localWorld = new World("Local");
-        /// initializationSystem.ExecuteOnce(localWorld); // Executes in Local world
+        /// SystemsManager.ExecuteOnce(initializationSystem, world); // Executes in specified world
         /// </code>
         /// 
         /// Note: Async system support will be added in Async-001 and Async-002.
         /// Currently, all systems are executed synchronously via Execute() method.
         /// </remarks>
-        public static void ExecuteOnce(SystemHandler system, World world = null)
+        internal static void ExecuteOnce(SystemHandler system, World world)
         {
             if (system == null)
             {
@@ -579,7 +544,7 @@ namespace ArtyECS.Core
         /// This method iterates through all worlds and executes their Update queues.
         /// </summary>
         /// <remarks>
-        /// This method implements API-001: Fix ExecuteOnce World Parameter ✅
+        /// API-010: This method is internal. Use World.ExecuteUpdate() instead.
         /// 
         /// This method executes Update systems for all worlds that have been initialized.
         /// Each world's systems are executed sequentially in the order they appear in that world's queue.
@@ -602,7 +567,7 @@ namespace ArtyECS.Core
         /// }
         /// </code>
         /// </remarks>
-        public static void ExecuteUpdateAllWorlds()
+        internal static void ExecuteUpdateAllWorlds()
         {
             foreach (var kvp in WorldStorages)
             {
@@ -631,7 +596,7 @@ namespace ArtyECS.Core
         /// This method iterates through all worlds and executes their FixedUpdate queues.
         /// </summary>
         /// <remarks>
-        /// This method implements API-001: Fix ExecuteOnce World Parameter ✅
+        /// API-010: This method is internal. Use World.ExecuteFixedUpdate() instead.
         /// 
         /// This method executes FixedUpdate systems for all worlds that have been initialized.
         /// Each world's systems are executed sequentially in the order they appear in that world's queue.
@@ -654,7 +619,7 @@ namespace ArtyECS.Core
         /// }
         /// </code>
         /// </remarks>
-        public static void ExecuteFixedUpdateAllWorlds()
+        internal static void ExecuteFixedUpdateAllWorlds()
         {
             foreach (var kvp in WorldStorages)
             {
@@ -679,6 +644,68 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
+        /// Removes a system from the Update queue for the specified world.
+        /// </summary>
+        /// <param name="system">SystemHandler instance to remove from the Update queue</param>
+        /// <param name="world">World instance (required)</param>
+        /// <returns>True if system was removed, false if system was not found in the queue</returns>
+        /// <remarks>
+        /// API-010: Added for system removal support.
+        /// 
+        /// This method removes the first occurrence of the system from the Update queue.
+        /// If the system appears multiple times in the queue, only the first occurrence is removed.
+        /// 
+        /// Usage:
+        /// <code>
+        /// var movementSystem = new MovementSystem();
+        /// world.AddToUpdate(movementSystem);
+        /// // ... later ...
+        /// world.RemoveFromUpdate(movementSystem); // Remove from Update queue
+        /// </code>
+        /// </remarks>
+        internal static bool RemoveFromUpdate(SystemHandler system, World world)
+        {
+            if (system == null)
+                throw new ArgumentNullException(nameof(system));
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
+            var storage = GetWorldStorage(world);
+            return storage.UpdateQueue.Remove(system);
+        }
+
+        /// <summary>
+        /// Removes a system from the FixedUpdate queue for the specified world.
+        /// </summary>
+        /// <param name="system">SystemHandler instance to remove from the FixedUpdate queue</param>
+        /// <param name="world">World instance (required)</param>
+        /// <returns>True if system was removed, false if system was not found in the queue</returns>
+        /// <remarks>
+        /// API-010: Added for system removal support.
+        /// 
+        /// This method removes the first occurrence of the system from the FixedUpdate queue.
+        /// If the system appears multiple times in the queue, only the first occurrence is removed.
+        /// 
+        /// Usage:
+        /// <code>
+        /// var physicsSystem = new PhysicsSystem();
+        /// world.AddToFixedUpdate(physicsSystem);
+        /// // ... later ...
+        /// world.RemoveFromFixedUpdate(physicsSystem); // Remove from FixedUpdate queue
+        /// </code>
+        /// </remarks>
+        internal static bool RemoveFromFixedUpdate(SystemHandler system, World world)
+        {
+            if (system == null)
+                throw new ArgumentNullException(nameof(system));
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
+            var storage = GetWorldStorage(world);
+            return storage.FixedUpdateQueue.Remove(system);
+        }
+
+        /// <summary>
         /// Clears all system storage for all worlds.
         /// This is primarily used for testing to reset state between tests.
         /// </summary>
@@ -686,7 +713,7 @@ namespace ArtyECS.Core
         /// WARNING: This method clears ALL system queues from ALL worlds.
         /// Use with caution - typically only for testing scenarios.
         /// </remarks>
-        public static void ClearAll()
+        internal static void ClearAll()
         {
             WorldStorages.Clear();
         }
