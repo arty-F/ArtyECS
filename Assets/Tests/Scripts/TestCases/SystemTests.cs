@@ -1015,8 +1015,8 @@ public class SystemTests : TestBase
                 UnityEngine.Object.DestroyImmediate(existing);
             }
             
-            // Call World.CreateEntity() (this should create UpdateProvider)
-            Entity entity = World.CreateEntity();
+            // Call World.GetOrCreate().CreateEntity() (this should create UpdateProvider)
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Check for UpdateProvider GameObject
             var updateProvider = GameObject.Find("UpdateProvider");
@@ -1034,10 +1034,10 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create first entity (creates UpdateProvider)
-            Entity entity1 = World.CreateEntity();
+            Entity entity1 = World.GetOrCreate().CreateEntity();
             
             // Create second entity
-            Entity entity2 = World.CreateEntity();
+            Entity entity2 = World.GetOrCreate().CreateEntity();
             
             // Check UpdateProvider count
             var providers = GameObject.FindObjectsOfType<UpdateProvider>();
@@ -1061,7 +1061,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add CounterComponent with Value=0
             ComponentsManager.AddComponent(entity, new CounterComponent { Value = 0 });
@@ -1090,7 +1090,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add Position(X=0, Y=0) and Velocity(X=1, Y=1)
             ComponentsManager.AddComponent(entity, new Position { X = 0f, Y = 0f, Z = 0f });
@@ -1121,9 +1121,9 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity1, Entity2, Entity3
-            Entity entity1 = World.CreateEntity();
-            Entity entity2 = World.CreateEntity();
-            Entity entity3 = World.CreateEntity();
+            Entity entity1 = World.GetOrCreate().CreateEntity();
+            Entity entity2 = World.GetOrCreate().CreateEntity();
+            Entity entity3 = World.GetOrCreate().CreateEntity();
             
             // Add Health to all with Amount=100
             ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
@@ -1161,9 +1161,9 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity1, Entity2, Entity3
-            Entity entity1 = World.CreateEntity();
-            Entity entity2 = World.CreateEntity();
-            Entity entity3 = World.CreateEntity();
+            Entity entity1 = World.GetOrCreate().CreateEntity();
+            Entity entity2 = World.GetOrCreate().CreateEntity();
+            Entity entity3 = World.GetOrCreate().CreateEntity();
             
             // Add Health to all with Amount=100
             ComponentsManager.AddComponent(entity1, new Health { Amount = 100f });
@@ -1203,7 +1203,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add CounterComponent with Value=0
             ComponentsManager.AddComponent(entity, new CounterComponent { Value = 0 });
@@ -1232,7 +1232,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add Position(X=0, Y=0), Velocity(X=0, Y=0), Acceleration(X=1, Y=1)
             ComponentsManager.AddComponent(entity, new Position { X = 0f, Y = 0f, Z = 0f });
@@ -1267,7 +1267,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add CounterComponent with Value=0
             ComponentsManager.AddComponent(entity, new CounterComponent { Value = 0 });
@@ -1302,7 +1302,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add UpdateCounter(Value=0) and FixedUpdateCounter(Value=0)
             ComponentsManager.AddComponent(entity, new UpdateCounter { Value = 0 });
@@ -1350,7 +1350,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add Health(Amount=0) and Dead components
             ComponentsManager.AddComponent(entity, new Health { Amount = 0f });
@@ -1378,7 +1378,7 @@ public class SystemTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity1 with Spawner component
-            Entity entity1 = World.CreateEntity();
+            Entity entity1 = World.GetOrCreate().CreateEntity();
             ComponentsManager.AddComponent(entity1, new Spawner { SpawnCount = 1 });
             
             // Create SpawnSystem that creates new entity when Spawner.SpawnCount > 0

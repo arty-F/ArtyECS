@@ -8,6 +8,16 @@ namespace ArtyECS.Core
     /// Supports multiple worlds, each with isolated component storage.
     /// </summary>
     /// <remarks>
+    /// **API-009: This class is internal implementation. Use World API instead.**
+    /// 
+    /// This class is kept public for internal framework use, but should not be used directly
+    /// by framework users. Use World class methods instead:
+    /// - World.GetComponent&lt;T&gt;(entity) instead of ComponentsManager.GetComponent&lt;T&gt;(entity)
+    /// - World.AddComponent&lt;T&gt;(entity, component) instead of ComponentsManager.AddComponent&lt;T&gt;(entity, component)
+    /// - World.GetEntitiesWith&lt;T1, T2&gt;() instead of ComponentsManager.GetEntitiesWith&lt;T1, T2&gt;()
+    /// 
+    /// See World class documentation for the public API.
+    /// 
     /// This class manages component storage per world. Each world has its own
     /// registry of component type -> storage mappings.
     /// 
@@ -17,10 +27,21 @@ namespace ArtyECS.Core
     /// Core-005: RemoveComponent method implementation (COMPLETED)
     /// Core-006: GetComponent method for single entity (COMPLETED)
         /// Core-007: GetComponents method for single type query (COMPLETED)
-        /// Core-008: GetComponents method for multiple AND query (COMPLETED)
+        /// Core-008: GetComponents method for multiple AND query (REMOVED - API-004)
         /// Core-009: GetComponentsWithout query for WITHOUT operations (REMOVED - API-003)
         /// Core-010: Deferred component modifications system (COMPLETED)
+        /// API-005: Entity-Component Mapping Support (COMPLETED)
+        ///   - GetEntitiesWith&lt;T1, T2, ...&gt;() methods for entity-centric queries (1-6 parameters)
+        ///   - Returns ReadOnlySpan&lt;Entity&gt; for zero-allocation iteration
+        ///   - Uses efficient set intersection algorithm with smallest-set optimization
     /// Core-012: RemoveAllComponents method for entity destruction (COMPLETED)
+    /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
+    ///   - All methods use exceptions consistently (no Try pattern)
+    ///   - AddComponent throws DuplicateComponentException for duplicates
+    ///   - GetComponent throws ComponentNotFoundException if component not found
+    ///   - All methods throw InvalidEntityException if entity is invalid or deallocated
+    ///   - Exceptions are lightweight and safe in builds (minimal overhead)
+    ///   - Entity validation via ValidateEntity() helper method
     /// World-002: World-Scoped Storage Integration (COMPLETED)
     ///   - All methods support optional World? parameter (default: global world)
     ///   - Automatic world resolution via ResolveWorld() method (null → global world)
@@ -113,6 +134,34 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
+        /// Validates that an entity is valid and allocated in the specified world.
+        /// Throws InvalidEntityException if entity is invalid or deallocated.
+        /// </summary>
+        /// <param name="entity">Entity to validate</param>
+        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
+        /// <remarks>
+        /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
+        /// - Validates entity is valid (Id >= 0)
+        /// - Validates entity is allocated (generation matches current generation in pool)
+        /// - Throws InvalidEntityException if validation fails
+        /// - Lightweight validation with minimal overhead
+        /// </remarks>
+        private static void ValidateEntity(Entity entity, World world = null)
+        {
+            if (!entity.IsValid)
+            {
+                throw new InvalidEntityException(entity);
+            }
+
+            World targetWorld = ResolveWorld(world);
+            if (!EntitiesManager.IsAllocated(entity, targetWorld))
+            {
+                throw new InvalidEntityException(entity);
+            }
+        }
+
+        /// <summary>
         /// Gets or creates the storage instance for a specific component type in the specified world.
         /// Perf-002: Uses table cache to avoid repeated dictionary lookups in hot paths.
         /// </summary>
@@ -190,30 +239,51 @@ namespace ArtyECS.Core
         /// <param name="entity">Entity to add component to</param>
         /// <param name="component">Component value to add</param>
         /// <param name="world">Optional world instance (default: global world)</param>
-        /// <exception cref="InvalidOperationException">If entity already has a component of type T (duplicate component)</exception>
+        /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
+        /// <exception cref="DuplicateComponentException">Thrown if entity already has a component of type T</exception>
         /// <remarks>
         /// This method implements Core-004: AddComponent functionality.
+        /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
         /// 
         /// Features:
-        /// - Duplicate component detection: throws exception if entity already has this component type
+        /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
+        /// - Duplicate component detection: throws DuplicateComponentException if entity already has this component type
         /// - Efficient entity-to-index mapping via dictionary lookup
         /// - Automatic array growth if capacity is insufficient
         /// - Zero-allocation in hot path (only allocates on array growth)
+        /// - Exceptions are safe in builds (minimize overhead, no stack trace if not needed)
         /// 
         /// The component is added at the end of the storage array (index = count),
         /// maintaining contiguous memory layout for cache efficiency.
+        /// 
+        /// Usage:
+        /// <code>
+        /// try
+        /// {
+        ///     ComponentsManager.AddComponent&lt;Hp&gt;(entity, new Hp { Amount = 100f });
+        /// }
+        /// catch (InvalidEntityException)
+        /// {
+        ///     // Entity is invalid or deallocated
+        /// }
+        /// catch (DuplicateComponentException)
+        /// {
+        ///     // Entity already has this component
+        /// }
+        /// </code>
         /// </remarks>
         public static void AddComponent<T>(Entity entity, T component, World world = null) where T : struct, IComponent
         {
+            // API-006: Validate entity is valid and allocated
+            ValidateEntity(entity, world);
+
             // Get or create storage for component type T in the specified world
             var table = GetOrCreateTable<T>(world);
 
-            // Duplicate component detection: check if entity already has this component type
+            // API-006: Duplicate component detection: throw DuplicateComponentException if entity already has this component type
             if (table.HasComponent(entity))
             {
-                throw new InvalidOperationException(
-                    $"Entity {entity} already has a component of type {typeof(T).Name}. " +
-                    "Each entity can have at most one component of each type.");
+                throw new DuplicateComponentException(entity, typeof(T));
             }
 
             // Get internal storage with capacity check (need space for count + 1)
@@ -239,14 +309,17 @@ namespace ArtyECS.Core
         /// <param name="entity">Entity to remove component from</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <returns>True if component was removed, false if entity didn't have the component</returns>
+        /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <remarks>
         /// This method implements Core-005: RemoveComponent functionality.
+        /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
         /// 
         /// Features:
+        /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
         /// - Efficient O(1) removal using swap-with-last-element strategy
         /// - Updates entity-to-index mapping automatically
         /// - Zero-allocation in hot path
-        /// - Returns false if component doesn't exist (no exception thrown for performance)
+        /// - Returns false if component doesn't exist (no exception thrown for performance - component absence is not an error)
         /// 
         /// The removal uses swap-with-last strategy:
         /// 1. Find index of component to remove
@@ -256,9 +329,15 @@ namespace ArtyECS.Core
         /// 5. Decrement count
         /// 
         /// This maintains contiguous memory layout and O(1) removal complexity.
+        /// 
+        /// Note: Returns false (instead of throwing) if component doesn't exist, as component absence
+        /// is not an error condition. Entity validation still throws InvalidEntityException.
         /// </remarks>
         public static bool RemoveComponent<T>(Entity entity, World world = null) where T : struct, IComponent
         {
+            // API-006: Validate entity is valid and allocated
+            ValidateEntity(entity, world);
+
             // Get storage for component type T in the specified world
             var table = GetOrCreateTable<T>(world);
 
@@ -280,12 +359,15 @@ namespace ArtyECS.Core
         /// <param name="entity">Entity to get component for</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <returns>Component value</returns>
+        /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <exception cref="ComponentNotFoundException">Thrown if entity doesn't have a component of type T</exception>
         /// <remarks>
         /// This method implements Core-006: GetComponent functionality.
         /// API-002: Keep GetComponent with Exceptions (COMPLETED)
+        /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
         /// 
         /// Features:
+        /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
         /// - Fast O(1) lookup via entity-to-index mapping dictionary
         /// - Returns component value (T) - throws ComponentNotFoundException if component not found
         /// - Zero-allocation lookup (only dictionary lookup, no allocations)
@@ -299,6 +381,10 @@ namespace ArtyECS.Core
         ///     var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
         ///     hp.Amount -= 1f;
         /// }
+        /// catch (InvalidEntityException)
+        /// {
+        ///     // Entity is invalid or deallocated
+        /// }
         /// catch (ComponentNotFoundException)
         /// {
         ///     // Component doesn't exist
@@ -307,6 +393,9 @@ namespace ArtyECS.Core
         /// </remarks>
         public static T GetComponent<T>(Entity entity, World world = null) where T : struct, IComponent
         {
+            // API-006: Validate entity is valid and allocated
+            ValidateEntity(entity, world);
+
             // Get storage for component type T in the specified world
             var table = GetOrCreateTable<T>(world);
 
@@ -327,26 +416,40 @@ namespace ArtyECS.Core
         /// <param name="entity">Entity to check</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <returns>True if entity has the component, false otherwise</returns>
+        /// <exception cref="InvalidEntityException">Thrown if entity is invalid or deallocated</exception>
         /// <remarks>
         /// This method provides a way to check component existence without throwing exceptions.
         /// Useful for conditional logic where you want to avoid exception overhead.
+        /// API-006: Use Exceptions Instead of Try Pattern (COMPLETED)
         /// 
         /// Features:
+        /// - Entity validation: throws InvalidEntityException if entity is invalid or deallocated
         /// - Fast O(1) lookup via entity-to-index mapping dictionary
         /// - Zero-allocation lookup (only dictionary lookup, no allocations)
         /// - Supports optional World parameter with default to global world
+        /// - Returns false if component doesn't exist (no exception thrown for performance)
         /// 
         /// Usage:
         /// <code>
-        /// if (ComponentsManager.HasComponent&lt;Hp&gt;(entity))
+        /// try
         /// {
-        ///     var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
-        ///     hp.Amount -= 1f;
+        ///     if (ComponentsManager.HasComponent&lt;Hp&gt;(entity))
+        ///     {
+        ///         var hp = ComponentsManager.GetComponent&lt;Hp&gt;(entity);
+        ///         hp.Amount -= 1f;
+        ///     }
+        /// }
+        /// catch (InvalidEntityException)
+        /// {
+        ///     // Entity is invalid or deallocated
         /// }
         /// </code>
         /// </remarks>
         public static bool HasComponent<T>(Entity entity, World world = null) where T : struct, IComponent
         {
+            // API-006: Validate entity is valid and allocated
+            ValidateEntity(entity, world);
+
             // Get storage for component type T in the specified world
             var table = GetOrCreateTable<T>(world);
             return table.HasComponent(entity);
@@ -397,6 +500,9 @@ namespace ArtyECS.Core
         /// </code>
         /// 
         /// Note: If no components of type T exist in the specified world, returns an empty span.
+        /// 
+        /// API-004: GetComponents with multiple type parameters (GetComponents&lt;T1, T2&gt;(), GetComponents&lt;T1, T2, T3&gt;()) 
+        /// have been removed. Use the entity-centric pattern with GetEntitiesWith&lt;T1, T2&gt;() and entity.Get&lt;T&gt;() instead.
         /// </remarks>
         public static ReadOnlySpan<T> GetComponents<T>(World world = null) where T : struct, IComponent
         {
@@ -409,229 +515,517 @@ namespace ArtyECS.Core
         }
 
         /// <summary>
-        /// Gets all components of type T1 for entities that have BOTH T1 and T2 components (AND query).
-        /// Returns a ReadOnlySpan of T1 components for matching entities.
+        /// Gets all entities that have component type T1 in the specified world.
+        /// </summary>
+        /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
+        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <returns>ReadOnlySpan containing all entities with component T1</returns>
+        /// <remarks>
+        /// This method implements API-005: Entity-Component Mapping Support.
+        /// 
+        /// Features:
+        /// - Returns ReadOnlySpan&lt;Entity&gt; for zero-allocation iteration
+        /// - Returns all entities that have component type T1
+        /// - Supports optional World parameter with default to global world
+        /// 
+        /// Usage:
+        /// <code>
+        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position&gt;();
+        /// foreach (var entity in entities)
+        /// {
+        ///     var pos = entity.Get&lt;Position&gt;();
+        ///     // Process entity with Position component
+        /// }
+        /// </code>
+        /// </remarks>
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1>(World world = null) where T1 : struct, IComponent
+        {
+            var table = GetOrCreateTable<T1>(world);
+            return table.GetEntities();
+        }
+
+        /// <summary>
+        /// Gets all entities that have ALL specified component types (T1 AND T2) in the specified world.
         /// </summary>
         /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
         /// <param name="world">Optional world instance (default: global world)</param>
-        /// <returns>ReadOnlySpan containing T1 components for entities that have both T1 and T2</returns>
+        /// <returns>ReadOnlySpan containing all entities with both T1 and T2 components</returns>
         /// <remarks>
-        /// This method implements Core-008: GetComponents (Multiple AND Query) functionality.
-        /// Perf-003: Query Optimization - Multiple Components (COMPLETED)
+        /// This method implements API-005: Entity-Component Mapping Support.
         /// 
         /// Features:
+        /// - Returns ReadOnlySpan&lt;Entity&gt; for zero-allocation iteration
         /// - Returns entities that have ALL specified components (AND query)
-        /// - Efficient set intersection algorithm using HashSet
-        /// - Returns ReadOnlySpan&lt;T1&gt; for zero-allocation iteration
+        /// - Uses efficient set intersection algorithm
         /// - Supports optional World parameter with default to global world
-        /// 
-        /// Perf-003 Optimizations:
-        /// - Uses smallest set as base for intersection (minimizes HashSet operations)
-        /// - Algorithm adapts to which table has fewer entities for optimal performance
-        /// - Minimizes HashSet allocations by choosing smallest set first
-        /// 
-        /// The algorithm:
-        /// 1. Gets storage for both component types
-        /// 2. Determines which table has fewer entities (uses that as base for efficiency)
-        /// 3. Creates HashSet from smallest table
-        /// 4. Intersects with entities from larger table (fewer operations)
-        /// 5. Builds result array of T1 components for matching entities
-        /// 6. Returns span over result array
         /// 
         /// Usage:
         /// <code>
-        /// var positionComponents = ComponentsManager.GetComponents&lt;Position, Velocity&gt;();
-        /// foreach (var pos in positionComponents)
+        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position, Velocity&gt;();
+        /// foreach (var entity in entities)
         /// {
-        ///     // This entity has both Position and Velocity components
-        ///     pos.X += 1f;
+        ///     var pos = entity.Get&lt;Position&gt;();
+        ///     var vel = entity.Get&lt;Velocity&gt;();
+        ///     // Process entities with both Position and Velocity
         /// }
         /// </code>
-        /// 
-        /// Note: If no entities have both components, returns an empty span.
         /// </remarks>
-        public static ReadOnlySpan<T1> GetComponents<T1, T2>(World world = null) 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>(World world = null) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
         {
-            // Get storage for both component types
-            var table1 = GetOrCreateTable<T1>(world);
-            var table2 = GetOrCreateTable<T2>(world);
+            World targetWorld = ResolveWorld(world);
+            var table1 = GetOrCreateTable<T1>(targetWorld);
+            var table2 = GetOrCreateTable<T2>(targetWorld);
 
-            // If either storage is empty, return empty span
+            // Early exit if either table is empty
             if (table1.Count == 0 || table2.Count == 0)
             {
-                return ReadOnlySpan<T1>.Empty;
+                return ReadOnlySpan<Entity>.Empty;
             }
 
-            // Perf-003: Use smallest set as base for intersection (more efficient)
+            // Use smallest set as base for intersection (Perf-003 optimization)
             HashSet<Entity> intersection;
-            ComponentTable<T1> resultTable;
-            ReadOnlySpan<Entity> resultEntitiesSpan;
-            ReadOnlySpan<T1> resultComponentsSpan;
-
+            ReadOnlySpan<Entity> baseEntities;
+            
             if (table1.Count <= table2.Count)
             {
-                // T1 is smaller or equal: use T1 as base, intersect with T2
                 intersection = table1.GetEntitiesSet();
-                var entities2 = table2.GetEntitiesSet();
-                intersection.IntersectWith(entities2);
-                resultTable = table1;
-                resultEntitiesSpan = table1.GetEntities();
-                resultComponentsSpan = table1.GetComponents();
+                baseEntities = table1.GetEntities();
+                var set2 = table2.GetEntitiesSet();
+                intersection.IntersectWith(set2);
             }
             else
             {
-                // T2 is smaller: use T2 as base, intersect with T1, but build result from T1
                 intersection = table2.GetEntitiesSet();
-                var entities1 = table1.GetEntitiesSet();
-                intersection.IntersectWith(entities1);
-                resultTable = table1;
-                resultEntitiesSpan = table1.GetEntities();
-                resultComponentsSpan = table1.GetComponents();
+                baseEntities = table2.GetEntities();
+                var set1 = table1.GetEntitiesSet();
+                intersection.IntersectWith(set1);
             }
 
-            // If no intersection, return empty span
+            // Build result array from intersection
             if (intersection.Count == 0)
             {
-                return ReadOnlySpan<T1>.Empty;
+                return ReadOnlySpan<Entity>.Empty;
             }
 
-            // Build result array: T1 components for matching entities
-            var result = new T1[intersection.Count];
+            var result = new Entity[intersection.Count];
             int index = 0;
-
-            for (int i = 0; i < resultEntitiesSpan.Length; i++)
+            foreach (var entity in baseEntities)
             {
-                if (intersection.Contains(resultEntitiesSpan[i]))
+                if (intersection.Contains(entity))
                 {
-                    result[index++] = resultComponentsSpan[i];
+                    result[index++] = entity;
                 }
             }
 
-            return new ReadOnlySpan<T1>(result);
+            return result;
         }
 
         /// <summary>
-        /// Gets all components of type T1 for entities that have T1, T2, AND T3 components (AND query).
-        /// Returns a ReadOnlySpan of T1 components for matching entities.
+        /// Gets all entities that have ALL specified component types (T1 AND T2 AND T3) in the specified world.
         /// </summary>
         /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
         /// <typeparam name="T3">Third component type (must be struct implementing IComponent)</typeparam>
         /// <param name="world">Optional world instance (default: global world)</param>
-        /// <returns>ReadOnlySpan containing T1 components for entities that have T1, T2, and T3</returns>
+        /// <returns>ReadOnlySpan containing all entities with T1, T2, and T3 components</returns>
         /// <remarks>
-        /// This method implements Core-008: GetComponents (Multiple AND Query) functionality.
-        /// Perf-003: Query Optimization - Multiple Components (COMPLETED)
+        /// This method implements API-005: Entity-Component Mapping Support.
         /// 
         /// Features:
+        /// - Returns ReadOnlySpan&lt;Entity&gt; for zero-allocation iteration
         /// - Returns entities that have ALL specified components (AND query)
-        /// - Efficient set intersection algorithm using HashSet
-        /// - Returns ReadOnlySpan&lt;T1&gt; for zero-allocation iteration
+        /// - Uses efficient set intersection algorithm
         /// - Supports optional World parameter with default to global world
-        /// 
-        /// Perf-003 Optimizations:
-        /// - Uses smallest set as base for intersection (minimizes HashSet operations)
-        /// - Finds minimum of three tables and uses that as intersection base
-        /// - Intersects with other two tables in sequence (fewer operations)
-        /// - Minimizes HashSet allocations by choosing smallest set first
-        /// 
-        /// The algorithm:
-        /// 1. Gets storage for all three component types
-        /// 2. Determines which table has fewest entities (uses that as base for efficiency)
-        /// 3. Creates HashSet from smallest table
-        /// 4. Intersects with entities from the other two tables (fewer operations)
-        /// 5. Builds result array of T1 components for matching entities
-        /// 6. Returns span over result array
         /// 
         /// Usage:
         /// <code>
-        /// var positionComponents = ComponentsManager.GetComponents&lt;Position, Velocity, Health&gt;();
-        /// foreach (var pos in positionComponents)
+        /// var entities = ComponentsManager.GetEntitiesWith&lt;Position, Velocity, Health&gt;();
+        /// foreach (var entity in entities)
         /// {
-        ///     // This entity has Position, Velocity, and Health components
-        ///     pos.X += 1f;
+        ///     var pos = entity.Get&lt;Position&gt;();
+        ///     var vel = entity.Get&lt;Velocity&gt;();
+        ///     var health = entity.Get&lt;Health&gt;();
+        ///     // Process entities with all three components
         /// }
         /// </code>
-        /// 
-        /// Note: If no entities have all three components, returns an empty span.
         /// </remarks>
-        public static ReadOnlySpan<T1> GetComponents<T1, T2, T3>(World world = null) 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3>(World world = null) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
         {
-            // Get storage for all component types
-            var table1 = GetOrCreateTable<T1>(world);
-            var table2 = GetOrCreateTable<T2>(world);
-            var table3 = GetOrCreateTable<T3>(world);
+            World targetWorld = ResolveWorld(world);
+            var table1 = GetOrCreateTable<T1>(targetWorld);
+            var table2 = GetOrCreateTable<T2>(targetWorld);
+            var table3 = GetOrCreateTable<T3>(targetWorld);
 
-            // If any storage is empty, return empty span
+            // Early exit if any table is empty
             if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0)
             {
-                return ReadOnlySpan<T1>.Empty;
+                return ReadOnlySpan<Entity>.Empty;
             }
 
-            // Perf-003: Use smallest set as base for intersection (more efficient)
-            // Find which table has the fewest entities
-            int count1 = table1.Count;
-            int count2 = table2.Count;
-            int count3 = table3.Count;
-
+            // Find smallest table to use as base (Perf-003 optimization)
+            int minCount = Math.Min(Math.Min(table1.Count, table2.Count), table3.Count);
             HashSet<Entity> intersection;
-            ReadOnlySpan<Entity> resultEntitiesSpan;
-            ReadOnlySpan<T1> resultComponentsSpan;
+            ReadOnlySpan<Entity> baseEntities;
 
-            if (count1 <= count2 && count1 <= count3)
+            if (table1.Count == minCount)
             {
-                // T1 is smallest: use T1 as base, intersect with T2 and T3
                 intersection = table1.GetEntitiesSet();
+                baseEntities = table1.GetEntities();
                 intersection.IntersectWith(table2.GetEntitiesSet());
                 intersection.IntersectWith(table3.GetEntitiesSet());
-                resultEntitiesSpan = table1.GetEntities();
-                resultComponentsSpan = table1.GetComponents();
             }
-            else if (count2 <= count1 && count2 <= count3)
+            else if (table2.Count == minCount)
             {
-                // T2 is smallest: use T2 as base, intersect with T1 and T3, but build result from T1
                 intersection = table2.GetEntitiesSet();
+                baseEntities = table2.GetEntities();
                 intersection.IntersectWith(table1.GetEntitiesSet());
                 intersection.IntersectWith(table3.GetEntitiesSet());
-                resultEntitiesSpan = table1.GetEntities();
-                resultComponentsSpan = table1.GetComponents();
             }
             else
             {
-                // T3 is smallest: use T3 as base, intersect with T1 and T2, but build result from T1
                 intersection = table3.GetEntitiesSet();
+                baseEntities = table3.GetEntities();
                 intersection.IntersectWith(table1.GetEntitiesSet());
                 intersection.IntersectWith(table2.GetEntitiesSet());
-                resultEntitiesSpan = table1.GetEntities();
-                resultComponentsSpan = table1.GetComponents();
             }
 
-            // If no intersection, return empty span
+            // Build result array from intersection
             if (intersection.Count == 0)
             {
-                return ReadOnlySpan<T1>.Empty;
+                return ReadOnlySpan<Entity>.Empty;
             }
 
-            // Build result array: T1 components for matching entities
-            var result = new T1[intersection.Count];
+            var result = new Entity[intersection.Count];
             int index = 0;
-
-            for (int i = 0; i < resultEntitiesSpan.Length; i++)
+            foreach (var entity in baseEntities)
             {
-                if (intersection.Contains(resultEntitiesSpan[i]))
+                if (intersection.Contains(entity))
                 {
-                    result[index++] = resultComponentsSpan[i];
+                    result[index++] = entity;
                 }
             }
 
-            return new ReadOnlySpan<T1>(result);
+            return result;
         }
+
+        /// <summary>
+        /// Gets all entities that have ALL specified component types (T1 AND T2 AND T3 AND T4) in the specified world.
+        /// </summary>
+        /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T3">Third component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T4">Fourth component type (must be struct implementing IComponent)</typeparam>
+        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <returns>ReadOnlySpan containing all entities with T1, T2, T3, and T4 components</returns>
+        /// <remarks>
+        /// This method implements API-005: Entity-Component Mapping Support.
+        /// </remarks>
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>(World world = null) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+            where T3 : struct, IComponent
+            where T4 : struct, IComponent
+        {
+            World targetWorld = ResolveWorld(world);
+            var table1 = GetOrCreateTable<T1>(targetWorld);
+            var table2 = GetOrCreateTable<T2>(targetWorld);
+            var table3 = GetOrCreateTable<T3>(targetWorld);
+            var table4 = GetOrCreateTable<T4>(targetWorld);
+
+            // Early exit if any table is empty
+            if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0 || table4.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            // Find smallest table to use as base
+            int minCount = Math.Min(Math.Min(table1.Count, table2.Count), Math.Min(table3.Count, table4.Count));
+            HashSet<Entity> intersection;
+            ReadOnlySpan<Entity> baseEntities;
+
+            if (table1.Count == minCount)
+            {
+                intersection = table1.GetEntitiesSet();
+                baseEntities = table1.GetEntities();
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+            }
+            else if (table2.Count == minCount)
+            {
+                intersection = table2.GetEntitiesSet();
+                baseEntities = table2.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+            }
+            else if (table3.Count == minCount)
+            {
+                intersection = table3.GetEntitiesSet();
+                baseEntities = table3.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+            }
+            else
+            {
+                intersection = table4.GetEntitiesSet();
+                baseEntities = table4.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+            }
+
+            // Build result array from intersection
+            if (intersection.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[intersection.Count];
+            int index = 0;
+            foreach (var entity in baseEntities)
+            {
+                if (intersection.Contains(entity))
+                {
+                    result[index++] = entity;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets all entities that have ALL specified component types (T1 AND T2 AND T3 AND T4 AND T5) in the specified world.
+        /// </summary>
+        /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T3">Third component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T4">Fourth component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T5">Fifth component type (must be struct implementing IComponent)</typeparam>
+        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <returns>ReadOnlySpan containing all entities with T1, T2, T3, T4, and T5 components</returns>
+        /// <remarks>
+        /// This method implements API-005: Entity-Component Mapping Support.
+        /// </remarks>
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>(World world = null) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+            where T3 : struct, IComponent
+            where T4 : struct, IComponent
+            where T5 : struct, IComponent
+        {
+            World targetWorld = ResolveWorld(world);
+            var table1 = GetOrCreateTable<T1>(targetWorld);
+            var table2 = GetOrCreateTable<T2>(targetWorld);
+            var table3 = GetOrCreateTable<T3>(targetWorld);
+            var table4 = GetOrCreateTable<T4>(targetWorld);
+            var table5 = GetOrCreateTable<T5>(targetWorld);
+
+            // Early exit if any table is empty
+            if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0 || table4.Count == 0 || table5.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            // Find smallest table to use as base
+            int minCount = Math.Min(Math.Min(Math.Min(table1.Count, table2.Count), Math.Min(table3.Count, table4.Count)), table5.Count);
+            HashSet<Entity> intersection;
+            ReadOnlySpan<Entity> baseEntities;
+
+            if (table1.Count == minCount)
+            {
+                intersection = table1.GetEntitiesSet();
+                baseEntities = table1.GetEntities();
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+            }
+            else if (table2.Count == minCount)
+            {
+                intersection = table2.GetEntitiesSet();
+                baseEntities = table2.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+            }
+            else if (table3.Count == minCount)
+            {
+                intersection = table3.GetEntitiesSet();
+                baseEntities = table3.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+            }
+            else if (table4.Count == minCount)
+            {
+                intersection = table4.GetEntitiesSet();
+                baseEntities = table4.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+            }
+            else
+            {
+                intersection = table5.GetEntitiesSet();
+                baseEntities = table5.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+            }
+
+            // Build result array from intersection
+            if (intersection.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[intersection.Count];
+            int index = 0;
+            foreach (var entity in baseEntities)
+            {
+                if (intersection.Contains(entity))
+                {
+                    result[index++] = entity;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets all entities that have ALL specified component types (T1 AND T2 AND T3 AND T4 AND T5 AND T6) in the specified world.
+        /// </summary>
+        /// <typeparam name="T1">First component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T2">Second component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T3">Third component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T4">Fourth component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T5">Fifth component type (must be struct implementing IComponent)</typeparam>
+        /// <typeparam name="T6">Sixth component type (must be struct implementing IComponent)</typeparam>
+        /// <param name="world">Optional world instance (default: global world)</param>
+        /// <returns>ReadOnlySpan containing all entities with T1, T2, T3, T4, T5, and T6 components</returns>
+        /// <remarks>
+        /// This method implements API-005: Entity-Component Mapping Support.
+        /// </remarks>
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>(World world = null) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+            where T3 : struct, IComponent
+            where T4 : struct, IComponent
+            where T5 : struct, IComponent
+            where T6 : struct, IComponent
+        {
+            World targetWorld = ResolveWorld(world);
+            var table1 = GetOrCreateTable<T1>(targetWorld);
+            var table2 = GetOrCreateTable<T2>(targetWorld);
+            var table3 = GetOrCreateTable<T3>(targetWorld);
+            var table4 = GetOrCreateTable<T4>(targetWorld);
+            var table5 = GetOrCreateTable<T5>(targetWorld);
+            var table6 = GetOrCreateTable<T6>(targetWorld);
+
+            // Early exit if any table is empty
+            if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0 || table4.Count == 0 || table5.Count == 0 || table6.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            // Find smallest table to use as base
+            int minCount = Math.Min(Math.Min(Math.Min(table1.Count, table2.Count), Math.Min(table3.Count, table4.Count)), 
+                Math.Min(table5.Count, table6.Count));
+            HashSet<Entity> intersection;
+            ReadOnlySpan<Entity> baseEntities;
+
+            if (table1.Count == minCount)
+            {
+                intersection = table1.GetEntitiesSet();
+                baseEntities = table1.GetEntities();
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+                intersection.IntersectWith(table6.GetEntitiesSet());
+            }
+            else if (table2.Count == minCount)
+            {
+                intersection = table2.GetEntitiesSet();
+                baseEntities = table2.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+                intersection.IntersectWith(table6.GetEntitiesSet());
+            }
+            else if (table3.Count == minCount)
+            {
+                intersection = table3.GetEntitiesSet();
+                baseEntities = table3.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+                intersection.IntersectWith(table6.GetEntitiesSet());
+            }
+            else if (table4.Count == minCount)
+            {
+                intersection = table4.GetEntitiesSet();
+                baseEntities = table4.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+                intersection.IntersectWith(table6.GetEntitiesSet());
+            }
+            else if (table5.Count == minCount)
+            {
+                intersection = table5.GetEntitiesSet();
+                baseEntities = table5.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table6.GetEntitiesSet());
+            }
+            else
+            {
+                intersection = table6.GetEntitiesSet();
+                baseEntities = table6.GetEntities();
+                intersection.IntersectWith(table1.GetEntitiesSet());
+                intersection.IntersectWith(table2.GetEntitiesSet());
+                intersection.IntersectWith(table3.GetEntitiesSet());
+                intersection.IntersectWith(table4.GetEntitiesSet());
+                intersection.IntersectWith(table5.GetEntitiesSet());
+            }
+
+            // Build result array from intersection
+            if (intersection.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[intersection.Count];
+            int index = 0;
+            foreach (var entity in baseEntities)
+            {
+                if (intersection.Contains(entity))
+                {
+                    result[index++] = entity;
+                }
+            }
+
+            return result;
+        }
+
 
         /// <summary>
         /// Gets modifiable components for iteration with automatic deferred application.

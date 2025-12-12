@@ -1,7 +1,7 @@
 namespace ArtyECS.Core
 {
     /// <summary>
-    /// Extension methods for System class to provide convenient API for queue management and execution.
+    /// Extension methods for SystemHandler class to provide convenient API for queue management and execution.
     /// These methods call the corresponding static methods in SystemsManager.
     /// </summary>
     /// <remarks>
@@ -31,7 +31,7 @@ namespace ArtyECS.Core
         /// <summary>
         /// Adds this system to the end of the Update queue for the specified world.
         /// </summary>
-        /// <param name="system">System instance (this)</param>
+        /// <param name="system">SystemHandler instance (this)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
         /// This is an extension method that calls SystemsManager.AddToUpdate().
@@ -46,7 +46,7 @@ namespace ArtyECS.Core
         /// Inserts this system at the specified index in the Update queue for the specified world.
         /// All systems at and after the specified index will be shifted forward.
         /// </summary>
-        /// <param name="system">System instance (this)</param>
+        /// <param name="system">SystemHandler instance (this)</param>
         /// <param name="order">Index at which to insert the system (0-based)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <exception cref="System.ArgumentOutOfRangeException">Thrown if order is negative or greater than queue count</exception>
@@ -62,7 +62,7 @@ namespace ArtyECS.Core
         /// <summary>
         /// Adds this system to the end of the FixedUpdate queue for the specified world.
         /// </summary>
-        /// <param name="system">System instance (this)</param>
+        /// <param name="system">SystemHandler instance (this)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
         /// This is an extension method that calls SystemsManager.AddToFixedUpdate().
@@ -77,7 +77,7 @@ namespace ArtyECS.Core
         /// Inserts this system at the specified index in the FixedUpdate queue for the specified world.
         /// All systems at and after the specified index will be shifted forward.
         /// </summary>
-        /// <param name="system">System instance (this)</param>
+        /// <param name="system">SystemHandler instance (this)</param>
         /// <param name="order">Index at which to insert the system (0-based)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <exception cref="System.ArgumentOutOfRangeException">Thrown if order is negative or greater than queue count</exception>
@@ -94,7 +94,7 @@ namespace ArtyECS.Core
         /// Executes this system immediately, bypassing all queues.
         /// The system is executed synchronously without being added to any queue.
         /// </summary>
-        /// <param name="system">System instance (this)</param>
+        /// <param name="system">SystemHandler instance (this)</param>
         /// <param name="world">Optional world instance (default: global world). The system will be executed in the context of this world.</param>
         /// <remarks>
         /// This method implements API-001: Fix ExecuteOnce World Parameter ✅

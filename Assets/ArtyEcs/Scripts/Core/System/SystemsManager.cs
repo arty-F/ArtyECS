@@ -8,6 +8,16 @@ namespace ArtyECS.Core
     /// Manages system execution queues (Update and FixedUpdate) per world.
     /// </summary>
     /// <remarks>
+    /// **API-009: This class is internal implementation. Use World API instead.**
+    /// 
+    /// This class is kept public for internal framework use, but should not be used directly
+    /// by framework users. Use World class methods instead:
+    /// - World.AddToUpdate(system) instead of SystemsManager.AddToUpdate(system)
+    /// - World.AddToFixedUpdate(system) instead of SystemsManager.AddToFixedUpdate(system)
+    /// - World.ExecuteOnce(system) instead of SystemsManager.ExecuteOnce(system)
+    /// 
+    /// See World class documentation for the public API.
+    /// 
     /// This class implements:
     /// - System-001: SystemsManager - Basic Structure ✅
     /// - System-002: SystemsManager - Update Queue Management ✅
@@ -174,7 +184,7 @@ namespace ArtyECS.Core
         /// <summary>
         /// Adds a system to the end of the Update queue for the specified world.
         /// </summary>
-        /// <param name="system">System to add to the Update queue</param>
+        /// <param name="system">SystemHandler instance to add to the Update queue</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <remarks>
         /// This method implements System-002: Update Queue Management.
@@ -209,7 +219,7 @@ namespace ArtyECS.Core
         /// Inserts a system at the specified index in the Update queue for the specified world.
         /// All systems at and after the specified index will be shifted forward (index+1, index+2, etc.).
         /// </summary>
-        /// <param name="system">System to insert into the Update queue</param>
+        /// <param name="system">SystemHandler instance to insert into the Update queue</param>
         /// <param name="order">Index at which to insert the system (0-based)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
@@ -325,7 +335,7 @@ namespace ArtyECS.Core
         /// <summary>
         /// Adds a system to the end of the FixedUpdate queue for the specified world.
         /// </summary>
-        /// <param name="system">System to add to the FixedUpdate queue</param>
+        /// <param name="system">SystemHandler instance to add to the FixedUpdate queue</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <remarks>
@@ -361,7 +371,7 @@ namespace ArtyECS.Core
         /// Inserts a system at the specified index in the FixedUpdate queue for the specified world.
         /// All systems at and after the specified index will be shifted forward (index+1, index+2, etc.).
         /// </summary>
-        /// <param name="system">System to insert into the FixedUpdate queue</param>
+        /// <param name="system">SystemHandler instance to insert into the FixedUpdate queue</param>
         /// <param name="order">Index at which to insert the system (0-based)</param>
         /// <param name="world">Optional world instance (default: global world)</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
@@ -478,7 +488,7 @@ namespace ArtyECS.Core
         /// Executes a system immediately, bypassing all queues.
         /// The system is executed synchronously without being added to any queue.
         /// </summary>
-        /// <param name="system">System to execute immediately</param>
+        /// <param name="system">SystemHandler instance to execute immediately</param>
         /// <param name="world">Optional world instance (default: global world). The system will be executed in the context of this world.</param>
         /// <exception cref="ArgumentNullException">Thrown if system is null</exception>
         /// <remarks>

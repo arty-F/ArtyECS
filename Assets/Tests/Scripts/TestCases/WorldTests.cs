@@ -62,10 +62,10 @@ public class WorldTests : TestBase
             World world2 = new World("Test");
             
             // Get global world instance
-            World globalWorld1 = World.GetGlobalWorld();
+            World globalWorld1 = World.GetOrCreate();
             
             // Get global world instance again
-            World globalWorld2 = World.GetGlobalWorld();
+            World globalWorld2 = World.GetOrCreate();
             
             // Verify worlds with same name are different instances
             Assert(world1 != world2, "World1 != World2 should be true (different instances)");
@@ -86,7 +86,7 @@ public class WorldTests : TestBase
             World testWorld = new World("TestWorld");
             
             // Create Entity in TestWorld
-            Entity entity = World.CreateEntity(testWorld);
+            Entity entity = testWorld.CreateEntity();
             
             // Add components to Entity in TestWorld
             ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, testWorld);
@@ -116,15 +116,15 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get global world instance
-            World globalWorld = World.GetGlobalWorld();
+            World globalWorld = World.GetOrCreate();
             
             // Attempt to destroy global world
             bool destroyed = World.Destroy(globalWorld);
             
             // Verify destroy returns false, global world not destroyed
             Assert(!destroyed, "World.Destroy(globalWorld) should return false");
-            AssertNotNull(World.GetGlobalWorld(), "Global world should still exist");
-            AssertEquals("Global", World.GetGlobalWorld().Name, "Global world name should be Global");
+            AssertNotNull(World.GetOrCreate(), "Global world should still exist");
+            AssertEquals("Global", World.GetOrCreate().Name, "Global world name should be Global");
         });
     }
     
@@ -159,9 +159,9 @@ public class WorldTests : TestBase
             World testWorld = new World("TestWorld");
             
             // Create Entity1, Entity2, Entity3 in TestWorld
-            Entity entity1 = World.CreateEntity(testWorld);
-            Entity entity2 = World.CreateEntity(testWorld);
-            Entity entity3 = World.CreateEntity(testWorld);
+            Entity entity1 = testWorld.CreateEntity();
+            Entity entity2 = testWorld.CreateEntity();
+            Entity entity3 = testWorld.CreateEntity();
             
             // Add Position, Velocity, Health to all entities
             ComponentsManager.AddComponent<Position>(entity1, new Position { X = 1f, Y = 2f, Z = 3f }, testWorld);
@@ -224,9 +224,9 @@ public class WorldTests : TestBase
             World testWorld = new World("TestWorld");
             
             // Create Entity1, Entity2, Entity3 in TestWorld
-            Entity entity1 = World.CreateEntity(testWorld);
-            Entity entity2 = World.CreateEntity(testWorld);
-            Entity entity3 = World.CreateEntity(testWorld);
+            Entity entity1 = testWorld.CreateEntity();
+            Entity entity2 = testWorld.CreateEntity();
+            Entity entity3 = testWorld.CreateEntity();
             
             // Destroy TestWorld
             World.Destroy(testWorld);
@@ -248,8 +248,8 @@ public class WorldTests : TestBase
             World world2 = new World("World2");
             
             // Create Entity1 in World1, Entity2 in World2
-            Entity entity1 = World.CreateEntity(world1);
-            Entity entity2 = World.CreateEntity(world2);
+            Entity entity1 = world1.CreateEntity();
+            Entity entity2 = world2.CreateEntity();
             
             // Add components to both entities
             ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, world1);
@@ -274,11 +274,11 @@ public class WorldTests : TestBase
         string testName = "Test_GlobalWorld_001";
         ExecuteTest(testName, () =>
         {
-            // Call World.GetGlobalWorld() first time
-            World globalWorld1 = World.GetGlobalWorld();
+            // Call World.GetOrCreate() first time
+            World globalWorld1 = World.GetOrCreate();
             
-            // Call World.GetGlobalWorld() second time
-            World globalWorld2 = World.GetGlobalWorld();
+            // Call World.GetOrCreate() second time
+            World globalWorld2 = World.GetOrCreate();
             
             // Compare instances
             Assert(globalWorld1 == globalWorld2, "globalWorld1 == globalWorld2 should be true");
@@ -293,7 +293,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get global world instance
-            World globalWorld = World.GetGlobalWorld();
+            World globalWorld = World.GetOrCreate();
             
             // Check Name property
             AssertEquals("Global", globalWorld.Name, "Global world name should be Global");
@@ -306,8 +306,8 @@ public class WorldTests : TestBase
         string testName = "Test_GlobalWorld_003";
         ExecuteTest(testName, () =>
         {
-            // Call World.GetGlobalWorld() (creates on first access)
-            World globalWorld = World.GetGlobalWorld();
+            // Call World.GetOrCreate() (creates on first access)
+            World globalWorld = World.GetOrCreate();
             
             // Verify instance is created
             AssertNotNull(globalWorld, "Global world should not be null");
@@ -321,8 +321,8 @@ public class WorldTests : TestBase
         string testName = "Test_GlobalWorld_004";
         ExecuteTest(testName, () =>
         {
-            // Get global world from World.GetGlobalWorld()
-            World worldGlobal = World.GetGlobalWorld();
+            // Get global world from World.GetOrCreate()
+            World worldGlobal = World.GetOrCreate();
             
             // Get global world from ComponentsManager.GetGlobalWorld()
             World componentsGlobal = ComponentsManager.GetGlobalWorld();
@@ -331,8 +331,8 @@ public class WorldTests : TestBase
             World systemsGlobal = SystemsManager.GetGlobalWorld();
             
             // Compare instances
-            Assert(worldGlobal == componentsGlobal, "World.GetGlobalWorld() == ComponentsManager.GetGlobalWorld() should be true");
-            Assert(worldGlobal == systemsGlobal, "World.GetGlobalWorld() == SystemsManager.GetGlobalWorld() should be true");
+            Assert(worldGlobal == componentsGlobal, "World.GetOrCreate() == ComponentsManager.GetGlobalWorld() should be true");
+            Assert(worldGlobal == systemsGlobal, "World.GetOrCreate() == SystemsManager.GetGlobalWorld() should be true");
             Assert(ReferenceEquals(worldGlobal, componentsGlobal), "World and ComponentsManager should share same global world instance");
         });
     }
@@ -344,18 +344,18 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity without specifying world (null)
-            Entity entity = World.CreateEntity(null);
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add component without specifying world (null)
             ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, null);
             
             // Verify component is in global world
             Assert(ComponentsManager.HasComponent<TestComponent>(entity, null), "GetComponent(entity, null) should not be null");
-            Assert(ComponentsManager.HasComponent<TestComponent>(entity, World.GetGlobalWorld()), "GetComponent(entity, globalWorld) should not be null");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, World.GetOrCreate()), "GetComponent(entity, globalWorld) should not be null");
             
             // Get component without specifying world (null)
             var componentNull = ComponentsManager.GetComponent<TestComponent>(entity, null);
-            var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
+            var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetOrCreate());
             AssertEquals(componentNull.Value, componentGlobal.Value, "Component values should be equal");
         });
     }
@@ -367,15 +367,15 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get global world instance
-            World globalWorld = World.GetGlobalWorld();
+            World globalWorld = World.GetOrCreate();
             
             // Attempt to destroy global world
             bool destroyed = World.Destroy(globalWorld);
             
             // Verify global world still exists
             Assert(!destroyed, "World.Destroy(globalWorld) should return false");
-            AssertNotNull(World.GetGlobalWorld(), "Global world should still exist");
-            Assert(World.GetGlobalWorld() == globalWorld, "Global world instance should be unchanged");
+            AssertNotNull(World.GetOrCreate(), "Global world should still exist");
+            Assert(World.GetOrCreate() == globalWorld, "Global world instance should be unchanged");
         });
     }
     
@@ -386,7 +386,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Get global world instance
-            World globalWorld1 = World.GetGlobalWorld();
+            World globalWorld1 = World.GetOrCreate();
             
             // Create and destroy multiple scoped worlds
             World scoped1 = new World("Scoped1");
@@ -397,7 +397,7 @@ public class WorldTests : TestBase
             World.Destroy(scoped3);
             
             // Get global world instance again
-            World globalWorld2 = World.GetGlobalWorld();
+            World globalWorld2 = World.GetOrCreate();
             
             // Compare instances
             Assert(globalWorld1 == globalWorld2, "globalWorld1 == globalWorld2 should be true");
@@ -417,7 +417,7 @@ public class WorldTests : TestBase
             World testWorld = new World("TestWorld");
             
             // Create Entity
-            Entity entity = World.CreateEntity(testWorld);
+            Entity entity = testWorld.CreateEntity();
             
             // Add component with World parameter
             ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 42 }, testWorld);
@@ -440,18 +440,18 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity(null);
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add component with null World parameter
             ComponentsManager.AddComponent<TestComponent>(entity, new TestComponent { Value = 100 }, null);
             
             // Verify component added to global world
             Assert(ComponentsManager.HasComponent<TestComponent>(entity, null), "GetComponent(entity, null) should not be null");
-            Assert(ComponentsManager.HasComponent<TestComponent>(entity, World.GetGlobalWorld()), "GetComponent(entity, globalWorld) should not be null");
+            Assert(ComponentsManager.HasComponent<TestComponent>(entity, World.GetOrCreate()), "GetComponent(entity, globalWorld) should not be null");
             
             // Get component from global world
             var componentNull = ComponentsManager.GetComponent<TestComponent>(entity, null);
-            var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetGlobalWorld());
+            var componentGlobal = ComponentsManager.GetComponent<TestComponent>(entity, World.GetOrCreate());
             AssertEquals(componentNull.Value, componentGlobal.Value, "Component values should be equal");
         });
     }
@@ -494,7 +494,7 @@ public class WorldTests : TestBase
             
             // Check global world queue
             Assert(SystemsManager.GetUpdateQueue(null).Contains(system), "GetUpdateQueue(null) should contain system");
-            Assert(SystemsManager.GetUpdateQueue(World.GetGlobalWorld()).Contains(system), "GetUpdateQueue(globalWorld) should contain system");
+            Assert(SystemsManager.GetUpdateQueue(World.GetOrCreate()).Contains(system), "GetUpdateQueue(globalWorld) should contain system");
         });
     }
     
@@ -509,10 +509,10 @@ public class WorldTests : TestBase
             World world2 = new World("World2");
             
             // Create Entity1 in World1
-            Entity entity1 = World.CreateEntity(world1);
+            Entity entity1 = world1.CreateEntity();
             
             // Create Entity2 in World2
-            Entity entity2 = World.CreateEntity(world2);
+            Entity entity2 = world2.CreateEntity();
             
             // Add TestComponent to Entity1 in World1
             ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, world1);
@@ -572,10 +572,10 @@ public class WorldTests : TestBase
             World world2 = new World("World2");
             
             // Create Entity1 in World1
-            Entity entity1 = World.CreateEntity(world1);
+            Entity entity1 = world1.CreateEntity();
             
             // Create Entity2 in World2
-            Entity entity2 = World.CreateEntity(world2);
+            Entity entity2 = world2.CreateEntity();
             
             // Check entity pools
             Assert(EntitiesManager.IsAllocated(entity1, world1), "Entity1 should be allocated in World1");
@@ -595,10 +595,10 @@ public class WorldTests : TestBase
             World testWorld = new World("TestWorld");
             
             // Create Entity1 in global world
-            Entity entity1 = World.CreateEntity(null);
+            Entity entity1 = World.GetOrCreate().CreateEntity();
             
             // Create Entity2 in TestWorld
-            Entity entity2 = World.CreateEntity(testWorld);
+            Entity entity2 = testWorld.CreateEntity();
             
             // Add TestComponent to both entities
             ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 10 }, null);
@@ -615,6 +615,9 @@ public class WorldTests : TestBase
         });
     }
     
+    // REMOVED - API-004: GetComponents with multiple type parameters removed
+    // This test will be restored after API-005 (GetEntitiesWith) is implemented
+    /* REMOVED - API-004
     [ContextMenu("Run Test: GetComponents Multiple Types World Parameter")]
     public void Test_WorldScoped_009()
     {
@@ -643,6 +646,7 @@ public class WorldTests : TestBase
             AssertEquals(1, componentsTest.Length, "TestWorld should have 1 matching entity");
         });
     }
+    */ // END REMOVED - API-004
     
     // REMOVED - API-003: GetComponentsWithout methods removed as part of API simplification
     /* REMOVED - API-003
@@ -684,10 +688,10 @@ public class WorldTests : TestBase
             World testWorld = new World("TestWorld");
             
             // Create Entity1 in global world
-            Entity entity1 = World.CreateEntity(null);
+            Entity entity1 = World.GetOrCreate().CreateEntity();
             
             // Create Entity2 in TestWorld
-            Entity entity2 = World.CreateEntity(testWorld);
+            Entity entity2 = testWorld.CreateEntity();
             
             // Add Health to both entities
             ComponentsManager.AddComponent<Health>(entity1, new Health { Amount = 100f }, null);
@@ -800,7 +804,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create entity (creates UpdateProvider)
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Check UpdateProvider exists
             var updateProvider = GameObject.FindObjectOfType<UpdateProvider>();
@@ -818,7 +822,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add Position, Velocity, Health components
             ComponentsManager.AddComponent<Position>(entity, new Position { X = 1f, Y = 2f, Z = 3f });
@@ -855,9 +859,9 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity1, Entity2, Entity3
-            Entity entity1 = World.CreateEntity();
-            Entity entity2 = World.CreateEntity();
-            Entity entity3 = World.CreateEntity();
+            Entity entity1 = World.GetOrCreate().CreateEntity();
+            Entity entity2 = World.GetOrCreate().CreateEntity();
+            Entity entity3 = World.GetOrCreate().CreateEntity();
             
             // Add components to all entities
             ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 1 });
@@ -911,7 +915,7 @@ public class WorldTests : TestBase
             // Actual scene persistence is verified through static storage mechanisms.
             
             // Create UpdateProvider (via entity creation)
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Verify UpdateProvider exists
             var updateProvider = GameObject.FindObjectOfType<UpdateProvider>();
@@ -931,10 +935,10 @@ public class WorldTests : TestBase
             World testWorld = new World("TestWorld");
             
             // Create Entity1 in global world
-            Entity entity1 = World.CreateEntity(null);
+            Entity entity1 = World.GetOrCreate().CreateEntity();
             
             // Create Entity2 in TestWorld
-            Entity entity2 = World.CreateEntity(testWorld);
+            Entity entity2 = testWorld.CreateEntity();
             
             // Add components to both entities
             ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 100 }, null);
@@ -959,7 +963,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Add Position(X=10, Y=20, Z=30)
             ComponentsManager.AddComponent<Position>(entity, new Position { X = 10f, Y = 20f, Z = 30f });
@@ -988,12 +992,12 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // Create Entity1, Entity2, Entity3
-            Entity entity1 = World.CreateEntity();
-            Entity entity2 = World.CreateEntity();
-            Entity entity3 = World.CreateEntity();
+            Entity entity1 = World.GetOrCreate().CreateEntity();
+            Entity entity2 = World.GetOrCreate().CreateEntity();
+            Entity entity3 = World.GetOrCreate().CreateEntity();
             
             // Destroy Entity2
-            World.DestroyEntity(entity2);
+            World.GetOrCreate().DestroyEntity(entity2);
             
             // Note: Actual scene loading test would require Unity scene management.
             // This test verifies entity pool is stored in static EntitiesManager which persists.
@@ -1017,7 +1021,7 @@ public class WorldTests : TestBase
             // which are independent of Unity's scene system.
             
             // Create entities and components (simulating Scene1)
-            Entity entity1 = World.CreateEntity();
+            Entity entity1 = World.GetOrCreate().CreateEntity();
             ComponentsManager.AddComponent<TestComponent>(entity1, new TestComponent { Value = 1 });
             
             // Simulate scene change by verifying state persists
@@ -1026,7 +1030,7 @@ public class WorldTests : TestBase
             Assert(ComponentsManager.HasComponent<TestComponent>(entity1), "Component should still exist");
             
             // Create new entities (simulating Scene2)
-            Entity entity2 = World.CreateEntity();
+            Entity entity2 = World.GetOrCreate().CreateEntity();
             ComponentsManager.AddComponent<TestComponent>(entity2, new TestComponent { Value = 2 });
             
             // Verify all entities exist (simulating return to Scene1)
@@ -1045,7 +1049,7 @@ public class WorldTests : TestBase
             // The test verifies that UpdateProvider uses DontDestroyOnLoad and continues execution.
             
             // Create UpdateProvider (via entity creation)
-            Entity entity = World.CreateEntity();
+            Entity entity = World.GetOrCreate().CreateEntity();
             
             // Verify UpdateProvider exists
             var updateProvider = GameObject.FindObjectOfType<UpdateProvider>();

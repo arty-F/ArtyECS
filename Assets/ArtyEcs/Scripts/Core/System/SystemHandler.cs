@@ -7,6 +7,14 @@ namespace ArtyECS.Core
     /// Systems are plain classes that contain game logic and can query/modify components.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <strong>Naming Convention:</strong>
+    /// - <c>SystemHandler</c> (capitalized) refers to this base class
+    /// - <c>system</c> (lowercase) refers to the general concept of an ECS system
+    /// - In code examples and documentation, use <c>SystemHandler</c> when referring to the class,
+    ///   and <c>system</c> when referring to the concept or an instance variable
+    /// </para>
+    /// 
     /// This class implements:
     /// - System-000: System Base Class ✅
     /// - API-001: Fix ExecuteOnce World Parameter ✅

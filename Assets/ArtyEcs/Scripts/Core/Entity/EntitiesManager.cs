@@ -9,6 +9,15 @@ namespace ArtyECS.Core
     /// Optimized for zero-allocation reuse and large entity counts (Perf-000).
     /// </summary>
     /// <remarks>
+    /// **API-009: This class is internal implementation. Use World API instead.**
+    /// 
+    /// This class is kept public for internal framework use, but should not be used directly
+    /// by framework users. Use World class methods instead:
+    /// - World.CreateEntity() instead of EntitiesManager.Allocate()
+    /// - World.DestroyEntity(entity) instead of EntitiesManager.Deallocate(entity)
+    /// 
+    /// See World class documentation for the public API.
+    /// 
     /// This class implements Core-011: Entity Pool Implementation.
     /// World-003: World Persistence Across Scenes (COMPLETED)
     /// Perf-000: Entity Pooling Optimization (COMPLETED)

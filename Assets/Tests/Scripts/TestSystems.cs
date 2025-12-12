@@ -207,12 +207,14 @@ public class CleanupSystem : SystemHandler
         }
         else
         {
+            // REMOVED - API-004: GetComponents with multiple type parameters removed
             // Fallback: try to find and remove Dead from any entity with Health <= 0
             // This is a limitation - we can't easily iterate entities in current API
             // For this test, we'll use a workaround: check if we can find entities with both components
-            var healthAndDead = ComponentsManager.GetComponents<Health, Dead>(world);
+            // var healthAndDead = ComponentsManager.GetComponents<Health, Dead>(world);
             // Note: We can't get Entity from component in current API
             // This demonstrates a limitation that would need to be addressed in real implementation
+            // TODO: Restore after API-005 (GetEntitiesWith) is implemented
         }
     }
 }
@@ -228,7 +230,7 @@ public class SpawnSystem : SystemHandler
             if (spawners[i].SpawnCount > 0)
             {
                 // Create new entity in the same world context
-                Entity newEntity = World.CreateEntity(world);
+                Entity newEntity = world.CreateEntity();
                 
                 // Add some component to new entity (optional)
                 ComponentsManager.AddComponent(newEntity, new TestComponent { Value = 42 }, world);
