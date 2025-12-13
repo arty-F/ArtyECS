@@ -28,17 +28,17 @@ namespace ArtyECS.Core
         {
             if (string.IsNullOrEmpty(name))
             {
-                if (GlobalWorld == null)
+                if (_globalWorld == null)
                 {
                     lock (_globalWorldLock)
                     {
-                        if (GlobalWorld == null)
+                        if (_globalWorld == null)
                         {
-                            GlobalWorld = new WorldInstance("Global");
+                            _globalWorld = new WorldInstance("Global");
                         }
                     }
                 }
-                return GlobalWorld;
+                return _globalWorld;
             }
 
             lock (_localWorldsLock)
