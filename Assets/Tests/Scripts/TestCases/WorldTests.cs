@@ -16,7 +16,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World with name "TestWorld"
-            World world = World.GetOrCreate("TestWorld");
+            WorldInstance world = World.GetOrCreate("TestWorld");
             
             // 2. Verify that World.Name == "TestWorld"
             AssertEquals("TestWorld", world.Name, "World.Name should be 'TestWorld'");
@@ -31,13 +31,13 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World1("World1")
-            World world1 = World.GetOrCreate("World1");
+            WorldInstance world1 = World.GetOrCreate("World1");
             
             // 2. Create World2("World2")
-            World world2 = World.GetOrCreate("World2");
+            WorldInstance world2 = World.GetOrCreate("World2");
             
             // 3. Create World3("World3")
-            World world3 = World.GetOrCreate("World3");
+            WorldInstance world3 = World.GetOrCreate("World3");
             
             // All worlds created successfully
             AssertEquals("World1", world1.Name, "World1.Name should be 'World1'");
@@ -55,16 +55,16 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World1("Test")
-            World world1 = World.GetOrCreate("Test1");
+            WorldInstance world1 = World.GetOrCreate("Test1");
             
             // 2. Create World2("Test")
-            World world2 = World.GetOrCreate("Test2");
+            WorldInstance world2 = World.GetOrCreate("Test2");
             
             // 3. Get global world instance
-            World globalWorld1 = World.GetOrCreate();
+            WorldInstance globalWorld1 = World.GetOrCreate();
             
             // 4. Get global world instance again
-            World globalWorld2 = World.GetOrCreate();
+            WorldInstance globalWorld2 = World.GetOrCreate();
             
             // Worlds with same name are different instances, global world is same instance
             Assert(world1 != world2, "World1 should not equal World2 (different instances)");
@@ -79,7 +79,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("TestWorld")
-            World testWorld = World.GetOrCreate("TestWorld");
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             
             // 2. Create Entity in TestWorld
             Entity entity = testWorld.CreateEntity();
@@ -109,7 +109,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Get global world instance
-            World globalWorld = World.GetOrCreate();
+            WorldInstance globalWorld = World.GetOrCreate();
             
             // 2. Attempt to destroy global world
             bool destroyed = World.Destroy(globalWorld);
@@ -128,7 +128,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("TestWorld")
-            World testWorld = World.GetOrCreate("TestWorld");
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             
             // 2. Destroy TestWorld
             bool destroyed1 = World.Destroy(testWorld);
@@ -151,10 +151,10 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Call World.GetOrCreate() first time
-            World globalWorld1 = World.GetOrCreate();
+            WorldInstance globalWorld1 = World.GetOrCreate();
             
             // 2. Call World.GetOrCreate() second time
-            World globalWorld2 = World.GetOrCreate();
+            WorldInstance globalWorld2 = World.GetOrCreate();
             
             // 3. Compare instances
             // Same instance returned both times
@@ -169,7 +169,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Get global world instance
-            World globalWorld = World.GetOrCreate();
+            WorldInstance globalWorld = World.GetOrCreate();
             
             // 2. Check Name property
             AssertEquals("Global", globalWorld.Name, "Global world name should be 'Global'");
@@ -183,7 +183,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Call World.GetOrCreate()
-            World globalWorld = World.GetOrCreate();
+            WorldInstance globalWorld = World.GetOrCreate();
             
             // 2. Verify instance is created
             AssertNotNull(globalWorld, "Global world should not be null");
@@ -198,7 +198,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Get global world instance
-            World globalWorld = World.GetOrCreate();
+            WorldInstance globalWorld = World.GetOrCreate();
             
             // 2. Attempt to destroy global world
             bool destroyed = World.Destroy(globalWorld);
@@ -206,7 +206,7 @@ public class WorldTests : TestBase
             // 3. Verify global world still exists
             Assert(!destroyed, "Destroy should return false for global world");
             AssertNotNull(World.GetOrCreate(), "Global world should still exist");
-            World newGlobalWorld = World.GetOrCreate();
+            WorldInstance newGlobalWorld = World.GetOrCreate();
             AssertEquals(globalWorld, newGlobalWorld, "Global world should be same instance");
         });
     }
@@ -220,8 +220,8 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World1("World1") and World2("World2")
-            World world1 = World.GetOrCreate("World1");
-            World world2 = World.GetOrCreate("World2");
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
             
             // 2. Create Entity1 in World1
             Entity entity1 = world1.CreateEntity();
@@ -258,8 +258,8 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World1("World1") and World2("World2")
-            World world1 = World.GetOrCreate("World1");
-            World world2 = World.GetOrCreate("World2");
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
             
             // 2. Create System1 and System2
             bool system1Executed = false;
@@ -302,13 +302,12 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("TestWorld")
-            World testWorld = World.GetOrCreate("TestWorld");
-            World globalWorld = World.GetOrCreate();
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             
             // 2. Create Entity1 in global world with Position and Velocity
-            Entity entity1 = globalWorld.CreateEntity();
-            globalWorld.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            globalWorld.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
             // 3. Create Entity2 in TestWorld with Position and Velocity
             Entity entity2 = testWorld.CreateEntity();
@@ -316,7 +315,7 @@ public class WorldTests : TestBase
             testWorld.AddComponent(entity2, new Velocity { X = 2f, Y = 3f, Z = 4f });
             
             // 4. Get entities from each world
-            var globalEntities = globalWorld.GetEntitiesWith<Position, Velocity>();
+            var globalEntities = World.GetEntitiesWith<Position, Velocity>();
             var testEntities = testWorld.GetEntitiesWith<Position, Velocity>();
             
             // Multi-type queries respect World parameter
@@ -332,19 +331,18 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("TestWorld")
-            World testWorld = World.GetOrCreate("TestWorld");
-            World globalWorld = World.GetOrCreate();
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             
             // 2. Create Entity1 in global world
-            Entity entity1 = globalWorld.CreateEntity();
-            globalWorld.AddComponent(entity1, new TestComponent { Value = 1 });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new TestComponent { Value = 1 });
             
             // 3. Create Entity2 in TestWorld
             Entity entity2 = testWorld.CreateEntity();
             testWorld.AddComponent(entity2, new TestComponent { Value = 2 });
             
             // 4. Get components from each world
-            var globalComponents = globalWorld.GetComponents<TestComponent>();
+            var globalComponents = World.GetComponents<TestComponent>();
             var testComponents = testWorld.GetComponents<TestComponent>();
             
             // GetComponents returns components only from specified world
@@ -360,16 +358,15 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("TestWorld")
-            World testWorld = World.GetOrCreate("TestWorld");
-            World globalWorld = World.GetOrCreate();
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             
             // 2. Create System that uses world context
-            World executedWorld = null;
+            WorldInstance executedWorld = null;
             TestSystem system = new TestSystem(() => 
             {
                 // System can use World parameter passed to Execute()
                 // For this test, we'll verify the system executes
-                executedWorld = globalWorld; // Simplified - system doesn't receive world parameter in TestSystem
+                executedWorld = World.GetOrCreate(); // Simplified - system doesn't receive world parameter in TestSystem
             });
             
             // 3. Call ExecuteOnce with World parameter
@@ -387,8 +384,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("TestWorld")
-            World testWorld = World.GetOrCreate("TestWorld");
-            World globalWorld = World.GetOrCreate();
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             
             // 2. Create System1 in global world
             bool system1Executed = false;
@@ -398,7 +394,7 @@ public class WorldTests : TestBase
             TestSystem system2 = new TestSystem(() => { system2Executed = true; });
             
             // 3. Add System1 to global world Update queue
-            globalWorld.AddToUpdate(system1);
+            World.AddToUpdate(system1);
             
             // 4. Add System2 to TestWorld Update queue
             testWorld.AddToUpdate(system2);
@@ -420,8 +416,7 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("TestWorld")
-            World testWorld = World.GetOrCreate("TestWorld");
-            World globalWorld = World.GetOrCreate();
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             
             // 2. Create System1 in global world
             bool system1Executed = false;
@@ -431,7 +426,7 @@ public class WorldTests : TestBase
             TestSystem system2 = new TestSystem(() => { system2Executed = true; });
             
             // 3. Add System1 to global world FixedUpdate queue
-            globalWorld.AddToFixedUpdate(system1);
+            World.AddToFixedUpdate(system1);
             
             // 4. Add System2 to TestWorld FixedUpdate queue
             testWorld.AddToFixedUpdate(system2);
@@ -457,26 +452,25 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create entities and components
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            world.AddComponent(entity1, new Position { X = 10f, Y = 20f, Z = 30f });
-            world.AddComponent(entity1, new Health { Amount = 100f });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 10f, Y = 20f, Z = 30f });
+            World.AddComponent(entity1, new Health { Amount = 100f });
             
             // 2. Verify components exist
-            Position pos = world.GetComponent<Position>(entity1);
-            Health health = world.GetComponent<Health>(entity1);
+            Position pos = World.GetComponent<Position>(entity1);
+            Health health = World.GetComponent<Health>(entity1);
             
             AssertEquals(10f, pos.X, "Position.X should be 10");
             AssertEquals(100f, health.Amount, "Health.Amount should be 100");
             
             // 3. Create another world and verify isolation
-            World world2 = World.GetOrCreate("Test2");
+            WorldInstance world2 = World.GetOrCreate("Test2");
             Entity entity2 = world2.CreateEntity();
             world2.AddComponent(entity2, new Position { X = 50f, Y = 60f, Z = 70f });
             
             // 4. Verify world1 components still exist
-            pos = world.GetComponent<Position>(entity1);
-            health = world.GetComponent<Health>(entity1);
+            pos = World.GetComponent<Position>(entity1);
+            health = World.GetComponent<Health>(entity1);
             
             AssertEquals(10f, pos.X, "Position.X should still be 10");
             AssertEquals(100f, health.Amount, "Health.Amount should still be 100");
@@ -494,30 +488,30 @@ public class WorldTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1 in global world
-            World globalWorld = World.GetOrCreate();
-            Entity entity1 = globalWorld.CreateEntity();
-            globalWorld.AddComponent(entity1, new TestComponent { Value = 1 });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new TestComponent { Value = 1 });
             
             // 2. Create Entity2 in TestWorld
-            World testWorld = World.GetOrCreate("TestWorld");
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
             Entity entity2 = testWorld.CreateEntity();
             testWorld.AddComponent(entity2, new TestComponent { Value = 2 });
             
             // 3. Verify both worlds have their entities
-            TestComponent comp1 = globalWorld.GetComponent<TestComponent>(entity1);
+            TestComponent comp1 = World.GetComponent<TestComponent>(entity1);
             TestComponent comp2 = testWorld.GetComponent<TestComponent>(entity2);
             
             AssertEquals(1, comp1.Value, "Entity1 in global world should have Value=1");
             AssertEquals(2, comp2.Value, "Entity2 in TestWorld should have Value=2");
             
             // 4. Get worlds again and verify entities still exist
-            World globalWorld2 = World.GetOrCreate();
-            World testWorld2 = World.GetOrCreate("TestWorld");
+            WorldInstance globalWorld2 = World.GetOrCreate();
+            WorldInstance testWorld2 = World.GetOrCreate("TestWorld");
             
             // Note: Entities are stored per-world, so they should still be accessible
             // However, entity IDs might not be valid after ClearAllECSState in ExecuteTest
             // This test verifies that world state is maintained during test execution
-            AssertEquals(globalWorld, globalWorld2, "Global world should be same instance");
+            WorldInstance globalWorld1 = World.GetOrCreate();
+            AssertEquals(globalWorld1, globalWorld2, "Global world should be same instance");
             AssertEquals(testWorld, testWorld2, "TestWorld should be same instance");
         });
     }

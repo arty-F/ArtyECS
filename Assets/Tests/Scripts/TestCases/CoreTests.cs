@@ -158,9 +158,9 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Call World.GetOrCreate() for global world
-            World world = World.GetOrCreate();
+            WorldInstance world = World.GetOrCreate();
             
-            // Returns World with name "Global"
+            // Returns WorldInstance with name "Global"
             AssertNotNull(world, "World should not be null");
             AssertEquals("Global", world.Name, "World.Name should be 'Global'");
         });
@@ -173,8 +173,8 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World1("World1") and World2("World2")
-            World world1 = World.GetOrCreate("World1");
-            World world2 = World.GetOrCreate("World2");
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
             
             // 2. Create Entity1 and Entity2
             Entity entity1 = world1.CreateEntity();
@@ -213,12 +213,11 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Add first component
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
-            world.AddComponent(entity, new TestComponent { Value = 1 });
+            Entity entity = World.CreateEntity();
+            World.AddComponent(entity, new TestComponent { Value = 1 });
             
             // 2. Verify that storage is created and component successfully added
-            TestComponent comp = world.GetComponent<TestComponent>(entity);
+            TestComponent comp = World.GetComponent<TestComponent>(entity);
             AssertEquals(1, comp.Value, "Component should be successfully added");
         });
     }
@@ -230,16 +229,15 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Add 20 components (more than default capacity)
-            World world = World.GetOrCreate();
             Entity[] entities = new Entity[20];
             for (int i = 0; i < 20; i++)
             {
-                entities[i] = world.CreateEntity();
-                world.AddComponent(entities[i], new TestComponent { Value = i });
+                entities[i] = World.CreateEntity();
+                World.AddComponent(entities[i], new TestComponent { Value = i });
             }
             
             // 2. Verify that all components are added
-            var components = world.GetComponents<TestComponent>();
+            var components = World.GetComponents<TestComponent>();
             AssertEquals(20, components.Length, "All 20 components should be added");
         });
     }
@@ -251,15 +249,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Add 5 components
-            World world = World.GetOrCreate();
             for (int i = 0; i < 5; i++)
             {
-                Entity entity = world.CreateEntity();
-                world.AddComponent(entity, new TestComponent { Value = i });
+                Entity entity = World.CreateEntity();
+                World.AddComponent(entity, new TestComponent { Value = i });
             }
             
             // 2. Get ReadOnlySpan of components
-            var span = world.GetComponents<TestComponent>();
+            var span = World.GetComponents<TestComponent>();
             
             // 3. Verify that all components are accessible
             AssertEquals(5, span.Length, "Span.Length should be 5");
@@ -279,15 +276,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add TestComponent with value
             TestComponent expectedComponent = new TestComponent { Value = 42 };
-            world.AddComponent(entity, expectedComponent);
+            World.AddComponent(entity, expectedComponent);
             
             // 3. Get component back
-            TestComponent actualComponent = world.GetComponent<TestComponent>(entity);
+            TestComponent actualComponent = World.GetComponent<TestComponent>(entity);
             AssertEquals(expectedComponent.Value, actualComponent.Value, "Component value should match");
         });
     }
@@ -299,23 +295,22 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add Position component
-            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
             
             // 3. Add Velocity component
-            world.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
             // 4. Add Health component
-            world.AddComponent(entity, new Health { Amount = 100f });
+            World.AddComponent(entity, new Health { Amount = 100f });
             
             // 5. Get all components
             // All components successfully added
-            Position pos = world.GetComponent<Position>(entity);
-            Velocity vel = world.GetComponent<Velocity>(entity);
-            Health health = world.GetComponent<Health>(entity);
+            Position pos = World.GetComponent<Position>(entity);
+            Velocity vel = World.GetComponent<Velocity>(entity);
+            Health health = World.GetComponent<Health>(entity);
             
             AssertEquals(1f, pos.X, "Position.X should be 1f");
             AssertEquals(1f, vel.X, "Velocity.X should be 1f");
@@ -330,17 +325,16 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add TestComponent
-            world.AddComponent(entity, new TestComponent { Value = 1 });
+            World.AddComponent(entity, new TestComponent { Value = 1 });
             
             // 3. Attempt to add TestComponent again
             bool exceptionThrown = false;
             try
             {
-                world.AddComponent(entity, new TestComponent { Value = 2 });
+                World.AddComponent(entity, new TestComponent { Value = 2 });
             }
             catch (DuplicateComponentException)
             {
@@ -359,21 +353,20 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            Entity entity2 = world.CreateEntity();
-            Entity entity3 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Add TestComponent to each with different values
-            world.AddComponent(entity1, new TestComponent { Value = 1 });
-            world.AddComponent(entity2, new TestComponent { Value = 2 });
-            world.AddComponent(entity3, new TestComponent { Value = 3 });
+            World.AddComponent(entity1, new TestComponent { Value = 1 });
+            World.AddComponent(entity2, new TestComponent { Value = 2 });
+            World.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // 3. Get components back
             // Each entity has its own component
-            TestComponent comp1 = world.GetComponent<TestComponent>(entity1);
-            TestComponent comp2 = world.GetComponent<TestComponent>(entity2);
-            TestComponent comp3 = world.GetComponent<TestComponent>(entity3);
+            TestComponent comp1 = World.GetComponent<TestComponent>(entity1);
+            TestComponent comp2 = World.GetComponent<TestComponent>(entity2);
+            TestComponent comp3 = World.GetComponent<TestComponent>(entity3);
             
             AssertEquals(1, comp1.Value, "Entity1 should have Value=1");
             AssertEquals(2, comp2.Value, "Entity2 should have Value=2");
@@ -388,8 +381,7 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("Test")
-            World testWorld = World.GetOrCreate("Test");
-            World globalWorld = World.GetOrCreate();
+            WorldInstance testWorld = World.GetOrCreate("Test");
             
             // 2. Create Entity
             Entity entity = testWorld.CreateEntity();
@@ -405,7 +397,7 @@ public class CoreTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                globalWorld.GetComponent<TestComponent>(entity);
+                World.GetComponent<TestComponent>(entity);
             }
             catch (ComponentNotFoundException)
             {
@@ -425,14 +417,13 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add TestComponent
-            world.AddComponent(entity, new TestComponent { Value = 42 });
+            World.AddComponent(entity, new TestComponent { Value = 42 });
             
             // 3. Remove TestComponent
-            bool removed = world.RemoveComponent<TestComponent>(entity);
+            bool removed = World.RemoveComponent<TestComponent>(entity);
             
             // 4. Verify that component is removed
             Assert(removed, "RemoveComponent should return true");
@@ -440,7 +431,7 @@ public class CoreTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                world.GetComponent<TestComponent>(entity);
+                World.GetComponent<TestComponent>(entity);
             }
             catch (ComponentNotFoundException)
             {
@@ -458,11 +449,10 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Attempt to remove non-existent component
-            bool removed = world.RemoveComponent<TestComponent>(entity);
+            bool removed = World.RemoveComponent<TestComponent>(entity);
             
             // Returns false, no exception thrown
             Assert(!removed, "RemoveComponent should return false for non-existent component");
@@ -476,26 +466,25 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add Position, Velocity, Health
-            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity, new Health { Amount = 100f });
+            World.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Health { Amount = 100f });
             
             // 3. Remove Velocity
-            world.RemoveComponent<Velocity>(entity);
+            World.RemoveComponent<Velocity>(entity);
             
             // 4. Check remaining components
             // Position and Health remain, Velocity removed
-            Position pos = world.GetComponent<Position>(entity);
+            Position pos = World.GetComponent<Position>(entity);
             AssertEquals(1f, pos.X, "Position should remain");
             
             bool exceptionThrown = false;
             try
             {
-                world.GetComponent<Velocity>(entity);
+                World.GetComponent<Velocity>(entity);
             }
             catch (ComponentNotFoundException)
             {
@@ -503,7 +492,7 @@ public class CoreTests : TestBase
             }
             Assert(exceptionThrown, "Velocity should be removed");
             
-            Health health = world.GetComponent<Health>(entity);
+            Health health = World.GetComponent<Health>(entity);
             AssertEquals(100f, health.Amount, "Health should remain");
         });
     }
@@ -515,22 +504,21 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            Entity entity2 = world.CreateEntity();
-            Entity entity3 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Add components to all three
-            world.AddComponent(entity1, new TestComponent { Value = 1 });
-            world.AddComponent(entity2, new TestComponent { Value = 2 });
-            world.AddComponent(entity3, new TestComponent { Value = 3 });
+            World.AddComponent(entity1, new TestComponent { Value = 1 });
+            World.AddComponent(entity2, new TestComponent { Value = 2 });
+            World.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // 3. Remove component from Entity2 (middle)
-            world.RemoveComponent<TestComponent>(entity2);
+            World.RemoveComponent<TestComponent>(entity2);
             
             // 4. Verify that Entity1 and Entity3 still have components
-            TestComponent comp1 = world.GetComponent<TestComponent>(entity1);
-            TestComponent comp3 = world.GetComponent<TestComponent>(entity3);
+            TestComponent comp1 = World.GetComponent<TestComponent>(entity1);
+            TestComponent comp3 = World.GetComponent<TestComponent>(entity3);
             
             AssertEquals(1, comp1.Value, "Entity1 should still have component");
             AssertEquals(3, comp3.Value, "Entity3 should still have component");
@@ -538,7 +526,7 @@ public class CoreTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                world.GetComponent<TestComponent>(entity2);
+                World.GetComponent<TestComponent>(entity2);
             }
             catch (ComponentNotFoundException)
             {
@@ -557,15 +545,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add TestComponent with known value
             TestComponent expectedComponent = new TestComponent { Value = 42 };
-            world.AddComponent(entity, expectedComponent);
+            World.AddComponent(entity, expectedComponent);
             
             // 3. Get component
-            TestComponent actualComponent = world.GetComponent<TestComponent>(entity);
+            TestComponent actualComponent = World.GetComponent<TestComponent>(entity);
             AssertEquals(expectedComponent.Value, actualComponent.Value, "Component value should match");
         });
     }
@@ -577,14 +564,13 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Get non-existent component
             bool exceptionThrown = false;
             try
             {
-                world.GetComponent<TestComponent>(entity);
+                World.GetComponent<TestComponent>(entity);
             }
             catch (ComponentNotFoundException)
             {
@@ -603,21 +589,20 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add TestComponent
-            world.AddComponent(entity, new TestComponent { Value = 42 });
+            World.AddComponent(entity, new TestComponent { Value = 42 });
             
             // 3. Remove TestComponent
-            world.RemoveComponent<TestComponent>(entity);
+            World.RemoveComponent<TestComponent>(entity);
             
             // 4. Get TestComponent
             // ComponentNotFoundException should be thrown
             bool exceptionThrown = false;
             try
             {
-                world.GetComponent<TestComponent>(entity);
+                World.GetComponent<TestComponent>(entity);
             }
             catch (ComponentNotFoundException)
             {
@@ -637,8 +622,7 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Get components from empty storage
-            World world = World.GetOrCreate();
-            var components = world.GetComponents<TestComponent>();
+            var components = World.GetComponents<TestComponent>();
             
             // Returns empty span
             AssertEquals(0, components.Length, "Components.Length should be 0");
@@ -653,15 +637,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add TestComponent
             TestComponent expectedComponent = new TestComponent { Value = 42 };
-            world.AddComponent(entity, expectedComponent);
+            World.AddComponent(entity, expectedComponent);
             
             // 3. Get all components
-            var components = world.GetComponents<TestComponent>();
+            var components = World.GetComponents<TestComponent>();
             
             // Returns span with one component
             AssertEquals(1, components.Length, "Components.Length should be 1");
@@ -676,18 +659,17 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            Entity entity2 = world.CreateEntity();
-            Entity entity3 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Add TestComponent to each with different values
-            world.AddComponent(entity1, new TestComponent { Value = 1 });
-            world.AddComponent(entity2, new TestComponent { Value = 2 });
-            world.AddComponent(entity3, new TestComponent { Value = 3 });
+            World.AddComponent(entity1, new TestComponent { Value = 1 });
+            World.AddComponent(entity2, new TestComponent { Value = 2 });
+            World.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // 3. Get all components
-            var components = world.GetComponents<TestComponent>();
+            var components = World.GetComponents<TestComponent>();
             
             // Returns span with three components
             AssertEquals(3, components.Length, "Components.Length should be 3");
@@ -701,21 +683,20 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            Entity entity2 = world.CreateEntity();
-            Entity entity3 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Add components to all three
-            world.AddComponent(entity1, new TestComponent { Value = 1 });
-            world.AddComponent(entity2, new TestComponent { Value = 2 });
-            world.AddComponent(entity3, new TestComponent { Value = 3 });
+            World.AddComponent(entity1, new TestComponent { Value = 1 });
+            World.AddComponent(entity2, new TestComponent { Value = 2 });
+            World.AddComponent(entity3, new TestComponent { Value = 3 });
             
             // 3. Remove component from Entity2
-            world.RemoveComponent<TestComponent>(entity2);
+            World.RemoveComponent<TestComponent>(entity2);
             
             // 4. Get all components
-            var components = world.GetComponents<TestComponent>();
+            var components = World.GetComponents<TestComponent>();
             
             // Returns span with two components
             AssertEquals(2, components.Length, "Components.Length should be 2");
@@ -732,21 +713,20 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1 with Position and Velocity
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            world.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
             // 2. Create Entity2 only with Position
-            Entity entity2 = world.CreateEntity();
-            world.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
             
             // 3. Create Entity3 only with Velocity
-            Entity entity3 = world.CreateEntity();
-            world.AddComponent(entity3, new Velocity { X = 2f, Y = 3f, Z = 4f });
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Velocity { X = 2f, Y = 3f, Z = 4f });
             
             // 4. Call GetEntitiesWith<Position, Velocity>()
-            var entities = world.GetEntitiesWith<Position, Velocity>();
+            var entities = World.GetEntitiesWith<Position, Velocity>();
             
             // Returns only Entity1 (has both components)
             AssertEquals(1, entities.Length, "Should return only one entity");
@@ -762,16 +742,15 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1 only with Position
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            world.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
             
             // 2. Create Entity2 only with Velocity
-            Entity entity2 = world.CreateEntity();
-            world.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
             // 3. Call GetEntitiesWith<Position, Velocity>()
-            var entities = world.GetEntitiesWith<Position, Velocity>();
+            var entities = World.GetEntitiesWith<Position, Velocity>();
             
             // Returns empty span
             AssertEquals(0, entities.Length, "Should return empty span");
@@ -786,25 +765,24 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3 with Position and Velocity
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            world.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
-            Entity entity2 = world.CreateEntity();
-            world.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
-            world.AddComponent(entity2, new Velocity { X = 2f, Y = 3f, Z = 4f });
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
+            World.AddComponent(entity2, new Velocity { X = 2f, Y = 3f, Z = 4f });
             
-            Entity entity3 = world.CreateEntity();
-            world.AddComponent(entity3, new Position { X = 3f, Y = 4f, Z = 5f });
-            world.AddComponent(entity3, new Velocity { X = 3f, Y = 4f, Z = 5f });
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Position { X = 3f, Y = 4f, Z = 5f });
+            World.AddComponent(entity3, new Velocity { X = 3f, Y = 4f, Z = 5f });
             
             // 2. Create Entity4 only with Position
-            Entity entity4 = world.CreateEntity();
-            world.AddComponent(entity4, new Position { X = 4f, Y = 5f, Z = 6f });
+            Entity entity4 = World.CreateEntity();
+            World.AddComponent(entity4, new Position { X = 4f, Y = 5f, Z = 6f });
             
             // 3. Call GetEntitiesWith<Position, Velocity>()
-            var entities = world.GetEntitiesWith<Position, Velocity>();
+            var entities = World.GetEntitiesWith<Position, Velocity>();
             
             // Returns span with three entities
             AssertEquals(3, entities.Length, "Should return three entities");
@@ -818,24 +796,23 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1 with Position, Velocity, Health
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            world.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity1, new Health { Amount = 100f });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Health { Amount = 100f });
             
             // 2. Create Entity2 with Position, Velocity (without Health)
-            Entity entity2 = world.CreateEntity();
-            world.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
-            world.AddComponent(entity2, new Velocity { X = 2f, Y = 3f, Z = 4f });
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
+            World.AddComponent(entity2, new Velocity { X = 2f, Y = 3f, Z = 4f });
             
             // 3. Create Entity3 with Position, Health (without Velocity)
-            Entity entity3 = world.CreateEntity();
-            world.AddComponent(entity3, new Position { X = 3f, Y = 4f, Z = 5f });
-            world.AddComponent(entity3, new Health { Amount = 50f });
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Position { X = 3f, Y = 4f, Z = 5f });
+            World.AddComponent(entity3, new Health { Amount = 50f });
             
             // 4. Call GetEntitiesWith<Position, Velocity, Health>()
-            var entities = world.GetEntitiesWith<Position, Velocity, Health>();
+            var entities = World.GetEntitiesWith<Position, Velocity, Health>();
             
             // Returns only Entity1
             AssertEquals(1, entities.Length, "Should return only one entity");
@@ -850,18 +827,17 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1 with Position, Velocity
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            world.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
             // 2. Create Entity2 with Position, Health
-            Entity entity2 = world.CreateEntity();
-            world.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
-            world.AddComponent(entity2, new Health { Amount = 100f });
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
+            World.AddComponent(entity2, new Health { Amount = 100f });
             
             // 3. Call GetEntitiesWith<Position, Velocity, Health>()
-            var entities = world.GetEntitiesWith<Position, Velocity, Health>();
+            var entities = World.GetEntitiesWith<Position, Velocity, Health>();
             
             // Returns empty span
             AssertEquals(0, entities.Length, "Should return empty span");
@@ -880,15 +856,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add Health with Amount=100
-            world.AddComponent(entity, new Health { Amount = 100f });
+            World.AddComponent(entity, new Health { Amount = 100f });
             
             // 3. Use GetModifiableComponents<Health>()
             // 4. Change Amount to 50 via ref
-            using (var components = world.GetModifiableComponents<Health>())
+            using (var components = World.GetModifiableComponents<Health>())
             {
                 for (int i = 0; i < components.Count; i++)
                 {
@@ -897,7 +872,7 @@ public class CoreTests : TestBase
             } // 5. Dispose collection (applies changes)
             
             // 6. Get component back
-            Health health = world.GetComponent<Health>(entity);
+            Health health = World.GetComponent<Health>(entity);
             AssertEquals(50f, health.Amount, "Health.Amount should be 50 after modification");
         });
     }
@@ -909,19 +884,18 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            Entity entity2 = world.CreateEntity();
-            Entity entity3 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Add Health to all with Amount=100
-            world.AddComponent(entity1, new Health { Amount = 100f });
-            world.AddComponent(entity2, new Health { Amount = 100f });
-            world.AddComponent(entity3, new Health { Amount = 100f });
+            World.AddComponent(entity1, new Health { Amount = 100f });
+            World.AddComponent(entity2, new Health { Amount = 100f });
+            World.AddComponent(entity3, new Health { Amount = 100f });
             
             // 3. Use GetModifiableComponents<Health>()
             // 4. Change Amount for all three
-            using (var components = world.GetModifiableComponents<Health>())
+            using (var components = World.GetModifiableComponents<Health>())
             {
                 for (int i = 0; i < components.Count; i++)
                 {
@@ -930,9 +904,9 @@ public class CoreTests : TestBase
             } // 5. Dispose collection
             
             // 6. Check all components
-            Health health1 = world.GetComponent<Health>(entity1);
-            Health health2 = world.GetComponent<Health>(entity2);
-            Health health3 = world.GetComponent<Health>(entity3);
+            Health health1 = World.GetComponent<Health>(entity1);
+            Health health2 = World.GetComponent<Health>(entity2);
+            Health health3 = World.GetComponent<Health>(entity3);
             
             // Note: Order might vary, so we just check that values changed
             Assert(health1.Amount != 100f || health2.Amount != 100f || health3.Amount != 100f, 
@@ -947,15 +921,14 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add Health with Amount=100
-            world.AddComponent(entity, new Health { Amount = 100f });
+            World.AddComponent(entity, new Health { Amount = 100f });
             
             // 3. Use GetModifiableComponents<Health>()
             // 4. Change Amount to 50
-            var components = world.GetModifiableComponents<Health>();
+            var components = World.GetModifiableComponents<Health>();
             for (int i = 0; i < components.Count; i++)
             {
                 components[i].Amount = 50f;
@@ -963,12 +936,12 @@ public class CoreTests : TestBase
             // 5. DON'T call Dispose or Apply()
             
             // 6. Get component back - should still be 100
-            Health health = world.GetComponent<Health>(entity);
+            Health health = World.GetComponent<Health>(entity);
             AssertEquals(100f, health.Amount, "Health.Amount should still be 100 (modifications not applied)");
             
             // Now apply explicitly
             components.Apply();
-            health = world.GetComponent<Health>(entity);
+            health = World.GetComponent<Health>(entity);
             AssertEquals(50f, health.Amount, "Health.Amount should be 50 after Apply()");
         });
     }
@@ -980,19 +953,18 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            Entity entity2 = world.CreateEntity();
-            Entity entity3 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Add Health to all
-            world.AddComponent(entity1, new Health { Amount = 100f });
-            world.AddComponent(entity2, new Health { Amount = 100f });
-            world.AddComponent(entity3, new Health { Amount = 100f });
+            World.AddComponent(entity1, new Health { Amount = 100f });
+            World.AddComponent(entity2, new Health { Amount = 100f });
+            World.AddComponent(entity3, new Health { Amount = 100f });
             
             // 3. Use GetModifiableComponents<Health>()
             // 4. Iterate and modify all components
-            using (var components = world.GetModifiableComponents<Health>())
+            using (var components = World.GetModifiableComponents<Health>())
             {
                 for (int i = 0; i < components.Count; i++)
                 {
@@ -1001,9 +973,9 @@ public class CoreTests : TestBase
             } // 5. Dispose collection
             
             // All components modified correctly, no exceptions
-            Health health1 = world.GetComponent<Health>(entity1);
-            Health health2 = world.GetComponent<Health>(entity2);
-            Health health3 = world.GetComponent<Health>(entity3);
+            Health health1 = World.GetComponent<Health>(entity1);
+            Health health2 = World.GetComponent<Health>(entity2);
+            Health health3 = World.GetComponent<Health>(entity3);
             
             AssertEquals(90f, health1.Amount, "Entity1 Health should be 90");
             AssertEquals(90f, health2.Amount, "Entity2 Health should be 90");
@@ -1020,8 +992,7 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Call World.CreateEntity()
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // Returns valid Entity
             Assert(entity.IsValid, "Entity should be valid");
@@ -1037,10 +1008,9 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Call World.CreateEntity() three times
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
-            Entity entity2 = world.CreateEntity();
-            Entity entity3 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Verify ID uniqueness (IDs or generations should differ)
             // Note: IDs might be same if recycled, but generations should differ
@@ -1058,11 +1028,10 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Allocate Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Destroy Entity (which deallocates it)
-            bool destroyed = world.DestroyEntity(entity);
+            bool destroyed = World.DestroyEntity(entity);
             
             // 3. Verify that Entity is no longer allocated
             Assert(destroyed, "DestroyEntity should return true");
@@ -1076,18 +1045,17 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Allocate Entity1
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
             
             // 2. Remember Entity1 ID
             int entity1Id = entity1.Id;
             int entity1Gen = entity1.Generation;
             
             // 3. Destroy Entity1
-            world.DestroyEntity(entity1);
+            World.DestroyEntity(entity1);
             
             // 4. Allocate Entity2
-            Entity entity2 = world.CreateEntity();
+            Entity entity2 = World.CreateEntity();
             
             // 5. Verify that Entity2 has same ID but different Generation (if recycled)
             // Note: ID recycling is implementation detail, we just check they're different entities
@@ -1102,18 +1070,17 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Allocate Entity1
-            World world = World.GetOrCreate();
-            Entity entity1 = world.CreateEntity();
+            Entity entity1 = World.CreateEntity();
             
             // 2. Remember Entity1 completely (ID and Generation)
             int entity1Id = entity1.Id;
             int entity1Gen = entity1.Generation;
             
             // 3. Destroy Entity1
-            world.DestroyEntity(entity1);
+            World.DestroyEntity(entity1);
             
             // 4. Allocate Entity2 (might reuse ID)
-            Entity entity2 = world.CreateEntity();
+            Entity entity2 = World.CreateEntity();
             
             // 5. Verify that old Entity1 is not equal to Entity2
             Entity oldEntity1 = new Entity(entity1Id, entity1Gen);
@@ -1144,9 +1111,9 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity1, Entity2, Entity3 through World.CreateEntity()
-            Entity entity1 = World.GetOrCreate().CreateEntity();
-            Entity entity2 = World.GetOrCreate().CreateEntity();
-            Entity entity3 = World.GetOrCreate().CreateEntity();
+            Entity entity1 = World.CreateEntity();
+            Entity entity2 = World.CreateEntity();
+            Entity entity3 = World.CreateEntity();
             
             // 2. Verify uniqueness
             Assert(entity1 != entity2, "Entity1 should not equal Entity2");
@@ -1162,11 +1129,10 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create World("Test")
-            World testWorld = World.GetOrCreate("Test");
-            World globalWorld = World.GetOrCreate();
+            WorldInstance testWorld = World.GetOrCreate("Test");
             
             // 2. Create Entity1 through World.CreateEntity() (global)
-            Entity entity1 = globalWorld.CreateEntity();
+            Entity entity1 = World.CreateEntity();
             
             // 3. Create Entity2 through testWorld.CreateEntity()
             Entity entity2 = testWorld.CreateEntity();
@@ -1183,11 +1149,10 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Call World.DestroyEntity(entity)
-            bool destroyed = world.DestroyEntity(entity);
+            bool destroyed = World.DestroyEntity(entity);
             
             // 3. Verify that entity is destroyed
             Assert(destroyed, "DestroyEntity should return true");
@@ -1201,16 +1166,15 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add Position, Velocity, Health
-            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity, new Health { Amount = 100f });
+            World.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Health { Amount = 100f });
             
             // 3. Call World.DestroyEntity(entity)
-            bool destroyed = world.DestroyEntity(entity);
+            bool destroyed = World.DestroyEntity(entity);
             
             // 4. Verify that all components are removed
             Assert(destroyed, "DestroyEntity should return true");
@@ -1218,7 +1182,7 @@ public class CoreTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                world.GetComponent<Position>(entity);
+                World.GetComponent<Position>(entity);
             }
             catch (ComponentNotFoundException)
             {
@@ -1235,19 +1199,18 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add 10 different component types (we'll use fewer since we don't have 10 types)
-            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
-            world.AddComponent(entity, new Health { Amount = 100f });
-            world.AddComponent(entity, new TestComponent { Value = 42 });
-            world.AddComponent(entity, new Dead());
-            world.AddComponent(entity, new Destroyed());
+            World.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity, new Health { Amount = 100f });
+            World.AddComponent(entity, new TestComponent { Value = 42 });
+            World.AddComponent(entity, new Dead());
+            World.AddComponent(entity, new Destroyed());
             
             // 3. Call World.DestroyEntity(entity)
-            bool destroyed = world.DestroyEntity(entity);
+            bool destroyed = World.DestroyEntity(entity);
             
             // 4. Verify that all components are removed
             Assert(destroyed, "DestroyEntity should return true");
@@ -1256,7 +1219,7 @@ public class CoreTests : TestBase
             bool exceptionThrown = false;
             try
             {
-                world.GetComponent<Position>(entity);
+                World.GetComponent<Position>(entity);
             }
             catch (ComponentNotFoundException)
             {
@@ -1273,8 +1236,7 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Attempt to destroy Entity.Invalid
-            World world = World.GetOrCreate();
-            bool destroyed = world.DestroyEntity(Entity.Invalid);
+            bool destroyed = World.DestroyEntity(Entity.Invalid);
             
             // Returns false
             Assert(!destroyed, "DestroyEntity should return false for invalid entity");
@@ -1288,14 +1250,13 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Destroy Entity
-            bool destroyed1 = world.DestroyEntity(entity);
+            bool destroyed1 = World.DestroyEntity(entity);
             
             // 3. Attempt to destroy Entity again
-            bool destroyed2 = world.DestroyEntity(entity);
+            bool destroyed2 = World.DestroyEntity(entity);
             
             // Second destruction returns false
             Assert(destroyed1, "First DestroyEntity should return true");
@@ -1312,11 +1273,10 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add component using World API
-            world.AddComponent(entity, new TestComponent { Value = 42 });
+            World.AddComponent(entity, new TestComponent { Value = 42 });
             
             // 3. Get component using extension method
             TestComponent comp = entity.Get<TestComponent>();
@@ -1332,11 +1292,10 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add component
-            world.AddComponent(entity, new TestComponent { Value = 42 });
+            World.AddComponent(entity, new TestComponent { Value = 42 });
             
             // 3. Check Has<T>()
             bool hasComponent = entity.Has<TestComponent>();
@@ -1355,14 +1314,13 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add component using extension method
             entity.AddComponent(new TestComponent { Value = 42 });
             
             // 3. Get component back
-            TestComponent comp = world.GetComponent<TestComponent>(entity);
+            TestComponent comp = World.GetComponent<TestComponent>(entity);
             AssertEquals(42, comp.Value, "Component value should match");
         });
     }
@@ -1374,11 +1332,10 @@ public class CoreTests : TestBase
         ExecuteTest(testName, () =>
         {
             // 1. Create Entity
-            World world = World.GetOrCreate();
-            Entity entity = world.CreateEntity();
+            Entity entity = World.CreateEntity();
             
             // 2. Add component
-            world.AddComponent(entity, new TestComponent { Value = 42 });
+            World.AddComponent(entity, new TestComponent { Value = 42 });
             
             // 3. Remove component using extension method
             bool removed = entity.RemoveComponent<TestComponent>();

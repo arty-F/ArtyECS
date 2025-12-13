@@ -4,13 +4,13 @@ namespace ArtyECS.Core
 {
     public static class EntityExtensions
     {
-        public static T Get<T>(this Entity entity, World world = null) where T : struct, IComponent
+        public static T Get<T>(this Entity entity, WorldInstance world = null) where T : struct, IComponent
         {
             world ??= World.GetOrCreate();
             return world.GetComponent<T>(entity);
         }
 
-        public static bool Has<T>(this Entity entity, World world = null) where T : struct, IComponent
+        public static bool Has<T>(this Entity entity, WorldInstance world = null) where T : struct, IComponent
         {
             world ??= World.GetOrCreate();
             try
@@ -24,13 +24,13 @@ namespace ArtyECS.Core
             }
         }
 
-        public static void AddComponent<T>(this Entity entity, T component, World world = null) where T : struct, IComponent
+        public static void AddComponent<T>(this Entity entity, T component, WorldInstance world = null) where T : struct, IComponent
         {
             world ??= World.GetOrCreate();
             world.AddComponent(entity, component);
         }
 
-        public static bool RemoveComponent<T>(this Entity entity, World world = null) where T : struct, IComponent
+        public static bool RemoveComponent<T>(this Entity entity, WorldInstance world = null) where T : struct, IComponent
         {
             world ??= World.GetOrCreate();
             return world.RemoveComponent<T>(entity);

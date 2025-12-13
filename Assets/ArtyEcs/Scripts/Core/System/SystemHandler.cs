@@ -2,7 +2,7 @@ namespace ArtyECS.Core
 {
     public class SystemHandler
     {
-        public virtual void Execute(World world)
+        public virtual void Execute(WorldInstance world)
         {
         }
 

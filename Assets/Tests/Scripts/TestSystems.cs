@@ -11,7 +11,7 @@ public class TestSystem : SystemHandler
         this.executeAction = executeAction;
     }
     
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         executeAction?.Invoke();
     }
@@ -24,7 +24,7 @@ public class StatefulSystem : SystemHandler
 
 public class IncrementSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         using (var counters = world.GetModifiableComponents<CounterComponent>())
         {
@@ -38,7 +38,7 @@ public class IncrementSystem : SystemHandler
 
 public class MovementSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         // Use GetEntitiesWith pattern for entities with both Position and Velocity
         var entities = world.GetEntitiesWith<Position, Velocity>();
@@ -59,7 +59,7 @@ public class MovementSystem : SystemHandler
 
 public class HealthSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         using (var healths = world.GetModifiableComponents<Health>())
         {
@@ -73,7 +73,7 @@ public class HealthSystem : SystemHandler
 
 public class ModifiableHealthSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         using (var healths = world.GetModifiableComponents<Health>())
         {
@@ -87,7 +87,7 @@ public class ModifiableHealthSystem : SystemHandler
 
 public class PhysicsSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         // Update velocities with acceleration
         var entitiesWithAccel = world.GetEntitiesWith<Velocity, Acceleration>();
@@ -125,7 +125,7 @@ public class SetValueSystem : SystemHandler
         this.valueToSet = value;
     }
     
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         using (var counters = world.GetModifiableComponents<CounterComponent>())
         {
@@ -139,7 +139,7 @@ public class SetValueSystem : SystemHandler
 
 public class UpdateCounterSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         using (var counters = world.GetModifiableComponents<UpdateCounter>())
         {
@@ -153,7 +153,7 @@ public class UpdateCounterSystem : SystemHandler
 
 public class FixedUpdateCounterSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         using (var counters = world.GetModifiableComponents<FixedUpdateCounter>())
         {
@@ -175,7 +175,7 @@ public class CleanupSystem : SystemHandler
         entityToCleanup = entity;
     }
     
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         // Use GetEntitiesWith to find entities with both Health and Dead components
         var entities = world.GetEntitiesWith<Health, Dead>();
@@ -207,7 +207,7 @@ public class CleanupSystem : SystemHandler
 
 public class SpawnSystem : SystemHandler
 {
-    public override void Execute(World world)
+    public override void Execute(WorldInstance world)
     {
         // Use GetEntitiesWith to find entities with Spawner component
         var entities = world.GetEntitiesWith<Spawner>();

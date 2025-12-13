@@ -9,10 +9,10 @@ namespace ArtyECS.Core
 
         private static int _globalNextId = 0;
 
-        private static readonly Dictionary<World, EntityPoolInstance> WorldPools =
-            new Dictionary<World, EntityPoolInstance>();
+        private static readonly Dictionary<WorldInstance, EntityPoolInstance> WorldPools =
+            new Dictionary<WorldInstance, EntityPoolInstance>();
 
-        private static EntityPoolInstance GetOrCreatePool(World world)
+        private static EntityPoolInstance GetOrCreatePool(WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -26,13 +26,13 @@ namespace ArtyECS.Core
             return pool;
         }
 
-        internal static Entity Allocate(World world)
+        internal static Entity Allocate(WorldInstance world)
         {
             var pool = GetOrCreatePool(world);
             return pool.Allocate(ref _globalNextId);
         }
 
-        internal static bool Deallocate(Entity entity, World world)
+        internal static bool Deallocate(Entity entity, WorldInstance world)
         {
             if (!entity.IsValid)
             {
@@ -43,7 +43,7 @@ namespace ArtyECS.Core
             return pool.Deallocate(entity);
         }
 
-        internal static bool IsAllocated(Entity entity, World world)
+        internal static bool IsAllocated(Entity entity, WorldInstance world)
         {
             if (!entity.IsValid)
             {
@@ -54,19 +54,19 @@ namespace ArtyECS.Core
             return pool.IsAllocated(entity);
         }
 
-        internal static int GetAllocatedCount(World world)
+        internal static int GetAllocatedCount(WorldInstance world)
         {
             var pool = GetOrCreatePool(world);
             return pool.GetAllocatedCount();
         }
 
-        internal static int GetAvailableCount(World world)
+        internal static int GetAvailableCount(WorldInstance world)
         {
             var pool = GetOrCreatePool(world);
             return pool.GetAvailableCount();
         }
 
-        internal static void ClearWorld(World world)
+        internal static void ClearWorld(WorldInstance world)
         {
             if (world == null)
             {
@@ -76,7 +76,7 @@ namespace ArtyECS.Core
             WorldPools.Remove(world);
         }
 
-        internal static void Clear(World world)
+        internal static void Clear(WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));

@@ -6,13 +6,13 @@ namespace ArtyECS.Core
     public struct ModifiableComponentCollection<T> : IDisposable where T : struct, IComponent
     {
         private readonly ComponentTable<T> _storage;
-        private readonly World _world;
+        private readonly WorldInstance _world;
         private T[] _modifiableComponents;
         private HashSet<int> _modifiedIndices;
         private bool _disposed;
         private bool _applied;
 
-        internal ModifiableComponentCollection(ComponentTable<T> storage, World world)
+        internal ModifiableComponentCollection(ComponentTable<T> storage, WorldInstance world)
         {
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
             _world = world;

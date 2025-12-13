@@ -5,112 +5,117 @@ namespace ArtyECS.Core
 {
     public class World
     {
-        private static World _globalWorld;
-
-        private static readonly object _globalWorldLock = new object();
-
-        private static readonly HashSet<World> _destroyedWorlds = new HashSet<World>();
-
-        public readonly string Name;
-
-        public World(string name)
+        private static WorldInstance _globalWorld;
+        public static WorldInstance GlobalWorld
         {
-            Name = name ?? throw new ArgumentNullException(nameof(name));
-        }
-
-        private static readonly Dictionary<string, World> _namedWorlds = new Dictionary<string, World>();
-
-        private static readonly object _namedWorldsLock = new object();
-
-        public static World GetOrCreate(string name = null)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
+            get 
+            { 
                 if (_globalWorld == null)
                 {
-                    lock (_globalWorldLock)
-                    {
-                        if (_globalWorld == null)
-                        {
-                            _globalWorld = new World("Global");
-                        }
-                    }
+                    _globalWorld = GetOrCreate();
                 }
                 return _globalWorld;
             }
+            private set { _globalWorld = value; }
+        }
 
-            lock (_namedWorldsLock)
+        private static readonly Dictionary<string, WorldInstance> _localWorlds = new();
+        private static readonly object _globalWorldLock = new();
+        private static readonly object _localWorldsLock = new();
+        private static readonly HashSet<WorldInstance> _destroyedWorlds = new();
+
+        public static WorldInstance GetOrCreate(string name = null)
+        {
+            if (string.IsNullOrEmpty(name))
             {
-                if (_namedWorlds.TryGetValue(name, out var existingWorld))
+                if (GlobalWorld == null)
+                {
+                    lock (_globalWorldLock)
+                    {
+                        if (GlobalWorld == null)
+                        {
+                            GlobalWorld = new WorldInstance("Global");
+                        }
+                    }
+                }
+                return GlobalWorld;
+            }
+
+            lock (_localWorldsLock)
+            {
+                if (_localWorlds.TryGetValue(name, out var existingWorld))
                 {
                     return existingWorld;
                 }
 
-                var newWorld = new World(name);
-                _namedWorlds[name] = newWorld;
+                var newWorld = new WorldInstance(name);
+                _localWorlds[name] = newWorld;
                 return newWorld;
             }
         }
 
-        public Entity CreateEntity()
+        public static Entity CreateEntity()
         {
             UpdateProvider.EnsureCreated();
-            
-            return EntitiesManager.Allocate(this);
+            return EntitiesManager.Allocate(GlobalWorld);
         }
 
-        public bool DestroyEntity(Entity entity)
+        public static bool DestroyEntity(Entity entity)
         {
             if (!entity.IsValid)
             {
                 return false;
             }
 
-            ComponentsManager.RemoveAllComponents(entity, this);
-
-            return EntitiesManager.Deallocate(entity, this);
+            ComponentsManager.RemoveAllComponents(entity, GlobalWorld);
+            return EntitiesManager.Deallocate(entity, GlobalWorld);
         }
 
-        public ReadOnlySpan<Entity> GetEntitiesWith<T1>() where T1 : struct, IComponent
+        public static bool IsEntityValid(Entity entity)
         {
-            return ComponentsManager.GetEntitiesWith<T1>(this);
+            return EntitiesManager.IsAllocated(entity, GlobalWorld);
         }
 
-        public ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>() 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1>() where T1 : struct, IComponent
+        {
+            return ComponentsManager.GetEntitiesWith<T1>(GlobalWorld);
+        }
+
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>() 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
         {
-            return ComponentsManager.GetEntitiesWith<T1, T2>(this);
+            return ComponentsManager.GetEntitiesWith<T1, T2>(GlobalWorld);
         }
 
-        public ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3>() 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3>() 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
         {
-            return ComponentsManager.GetEntitiesWith<T1, T2, T3>(this);
+            return ComponentsManager.GetEntitiesWith<T1, T2, T3>(GlobalWorld);
         }
 
-        public ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>() 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>() 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
             where T4 : struct, IComponent
         {
-            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4>(this);
+            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4>(GlobalWorld);
         }
 
-        public ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>() 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>() 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
             where T4 : struct, IComponent
             where T5 : struct, IComponent
         {
-            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4, T5>(this);
+            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4, T5>(GlobalWorld);
         }
 
-        public ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>() 
+        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>() 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
@@ -118,92 +123,92 @@ namespace ArtyECS.Core
             where T5 : struct, IComponent
             where T6 : struct, IComponent
         {
-            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4, T5, T6>(this);
+            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4, T5, T6>(GlobalWorld);
         }
 
-        public T GetComponent<T>(Entity entity) where T : struct, IComponent
+        public static T GetComponent<T>(Entity entity) where T : struct, IComponent
         {
-            return ComponentsManager.GetComponent<T>(entity, this);
+            return ComponentsManager.GetComponent<T>(entity, GlobalWorld);
         }
 
-        public ref T GetModifiableComponent<T>(Entity entity) where T : struct, IComponent
+        public static ref T GetModifiableComponent<T>(Entity entity) where T : struct, IComponent
         {
-            return ref ComponentsManager.GetModifiableComponent<T>(entity, this);
+            return ref ComponentsManager.GetModifiableComponent<T>(entity, GlobalWorld);
         }
 
-        public void AddComponent<T>(Entity entity, T component) where T : struct, IComponent
+        public static void AddComponent<T>(Entity entity, T component) where T : struct, IComponent
         {
-            ComponentsManager.AddComponent(entity, component, this);
+            ComponentsManager.AddComponent(entity, component, GlobalWorld);
         }
 
-        public bool RemoveComponent<T>(Entity entity) where T : struct, IComponent
+        public static bool RemoveComponent<T>(Entity entity) where T : struct, IComponent
         {
-            return ComponentsManager.RemoveComponent<T>(entity, this);
+            return ComponentsManager.RemoveComponent<T>(entity, GlobalWorld);
         }
 
-        public ReadOnlySpan<T> GetComponents<T>() where T : struct, IComponent
+        public static ReadOnlySpan<T> GetComponents<T>() where T : struct, IComponent
         {
-            return ComponentsManager.GetComponents<T>(this);
+            return ComponentsManager.GetComponents<T>(GlobalWorld);
         }
 
-        public ModifiableComponentCollection<T> GetModifiableComponents<T>() where T : struct, IComponent
+        public static ModifiableComponentCollection<T> GetModifiableComponents<T>() where T : struct, IComponent
         {
-            return ComponentsManager.GetModifiableComponents<T>(this);
+            return ComponentsManager.GetModifiableComponents<T>(GlobalWorld);
         }
 
-        public void AddToUpdate(SystemHandler system)
+        public static void AddToUpdate(SystemHandler system)
         {
-            SystemsManager.AddToUpdate(system, this);
+            SystemsManager.AddToUpdate(system, GlobalWorld);
         }
 
-        public void AddToUpdate(SystemHandler system, int order)
+        public static void AddToUpdate(SystemHandler system, int order)
         {
-            SystemsManager.AddToUpdate(system, order, this);
+            SystemsManager.AddToUpdate(system, order, GlobalWorld);
         }
 
-        public void AddToFixedUpdate(SystemHandler system)
+        public static void AddToFixedUpdate(SystemHandler system)
         {
-            SystemsManager.AddToFixedUpdate(system, this);
+            SystemsManager.AddToFixedUpdate(system, GlobalWorld);
         }
 
-        public void AddToFixedUpdate(SystemHandler system, int order)
+        public static void AddToFixedUpdate(SystemHandler system, int order)
         {
-            SystemsManager.AddToFixedUpdate(system, order, this);
+            SystemsManager.AddToFixedUpdate(system, order, GlobalWorld);
         }
 
-        public void ExecuteOnce(SystemHandler system)
+        public static void ExecuteOnce(SystemHandler system)
         {
-            SystemsManager.ExecuteOnce(system, this);
+            SystemsManager.ExecuteOnce(system, GlobalWorld);
         }
 
-        public void ExecuteUpdate()
+        public static void ExecuteUpdate()
         {
-            SystemsManager.ExecuteUpdate(this);
+            SystemsManager.ExecuteUpdate(GlobalWorld);
         }
 
-        public void ExecuteFixedUpdate()
+        public static void ExecuteFixedUpdate()
         {
-            SystemsManager.ExecuteFixedUpdate(this);
+            SystemsManager.ExecuteFixedUpdate(GlobalWorld);
         }
 
-        public bool RemoveFromUpdate(SystemHandler system)
+        public static bool RemoveFromUpdate(SystemHandler system)
         {
-            return SystemsManager.RemoveFromUpdate(system, this);
+            return SystemsManager.RemoveFromUpdate(system, GlobalWorld);
         }
 
-        public bool RemoveFromFixedUpdate(SystemHandler system)
+        public static bool RemoveFromFixedUpdate(SystemHandler system)
         {
-            return SystemsManager.RemoveFromFixedUpdate(system, this);
+            return SystemsManager.RemoveFromFixedUpdate(system, GlobalWorld);
         }
 
         public override string ToString()
         {
-            return $"World({Name})";
+            return $"World({GlobalWorld.Name})";
         }
 
         public override bool Equals(object obj)
         {
-            return ReferenceEquals(this, obj);
+            return ReferenceEquals(GlobalWorld, obj);
         }
 
         public override int GetHashCode()
@@ -211,14 +216,14 @@ namespace ArtyECS.Core
             return base.GetHashCode();
         }
 
-        public static bool Destroy(World world)
+        public static bool Destroy(WorldInstance world)
         {
             if (world == null)
             {
                 return false;
             }
 
-            if (ReferenceEquals(world, _globalWorld))
+            if (ReferenceEquals(world, GlobalWorld))
             {
                 return false;
             }
@@ -232,9 +237,9 @@ namespace ArtyECS.Core
             EntitiesManager.ClearWorld(world);
             SystemsManager.ClearWorld(world);
 
-            lock (_namedWorldsLock)
+            lock (_localWorldsLock)
             {
-                _namedWorlds.Remove(world.Name);
+                _localWorlds.Remove(world.Name);
             }
 
             _destroyedWorlds.Add(world);

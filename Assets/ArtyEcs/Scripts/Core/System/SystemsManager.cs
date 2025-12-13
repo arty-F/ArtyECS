@@ -12,10 +12,10 @@ namespace ArtyECS.Core
             public readonly List<SystemHandler> FixedUpdateQueue = new List<SystemHandler>();
         }
 
-        private static readonly Dictionary<World, SystemStorageInstance> WorldStorages =
-            new Dictionary<World, SystemStorageInstance>();
+        private static readonly Dictionary<WorldInstance, SystemStorageInstance> WorldStorages =
+            new Dictionary<WorldInstance, SystemStorageInstance>();
 
-        private static SystemStorageInstance GetWorldStorage(World world)
+        private static SystemStorageInstance GetWorldStorage(WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -34,26 +34,26 @@ namespace ArtyECS.Core
             return WorldStorages.Count;
         }
 
-        internal static bool IsWorldInitialized(World world)
+        internal static bool IsWorldInitialized(WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
             return WorldStorages.ContainsKey(world);
         }
 
-        internal static List<SystemHandler> GetUpdateQueue(World world)
+        internal static List<SystemHandler> GetUpdateQueue(WorldInstance world)
         {
             var storage = GetWorldStorage(world);
             return storage.UpdateQueue;
         }
 
-        internal static List<SystemHandler> GetFixedUpdateQueue(World world)
+        internal static List<SystemHandler> GetFixedUpdateQueue(WorldInstance world)
         {
             var storage = GetWorldStorage(world);
             return storage.FixedUpdateQueue;
         }
 
-        internal static void AddToUpdate(SystemHandler system, World world)
+        internal static void AddToUpdate(SystemHandler system, WorldInstance world)
         {
             if (system == null)
             {
@@ -64,7 +64,7 @@ namespace ArtyECS.Core
             storage.UpdateQueue.Add(system);
         }
 
-        internal static void AddToUpdate(SystemHandler system, int order, World world)
+        internal static void AddToUpdate(SystemHandler system, int order, WorldInstance world)
         {
             if (system == null)
             {
@@ -89,7 +89,7 @@ namespace ArtyECS.Core
             queue.Insert(order, system);
         }
 
-        internal static void ExecuteUpdate(World world)
+        internal static void ExecuteUpdate(WorldInstance world)
         {
             var storage = GetWorldStorage(world);
             var queue = storage.UpdateQueue;
@@ -108,7 +108,7 @@ namespace ArtyECS.Core
             }
         }
 
-        internal static void AddToFixedUpdate(SystemHandler system, World world)
+        internal static void AddToFixedUpdate(SystemHandler system, WorldInstance world)
         {
             if (system == null)
             {
@@ -119,7 +119,7 @@ namespace ArtyECS.Core
             storage.FixedUpdateQueue.Add(system);
         }
 
-        internal static void AddToFixedUpdate(SystemHandler system, int order, World world)
+        internal static void AddToFixedUpdate(SystemHandler system, int order, WorldInstance world)
         {
             if (system == null)
             {
@@ -144,7 +144,7 @@ namespace ArtyECS.Core
             queue.Insert(order, system);
         }
 
-        internal static void ExecuteFixedUpdate(World world)
+        internal static void ExecuteFixedUpdate(WorldInstance world)
         {
             var storage = GetWorldStorage(world);
             var queue = storage.FixedUpdateQueue;
@@ -163,7 +163,7 @@ namespace ArtyECS.Core
             }
         }
 
-        internal static void ExecuteOnce(SystemHandler system, World world)
+        internal static void ExecuteOnce(SystemHandler system, WorldInstance world)
         {
             if (system == null)
             {
@@ -173,7 +173,7 @@ namespace ArtyECS.Core
             system.Execute(world);
         }
 
-        internal static void ClearWorld(World world)
+        internal static void ClearWorld(WorldInstance world)
         {
             if (world == null)
             {
@@ -227,7 +227,7 @@ namespace ArtyECS.Core
             }
         }
 
-        internal static bool RemoveFromUpdate(SystemHandler system, World world)
+        internal static bool RemoveFromUpdate(SystemHandler system, WorldInstance world)
         {
             if (system == null)
                 throw new ArgumentNullException(nameof(system));
@@ -238,7 +238,7 @@ namespace ArtyECS.Core
             return storage.UpdateQueue.Remove(system);
         }
 
-        internal static bool RemoveFromFixedUpdate(SystemHandler system, World world)
+        internal static bool RemoveFromFixedUpdate(SystemHandler system, WorldInstance world)
         {
             if (system == null)
                 throw new ArgumentNullException(nameof(system));

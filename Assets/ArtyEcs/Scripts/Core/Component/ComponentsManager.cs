@@ -5,13 +5,13 @@ namespace ArtyECS.Core
 {
     internal static class ComponentsManager
     {
-        private static readonly Dictionary<World, Dictionary<Type, IComponentTable>> WorldTables =
-            new Dictionary<World, Dictionary<Type, IComponentTable>>();
+        private static readonly Dictionary<WorldInstance, Dictionary<Type, IComponentTable>> WorldTables =
+            new Dictionary<WorldInstance, Dictionary<Type, IComponentTable>>();
 
-        private static readonly Dictionary<(World world, Type type), IComponentTable> TableCache =
-            new Dictionary<(World world, Type type), IComponentTable>();
+        private static readonly Dictionary<(WorldInstance world, Type type), IComponentTable> TableCache =
+            new Dictionary<(WorldInstance world, Type type), IComponentTable>();
 
-        private static Dictionary<Type, IComponentTable> GetWorldTable(World world)
+        private static Dictionary<Type, IComponentTable> GetWorldTable(WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -25,7 +25,7 @@ namespace ArtyECS.Core
             return table;
         }
 
-        private static void ValidateEntityForRead(Entity entity, World world)
+        private static void ValidateEntityForRead(Entity entity, WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -36,7 +36,7 @@ namespace ArtyECS.Core
             }
         }
 
-        private static void ValidateEntityForWrite(Entity entity, World world)
+        private static void ValidateEntityForWrite(Entity entity, WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -52,7 +52,7 @@ namespace ArtyECS.Core
             }
         }
 
-        internal static ComponentTable<T> GetOrCreateTable<T>(World world) where T : struct, IComponent
+        internal static ComponentTable<T> GetOrCreateTable<T>(WorldInstance world) where T : struct, IComponent
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -83,14 +83,14 @@ namespace ArtyECS.Core
             return WorldTables.Count;
         }
 
-        internal static bool IsWorldInitialized(World world)
+        internal static bool IsWorldInitialized(WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
             return WorldTables.ContainsKey(world);
         }
 
-        internal static void AddComponent<T>(Entity entity, T component, World world) where T : struct, IComponent
+        internal static void AddComponent<T>(Entity entity, T component, WorldInstance world) where T : struct, IComponent
         {
             ValidateEntityForWrite(entity, world);
 
@@ -113,7 +113,7 @@ namespace ArtyECS.Core
             count++;
         }
 
-        internal static bool RemoveComponent<T>(Entity entity, World world) where T : struct, IComponent
+        internal static bool RemoveComponent<T>(Entity entity, WorldInstance world) where T : struct, IComponent
         {
             ValidateEntityForWrite(entity, world);
 
@@ -128,7 +128,7 @@ namespace ArtyECS.Core
             return true;
         }
 
-        internal static T GetComponent<T>(Entity entity, World world) where T : struct, IComponent
+        internal static T GetComponent<T>(Entity entity, WorldInstance world) where T : struct, IComponent
         {
             ValidateEntityForRead(entity, world);
 
@@ -142,7 +142,7 @@ namespace ArtyECS.Core
             throw new ComponentNotFoundException(entity, typeof(T));
         }
 
-        internal static bool HasComponent<T>(Entity entity, World world) where T : struct, IComponent
+        internal static bool HasComponent<T>(Entity entity, WorldInstance world) where T : struct, IComponent
         {
             ValidateEntityForRead(entity, world);
 
@@ -150,7 +150,7 @@ namespace ArtyECS.Core
             return table.HasComponent(entity);
         }
 
-        internal static ref T GetModifiableComponent<T>(Entity entity, World world) where T : struct, IComponent
+        internal static ref T GetModifiableComponent<T>(Entity entity, WorldInstance world) where T : struct, IComponent
         {
             ValidateEntityForRead(entity, world);
 
@@ -159,20 +159,20 @@ namespace ArtyECS.Core
             return ref table.GetModifiableComponentRef(entity);
         }
 
-        internal static ReadOnlySpan<T> GetComponents<T>(World world) where T : struct, IComponent
+        internal static ReadOnlySpan<T> GetComponents<T>(WorldInstance world) where T : struct, IComponent
         {
             var table = GetOrCreateTable<T>(world);
 
             return table.GetComponents();
         }
 
-        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1>(World world) where T1 : struct, IComponent
+        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1>(WorldInstance world) where T1 : struct, IComponent
         {
             var table = GetOrCreateTable<T1>(world);
             return table.GetEntities();
         }
 
-        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>(World world) 
+        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>(WorldInstance world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
         {
@@ -220,7 +220,7 @@ namespace ArtyECS.Core
             return result;
         }
 
-        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3>(World world) 
+        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3>(WorldInstance world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
@@ -278,7 +278,7 @@ namespace ArtyECS.Core
             return result;
         }
 
-        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>(World world) 
+        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>(WorldInstance world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
@@ -349,7 +349,7 @@ namespace ArtyECS.Core
             return result;
         }
 
-        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>(World world) 
+        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>(WorldInstance world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
@@ -435,7 +435,7 @@ namespace ArtyECS.Core
             return result;
         }
 
-        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>(World world) 
+        internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>(WorldInstance world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
             where T3 : struct, IComponent
@@ -539,13 +539,13 @@ namespace ArtyECS.Core
             return result;
         }
 
-        internal static ModifiableComponentCollection<T> GetModifiableComponents<T>(World world) where T : struct, IComponent
+        internal static ModifiableComponentCollection<T> GetModifiableComponents<T>(WorldInstance world) where T : struct, IComponent
         {
             var table = GetOrCreateTable<T>(world);
             return new ModifiableComponentCollection<T>(table, world);
         }
 
-        internal static int RemoveAllComponents(Entity entity, World world)
+        internal static int RemoveAllComponents(Entity entity, WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
@@ -568,14 +568,14 @@ namespace ArtyECS.Core
             return removedCount;
         }
 
-        internal static void ClearWorld(World world)
+        internal static void ClearWorld(WorldInstance world)
         {
             if (world == null)
             {
                 return;
             }
 
-            var keysToRemove = new List<(World world, Type type)>();
+            var keysToRemove = new List<(WorldInstance world, Type type)>();
             foreach (var cacheKey in TableCache.Keys)
             {
                 if (cacheKey.world.Equals(world))
