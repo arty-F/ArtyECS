@@ -1,6 +1,7 @@
 using UnityEngine;
 using ArtyECS.Core;
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Test class for System Framework functionality (System-000 through System-006).
@@ -1135,6 +1136,724 @@ public class SystemTests : TestBase
             AssertEquals(1f, readPosition.X, "Position.X should be 1");
             AssertEquals(2f, readPosition.Y, "Position.Y should be 2");
             AssertEquals(3f, readPosition.Z, "Position.Z should be 3");
+        });
+    }
+    
+    // ========== API-016: GetUpdateQueue and GetFixedUpdateQueue Methods ==========
+    
+    [ContextMenu("Run Test: GetUpdateQueue Empty Queue")]
+    public void Test_GetUpdateQueue_001()
+    {
+        string testName = "Test_GetUpdateQueue_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Get Update queue from empty world
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            
+            // 2. Verify queue is empty
+            AssertNotNull(queue, "Queue should not be null");
+            AssertEquals(0, queue.Count, "Empty queue should have Count = 0");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue Empty Queue")]
+    public void Test_GetFixedUpdateQueue_001()
+    {
+        string testName = "Test_GetFixedUpdateQueue_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Get FixedUpdate queue from empty world
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            
+            // 2. Verify queue is empty
+            AssertNotNull(queue, "Queue should not be null");
+            AssertEquals(0, queue.Count, "Empty queue should have Count = 0");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue Single System")]
+    public void Test_GetUpdateQueue_002()
+    {
+        string testName = "Test_GetUpdateQueue_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create system
+            TestSystem system = new TestSystem(() => { });
+            
+            // 2. Add to Update queue
+            World.AddToUpdate(system);
+            
+            // 3. Get Update queue
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            
+            // 4. Verify queue contains the system
+            AssertEquals(1, queue.Count, "Queue should have 1 system");
+            AssertEquals(system, queue[0], "Queue should contain the added system");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue Single System")]
+    public void Test_GetFixedUpdateQueue_002()
+    {
+        string testName = "Test_GetFixedUpdateQueue_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create system
+            TestSystem system = new TestSystem(() => { });
+            
+            // 2. Add to FixedUpdate queue
+            World.AddToFixedUpdate(system);
+            
+            // 3. Get FixedUpdate queue
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            
+            // 4. Verify queue contains the system
+            AssertEquals(1, queue.Count, "Queue should have 1 system");
+            AssertEquals(system, queue[0], "Queue should contain the added system");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue Multiple Systems in Order")]
+    public void Test_GetUpdateQueue_003()
+    {
+        string testName = "Test_GetUpdateQueue_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            // 2. Add systems to Update queue in order
+            World.AddToUpdate(system1);
+            World.AddToUpdate(system2);
+            World.AddToUpdate(system3);
+            
+            // 3. Get Update queue
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            
+            // 4. Verify systems are in execution order
+            AssertEquals(3, queue.Count, "Queue should have 3 systems");
+            AssertEquals(system1, queue[0], "System1 should be at index 0");
+            AssertEquals(system2, queue[1], "System2 should be at index 1");
+            AssertEquals(system3, queue[2], "System3 should be at index 2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue Multiple Systems in Order")]
+    public void Test_GetFixedUpdateQueue_003()
+    {
+        string testName = "Test_GetFixedUpdateQueue_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            // 2. Add systems to FixedUpdate queue in order
+            World.AddToFixedUpdate(system1);
+            World.AddToFixedUpdate(system2);
+            World.AddToFixedUpdate(system3);
+            
+            // 3. Get FixedUpdate queue
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            
+            // 4. Verify systems are in execution order
+            AssertEquals(3, queue.Count, "Queue should have 3 systems");
+            AssertEquals(system1, queue[0], "System1 should be at index 0");
+            AssertEquals(system2, queue[1], "System2 should be at index 1");
+            AssertEquals(system3, queue[2], "System3 should be at index 2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue With Order Parameter")]
+    public void Test_GetUpdateQueue_004()
+    {
+        string testName = "Test_GetUpdateQueue_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            // 2. Add systems with order parameter
+            World.AddToUpdate(system1);
+            World.AddToUpdate(system2);
+            World.AddToUpdate(system3, 0); // Insert at beginning
+            
+            // 3. Get Update queue
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            
+            // 4. Verify systems are in correct order (system3 at beginning)
+            AssertEquals(3, queue.Count, "Queue should have 3 systems");
+            AssertEquals(system3, queue[0], "System3 should be at index 0 (inserted at beginning)");
+            AssertEquals(system1, queue[1], "System1 should be at index 1");
+            AssertEquals(system2, queue[2], "System2 should be at index 2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue With Order Parameter")]
+    public void Test_GetFixedUpdateQueue_004()
+    {
+        string testName = "Test_GetFixedUpdateQueue_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            // 2. Add systems with order parameter
+            World.AddToFixedUpdate(system1);
+            World.AddToFixedUpdate(system2);
+            World.AddToFixedUpdate(system3, 1); // Insert at middle
+            
+            // 3. Get FixedUpdate queue
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            
+            // 4. Verify systems are in correct order (system3 at middle)
+            AssertEquals(3, queue.Count, "Queue should have 3 systems");
+            AssertEquals(system1, queue[0], "System1 should be at index 0");
+            AssertEquals(system3, queue[1], "System3 should be at index 1 (inserted at middle)");
+            AssertEquals(system2, queue[2], "System2 should be at index 2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue Real-time Changes")]
+    public void Test_GetUpdateQueue_005()
+    {
+        string testName = "Test_GetUpdateQueue_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Get Update queue (empty)
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            AssertEquals(0, queue.Count, "Queue should be empty initially");
+            
+            // 2. Add system
+            TestSystem system1 = new TestSystem(() => { });
+            World.AddToUpdate(system1);
+            
+            // 3. Verify queue reflects change (real-time)
+            AssertEquals(1, queue.Count, "Queue should reflect added system in real-time");
+            AssertEquals(system1, queue[0], "Queue should contain added system");
+            
+            // 4. Add another system
+            TestSystem system2 = new TestSystem(() => { });
+            World.AddToUpdate(system2);
+            
+            // 5. Verify queue reflects change
+            AssertEquals(2, queue.Count, "Queue should reflect second added system in real-time");
+            AssertEquals(system2, queue[1], "Queue should contain second system");
+            
+            // 6. Remove system
+            World.RemoveFromUpdate(system1);
+            
+            // 7. Verify queue reflects removal
+            AssertEquals(1, queue.Count, "Queue should reflect removed system in real-time");
+            AssertEquals(system2, queue[0], "Queue should only contain remaining system");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue Real-time Changes")]
+    public void Test_GetFixedUpdateQueue_005()
+    {
+        string testName = "Test_GetFixedUpdateQueue_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Get FixedUpdate queue (empty)
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            AssertEquals(0, queue.Count, "Queue should be empty initially");
+            
+            // 2. Add system
+            TestSystem system1 = new TestSystem(() => { });
+            World.AddToFixedUpdate(system1);
+            
+            // 3. Verify queue reflects change (real-time)
+            AssertEquals(1, queue.Count, "Queue should reflect added system in real-time");
+            AssertEquals(system1, queue[0], "Queue should contain added system");
+            
+            // 4. Remove system
+            World.RemoveFromFixedUpdate(system1);
+            
+            // 5. Verify queue reflects removal
+            AssertEquals(0, queue.Count, "Queue should reflect removed system in real-time");
+        });
+    }
+    
+    [ContextMenu("Run Test: WorldInstance GetUpdateQueue")]
+    public void Test_GetUpdateQueue_006()
+    {
+        string testName = "Test_GetUpdateQueue_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world instance
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create and add system to world instance
+            TestSystem system = new TestSystem(() => { });
+            world.AddToUpdate(system);
+            
+            // 3. Get Update queue from world instance
+            IReadOnlyList<SystemHandler> queue = world.GetUpdateQueue();
+            
+            // 4. Verify queue contains the system
+            AssertEquals(1, queue.Count, "Queue should have 1 system");
+            AssertEquals(system, queue[0], "Queue should contain the added system");
+        });
+    }
+    
+    [ContextMenu("Run Test: WorldInstance GetFixedUpdateQueue")]
+    public void Test_GetFixedUpdateQueue_006()
+    {
+        string testName = "Test_GetFixedUpdateQueue_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world instance
+            WorldInstance world = World.GetOrCreate("TestWorld2");
+            
+            // 2. Create and add systems to world instance
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            world.AddToFixedUpdate(system1);
+            world.AddToFixedUpdate(system2);
+            
+            // 3. Get FixedUpdate queue from world instance
+            IReadOnlyList<SystemHandler> queue = world.GetFixedUpdateQueue();
+            
+            // 4. Verify queue contains systems in order
+            AssertEquals(2, queue.Count, "Queue should have 2 systems");
+            AssertEquals(system1, queue[0], "System1 should be at index 0");
+            AssertEquals(system2, queue[1], "System2 should be at index 1");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue Execution Order Matches")]
+    public void Test_GetUpdateQueue_007()
+    {
+        string testName = "Test_GetUpdateQueue_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create systems with execution tracking
+            int[] executionOrder = new int[3];
+            int order = 0;
+            
+            TestSystem system1 = new TestSystem(() => { executionOrder[0] = order++; });
+            TestSystem system2 = new TestSystem(() => { executionOrder[1] = order++; });
+            TestSystem system3 = new TestSystem(() => { executionOrder[2] = order++; });
+            
+            // 2. Add systems to Update queue
+            World.AddToUpdate(system1);
+            World.AddToUpdate(system2);
+            World.AddToUpdate(system3);
+            
+            // 3. Get Update queue
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            
+            // 4. Verify queue order matches execution order
+            AssertEquals(system1, queue[0], "Queue[0] should be system1");
+            AssertEquals(system2, queue[1], "Queue[1] should be system2");
+            AssertEquals(system3, queue[2], "Queue[2] should be system3");
+            
+            // 5. Execute and verify execution order matches queue order
+            World.ExecuteUpdate();
+            AssertEquals(0, executionOrder[0], "System1 should execute first");
+            AssertEquals(1, executionOrder[1], "System2 should execute second");
+            AssertEquals(2, executionOrder[2], "System3 should execute third");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue Execution Order Matches")]
+    public void Test_GetFixedUpdateQueue_007()
+    {
+        string testName = "Test_GetFixedUpdateQueue_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create systems with execution tracking
+            int[] executionOrder = new int[3];
+            int order = 0;
+            
+            TestSystem system1 = new TestSystem(() => { executionOrder[0] = order++; });
+            TestSystem system2 = new TestSystem(() => { executionOrder[1] = order++; });
+            TestSystem system3 = new TestSystem(() => { executionOrder[2] = order++; });
+            
+            // 2. Add systems to FixedUpdate queue
+            World.AddToFixedUpdate(system1);
+            World.AddToFixedUpdate(system2);
+            World.AddToFixedUpdate(system3);
+            
+            // 3. Get FixedUpdate queue
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            
+            // 4. Verify queue order matches execution order
+            AssertEquals(system1, queue[0], "Queue[0] should be system1");
+            AssertEquals(system2, queue[1], "Queue[1] should be system2");
+            AssertEquals(system3, queue[2], "Queue[2] should be system3");
+            
+            // 5. Execute and verify execution order matches queue order
+            World.ExecuteFixedUpdate();
+            AssertEquals(0, executionOrder[0], "System1 should execute first");
+            AssertEquals(1, executionOrder[1], "System2 should execute second");
+            AssertEquals(2, executionOrder[2], "System3 should execute third");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue After Removal")]
+    public void Test_GetUpdateQueue_008()
+    {
+        string testName = "Test_GetUpdateQueue_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create and add multiple systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            World.AddToUpdate(system1);
+            World.AddToUpdate(system2);
+            World.AddToUpdate(system3);
+            
+            // 2. Get queue and verify all systems present
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            AssertEquals(3, queue.Count, "Queue should have 3 systems");
+            
+            // 3. Remove middle system
+            World.RemoveFromUpdate(system2);
+            
+            // 4. Verify queue reflects removal
+            AssertEquals(2, queue.Count, "Queue should have 2 systems after removal");
+            AssertEquals(system1, queue[0], "System1 should still be at index 0");
+            AssertEquals(system3, queue[1], "System3 should be at index 1 (system2 removed)");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue After Removal")]
+    public void Test_GetFixedUpdateQueue_008()
+    {
+        string testName = "Test_GetFixedUpdateQueue_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create and add multiple systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            World.AddToFixedUpdate(system1);
+            World.AddToFixedUpdate(system2);
+            World.AddToFixedUpdate(system3);
+            
+            // 2. Get queue and verify all systems present
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            AssertEquals(3, queue.Count, "Queue should have 3 systems");
+            
+            // 3. Remove first system
+            World.RemoveFromFixedUpdate(system1);
+            
+            // 4. Verify queue reflects removal
+            AssertEquals(2, queue.Count, "Queue should have 2 systems after removal");
+            AssertEquals(system2, queue[0], "System2 should be at index 0 (system1 removed)");
+            AssertEquals(system3, queue[1], "System3 should be at index 1");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue ReadOnly Access")]
+    public void Test_GetUpdateQueue_009()
+    {
+        string testName = "Test_GetUpdateQueue_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Add system and get queue
+            TestSystem system = new TestSystem(() => { });
+            World.AddToUpdate(system);
+            
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            
+            // 2. Verify we can read from queue
+            AssertEquals(1, queue.Count, "Can read Count");
+            AssertNotNull(queue[0], "Can read indexed element");
+            
+            // 3. Verify we can iterate over queue
+            int count = 0;
+            foreach (var sys in queue)
+            {
+                count++;
+                AssertNotNull(sys, "Can iterate over queue");
+            }
+            AssertEquals(1, count, "Iteration should find 1 system");
+            
+            // Note: IReadOnlyList prevents Add/Remove operations at compile time
+            // This is a compile-time check, so we verify the return type is IReadOnlyList
+            Assert(queue is IReadOnlyList<SystemHandler>, "Queue should be IReadOnlyList");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue ReadOnly Access")]
+    public void Test_GetFixedUpdateQueue_009()
+    {
+        string testName = "Test_GetFixedUpdateQueue_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Add systems and get queue
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            World.AddToFixedUpdate(system1);
+            World.AddToFixedUpdate(system2);
+            
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            
+            // 2. Verify we can read from queue
+            AssertEquals(2, queue.Count, "Can read Count");
+            AssertNotNull(queue[0], "Can read indexed element");
+            AssertNotNull(queue[1], "Can read second indexed element");
+            
+            // 3. Verify we can iterate over queue
+            int count = 0;
+            foreach (var sys in queue)
+            {
+                count++;
+                AssertNotNull(sys, "Can iterate over queue");
+            }
+            AssertEquals(2, count, "Iteration should find 2 systems");
+            
+            // Note: IReadOnlyList prevents Add/Remove operations at compile time
+            // This is a compile-time check, so we verify the return type is IReadOnlyList
+            Assert(queue is IReadOnlyList<SystemHandler>, "Queue should be IReadOnlyList");
+        });
+    }
+    
+    [ContextMenu("Run Test: World Static GetUpdateQueue")]
+    public void Test_GetUpdateQueue_010()
+    {
+        string testName = "Test_GetUpdateQueue_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create and add system using static World method
+            TestSystem system = new TestSystem(() => { });
+            World.AddToUpdate(system);
+            
+            // 2. Get queue using static World method
+            IReadOnlyList<SystemHandler> queue = World.GetUpdateQueue();
+            
+            // 3. Verify queue contains the system
+            AssertEquals(1, queue.Count, "Queue should have 1 system");
+            AssertEquals(system, queue[0], "Queue should contain the added system");
+        });
+    }
+    
+    [ContextMenu("Run Test: World Static GetFixedUpdateQueue")]
+    public void Test_GetFixedUpdateQueue_010()
+    {
+        string testName = "Test_GetFixedUpdateQueue_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create and add systems using static World method
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            World.AddToFixedUpdate(system1);
+            World.AddToFixedUpdate(system2);
+            
+            // 2. Get queue using static World method
+            IReadOnlyList<SystemHandler> queue = World.GetFixedUpdateQueue();
+            
+            // 3. Verify queue contains systems
+            AssertEquals(2, queue.Count, "Queue should have 2 systems");
+            AssertEquals(system1, queue[0], "System1 should be at index 0");
+            AssertEquals(system2, queue[1], "System2 should be at index 1");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue Separate Worlds")]
+    public void Test_GetUpdateQueue_011()
+    {
+        string testName = "Test_GetUpdateQueue_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create separate world instances
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 2. Add systems to different worlds
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            
+            world1.AddToUpdate(system1);
+            world2.AddToUpdate(system2);
+            
+            // 3. Get queues from different worlds
+            IReadOnlyList<SystemHandler> queue1 = world1.GetUpdateQueue();
+            IReadOnlyList<SystemHandler> queue2 = world2.GetUpdateQueue();
+            
+            // 4. Verify each world has its own queue
+            AssertEquals(1, queue1.Count, "World1 queue should have 1 system");
+            AssertEquals(system1, queue1[0], "World1 queue should contain system1");
+            
+            AssertEquals(1, queue2.Count, "World2 queue should have 1 system");
+            AssertEquals(system2, queue2[0], "World2 queue should contain system2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue Separate Worlds")]
+    public void Test_GetFixedUpdateQueue_011()
+    {
+        string testName = "Test_GetFixedUpdateQueue_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create separate world instances
+            WorldInstance world1 = World.GetOrCreate("World3");
+            WorldInstance world2 = World.GetOrCreate("World4");
+            
+            // 2. Add systems to different worlds
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            
+            world1.AddToFixedUpdate(system1);
+            world2.AddToFixedUpdate(system2);
+            
+            // 3. Get queues from different worlds
+            IReadOnlyList<SystemHandler> queue1 = world1.GetFixedUpdateQueue();
+            IReadOnlyList<SystemHandler> queue2 = world2.GetFixedUpdateQueue();
+            
+            // 4. Verify each world has its own queue
+            AssertEquals(1, queue1.Count, "World1 queue should have 1 system");
+            AssertEquals(system1, queue1[0], "World1 queue should contain system1");
+            
+            AssertEquals(1, queue2.Count, "World2 queue should have 1 system");
+            AssertEquals(system2, queue2[0], "World2 queue should contain system2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue System In Both Queues Remove From Update")]
+    public void Test_GetUpdateQueue_012()
+    {
+        string testName = "Test_GetUpdateQueue_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create system and add to both queues
+            TestSystem system = new TestSystem(() => { });
+            World.AddToUpdate(system);
+            World.AddToFixedUpdate(system);
+            
+            // 2. Verify system is in both queues
+            IReadOnlyList<SystemHandler> updateQueue = World.GetUpdateQueue();
+            IReadOnlyList<SystemHandler> fixedUpdateQueue = World.GetFixedUpdateQueue();
+            
+            AssertEquals(1, updateQueue.Count, "Update queue should have 1 system");
+            AssertEquals(1, fixedUpdateQueue.Count, "FixedUpdate queue should have 1 system");
+            AssertEquals(system, updateQueue[0], "Update queue should contain system");
+            AssertEquals(system, fixedUpdateQueue[0], "FixedUpdate queue should contain system");
+            
+            // 3. Remove system from Update queue only
+            bool removed = World.RemoveFromUpdate(system);
+            Assert(removed, "RemoveFromUpdate should return true");
+            
+            // 4. Verify system removed from Update but still in FixedUpdate
+            AssertEquals(0, updateQueue.Count, "Update queue should be empty after removal");
+            AssertEquals(1, fixedUpdateQueue.Count, "FixedUpdate queue should still have system");
+            AssertEquals(system, fixedUpdateQueue[0], "FixedUpdate queue should still contain system");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue System In Both Queues Remove From FixedUpdate")]
+    public void Test_GetFixedUpdateQueue_012()
+    {
+        string testName = "Test_GetFixedUpdateQueue_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create system and add to both queues
+            TestSystem system = new TestSystem(() => { });
+            World.AddToUpdate(system);
+            World.AddToFixedUpdate(system);
+            
+            // 2. Verify system is in both queues
+            IReadOnlyList<SystemHandler> updateQueue = World.GetUpdateQueue();
+            IReadOnlyList<SystemHandler> fixedUpdateQueue = World.GetFixedUpdateQueue();
+            
+            AssertEquals(1, updateQueue.Count, "Update queue should have 1 system");
+            AssertEquals(1, fixedUpdateQueue.Count, "FixedUpdate queue should have 1 system");
+            AssertEquals(system, updateQueue[0], "Update queue should contain system");
+            AssertEquals(system, fixedUpdateQueue[0], "FixedUpdate queue should contain system");
+            
+            // 3. Remove system from FixedUpdate queue only
+            bool removed = World.RemoveFromFixedUpdate(system);
+            Assert(removed, "RemoveFromFixedUpdate should return true");
+            
+            // 4. Verify system removed from FixedUpdate but still in Update
+            AssertEquals(1, updateQueue.Count, "Update queue should still have system");
+            AssertEquals(system, updateQueue[0], "Update queue should still contain system");
+            AssertEquals(0, fixedUpdateQueue.Count, "FixedUpdate queue should be empty after removal");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetUpdateQueue Multiple Systems In Both Queues")]
+    public void Test_GetUpdateQueue_013()
+    {
+        string testName = "Test_GetUpdateQueue_013";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            // 2. Add system1 to both queues, system2 only to Update, system3 only to FixedUpdate
+            World.AddToUpdate(system1);
+            World.AddToFixedUpdate(system1);
+            World.AddToUpdate(system2);
+            World.AddToFixedUpdate(system3);
+            
+            // 3. Verify queues
+            IReadOnlyList<SystemHandler> updateQueue = World.GetUpdateQueue();
+            IReadOnlyList<SystemHandler> fixedUpdateQueue = World.GetFixedUpdateQueue();
+            
+            AssertEquals(2, updateQueue.Count, "Update queue should have 2 systems");
+            AssertEquals(2, fixedUpdateQueue.Count, "FixedUpdate queue should have 2 systems");
+            
+            // 4. Remove system1 from Update only
+            World.RemoveFromUpdate(system1);
+            
+            // 5. Verify system1 removed from Update but still in FixedUpdate
+            AssertEquals(1, updateQueue.Count, "Update queue should have 1 system after removal");
+            AssertEquals(system2, updateQueue[0], "Update queue should contain system2");
+            AssertEquals(2, fixedUpdateQueue.Count, "FixedUpdate queue should still have 2 systems");
+            AssertEquals(system1, fixedUpdateQueue[0], "FixedUpdate queue should still contain system1");
+            AssertEquals(system3, fixedUpdateQueue[1], "FixedUpdate queue should still contain system3");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetFixedUpdateQueue Multiple Systems In Both Queues")]
+    public void Test_GetFixedUpdateQueue_013()
+    {
+        string testName = "Test_GetFixedUpdateQueue_013";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple systems
+            TestSystem system1 = new TestSystem(() => { });
+            TestSystem system2 = new TestSystem(() => { });
+            TestSystem system3 = new TestSystem(() => { });
+            
+            // 2. Add system1 to both queues, system2 only to Update, system3 only to FixedUpdate
+            World.AddToUpdate(system1);
+            World.AddToFixedUpdate(system1);
+            World.AddToUpdate(system2);
+            World.AddToFixedUpdate(system3);
+            
+            // 3. Verify queues
+            IReadOnlyList<SystemHandler> updateQueue = World.GetUpdateQueue();
+            IReadOnlyList<SystemHandler> fixedUpdateQueue = World.GetFixedUpdateQueue();
+            
+            AssertEquals(2, updateQueue.Count, "Update queue should have 2 systems");
+            AssertEquals(2, fixedUpdateQueue.Count, "FixedUpdate queue should have 2 systems");
+            
+            // 4. Remove system1 from FixedUpdate only
+            World.RemoveFromFixedUpdate(system1);
+            
+            // 5. Verify system1 removed from FixedUpdate but still in Update
+            AssertEquals(2, updateQueue.Count, "Update queue should still have 2 systems");
+            AssertEquals(system1, updateQueue[0], "Update queue should still contain system1");
+            AssertEquals(system2, updateQueue[1], "Update queue should still contain system2");
+            AssertEquals(1, fixedUpdateQueue.Count, "FixedUpdate queue should have 1 system after removal");
+            AssertEquals(system3, fixedUpdateQueue[0], "FixedUpdate queue should contain system3");
         });
     }
 }

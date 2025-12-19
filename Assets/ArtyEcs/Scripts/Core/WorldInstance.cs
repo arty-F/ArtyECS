@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace ArtyECS.Core
 {
@@ -231,6 +232,16 @@ namespace ArtyECS.Core
         public bool RemoveFromFixedUpdate(SystemHandler system)
         {
             return SystemsManager.RemoveFromFixedUpdate(system, this);
+        }
+
+        public IReadOnlyList<SystemHandler> GetUpdateQueue()
+        {
+            return SystemsManager.GetUpdateQueue(this);
+        }
+
+        public IReadOnlyList<SystemHandler> GetFixedUpdateQueue()
+        {
+            return SystemsManager.GetFixedUpdateQueue(this);
         }
 
         public override string ToString()

@@ -261,6 +261,16 @@ namespace ArtyECS.Core
             return SystemsManager.RemoveFromFixedUpdate(system, GlobalWorld);
         }
 
+        public static IReadOnlyList<SystemHandler> GetUpdateQueue()
+        {
+            return GlobalWorld.GetUpdateQueue();
+        }
+
+        public static IReadOnlyList<SystemHandler> GetFixedUpdateQueue()
+        {
+            return GlobalWorld.GetFixedUpdateQueue();
+        }
+
         public override string ToString()
         {
             return $"World({GlobalWorld.Name})";
