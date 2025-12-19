@@ -844,6 +844,485 @@ public class CoreTests : TestBase
         });
     }
     
+    // ========== API-013: GetEntitiesWithout Methods ==========
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Single Type - Empty World")]
+    public void Test_QueryWithout_001()
+    {
+        string testName = "Test_QueryWithout_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Call GetEntitiesWithout<Position>() on empty world
+            var entities = World.GetEntitiesWithout<Position>();
+            
+            // Returns empty span
+            AssertEquals(0, entities.Length, "Should return empty span");
+            Assert(entities.IsEmpty, "Should return empty span");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Single Type - All Have Component")]
+    public void Test_QueryWithout_002()
+    {
+        string testName = "Test_QueryWithout_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1, Entity2, Entity3 all with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
+            
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Position { X = 3f, Y = 4f, Z = 5f });
+            
+            // 2. Call GetEntitiesWithout<Position>()
+            var entities = World.GetEntitiesWithout<Position>();
+            
+            // Returns empty span (all entities have Position)
+            AssertEquals(0, entities.Length, "Should return empty span");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Single Type - None Have Component")]
+    public void Test_QueryWithout_003()
+    {
+        string testName = "Test_QueryWithout_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1, Entity2, Entity3 with other components (not Position)
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Health { Amount = 100f });
+            
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new TestComponent { Value = 42 });
+            
+            // 2. Call GetEntitiesWithout<Position>()
+            var entities = World.GetEntitiesWithout<Position>();
+            
+            // Returns all three entities (none have Position)
+            AssertEquals(3, entities.Length, "Should return three entities");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Single Type - Some Have Component")]
+    public void Test_QueryWithout_004()
+    {
+        string testName = "Test_QueryWithout_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 without Position
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Create Entity3 without Position
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Health { Amount = 100f });
+            
+            // 4. Call GetEntitiesWithout<Position>()
+            var entities = World.GetEntitiesWithout<Position>();
+            
+            // Returns Entity2 and Entity3 (not Entity1)
+            AssertEquals(2, entities.Length, "Should return two entities");
+            
+            // Verify Entity1 is not in results
+            bool entity1Found = false;
+            for (int i = 0; i < entities.Length; i++)
+            {
+                if (entities[i].Id == entity1.Id && entities[i].Generation == entity1.Generation)
+                {
+                    entity1Found = true;
+                    break;
+                }
+            }
+            Assert(!entity1Found, "Entity1 should not be in results");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Two Types - None Have Either")]
+    public void Test_QueryWithout_005()
+    {
+        string testName = "Test_QueryWithout_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1, Entity2, Entity3 with other components
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Health { Amount = 100f });
+            
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new TestComponent { Value = 42 });
+            
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Dead());
+            
+            // 2. Call GetEntitiesWithout<Position, Velocity>()
+            var entities = World.GetEntitiesWithout<Position, Velocity>();
+            
+            // Returns all three entities (none have Position or Velocity)
+            AssertEquals(3, entities.Length, "Should return three entities");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Two Types - Some Have One")]
+    public void Test_QueryWithout_006()
+    {
+        string testName = "Test_QueryWithout_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 with Velocity
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Create Entity3 without Position or Velocity
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Health { Amount = 100f });
+            
+            // 4. Call GetEntitiesWithout<Position, Velocity>()
+            var entities = World.GetEntitiesWithout<Position, Velocity>();
+            
+            // Returns only Entity3 (Entity1 has Position, Entity2 has Velocity)
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity3.Id, entities[0].Id, "Returned entity should be Entity3");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Two Types - All Have One")]
+    public void Test_QueryWithout_007()
+    {
+        string testName = "Test_QueryWithout_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 with Velocity
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Create Entity3 with both Position and Velocity
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Position { X = 3f, Y = 4f, Z = 5f });
+            World.AddComponent(entity3, new Velocity { X = 3f, Y = 4f, Z = 5f });
+            
+            // 4. Call GetEntitiesWithout<Position, Velocity>()
+            var entities = World.GetEntitiesWithout<Position, Velocity>();
+            
+            // Returns empty span (all entities have Position or Velocity)
+            AssertEquals(0, entities.Length, "Should return empty span");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Three Types")]
+    public void Test_QueryWithout_008()
+    {
+        string testName = "Test_QueryWithout_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 with Velocity
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Create Entity3 with Health
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Health { Amount = 100f });
+            
+            // 4. Create Entity4 without Position, Velocity, or Health
+            Entity entity4 = World.CreateEntity();
+            World.AddComponent(entity4, new TestComponent { Value = 42 });
+            
+            // 5. Call GetEntitiesWithout<Position, Velocity, Health>()
+            var entities = World.GetEntitiesWithout<Position, Velocity, Health>();
+            
+            // Returns only Entity4
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity4.Id, entities[0].Id, "Returned entity should be Entity4");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout With Component Removal")]
+    public void Test_QueryWithout_009()
+    {
+        string testName = "Test_QueryWithout_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 without Position
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Call GetEntitiesWithout<Position>() - should return Entity2
+            var entities = World.GetEntitiesWithout<Position>();
+            AssertEquals(1, entities.Length, "Should return one entity before removal");
+            
+            // 4. Remove Position from Entity1
+            World.RemoveComponent<Position>(entity1);
+            
+            // 5. Call GetEntitiesWithout<Position>() again
+            entities = World.GetEntitiesWithout<Position>();
+            
+            // Returns both Entity1 and Entity2 (Entity1 no longer has Position)
+            AssertEquals(2, entities.Length, "Should return two entities after removal");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout With Multiple Components")]
+    public void Test_QueryWithout_010()
+    {
+        string testName = "Test_QueryWithout_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position, Velocity, Health
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Health { Amount = 100f });
+            
+            // 2. Create Entity2 with Position, Velocity (no Health)
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
+            World.AddComponent(entity2, new Velocity { X = 2f, Y = 3f, Z = 4f });
+            
+            // 3. Create Entity3 with Position only
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Position { X = 3f, Y = 4f, Z = 5f });
+            
+            // 4. Create Entity4 with no Position, Velocity, or Health
+            Entity entity4 = World.CreateEntity();
+            World.AddComponent(entity4, new TestComponent { Value = 42 });
+            
+            // 5. Call GetEntitiesWithout<Position, Velocity>()
+            var entities = World.GetEntitiesWithout<Position, Velocity>();
+            
+            // Returns only Entity4 (others have Position or Velocity)
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity4.Id, entities[0].Id, "Returned entity should be Entity4");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Static World Method")]
+    public void Test_QueryWithout_011()
+    {
+        string testName = "Test_QueryWithout_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 without Position
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Call static World.GetEntitiesWithout<Position>()
+            var entities = World.GetEntitiesWithout<Position>();
+            
+            // Returns Entity2
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity2.Id, entities[0].Id, "Returned entity should be Entity2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout WorldInstance Method")]
+    public void Test_QueryWithout_012()
+    {
+        string testName = "Test_QueryWithout_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create WorldInstance
+            WorldInstance testWorld = World.GetOrCreate("TestWorld");
+            
+            // 2. Create Entity1 with Position
+            Entity entity1 = testWorld.CreateEntity();
+            testWorld.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Create Entity2 without Position
+            Entity entity2 = testWorld.CreateEntity();
+            testWorld.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 4. Call testWorld.GetEntitiesWithout<Position>()
+            var entities = testWorld.GetEntitiesWithout<Position>();
+            
+            // Returns Entity2
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity2.Id, entities[0].Id, "Returned entity should be Entity2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Four Types")]
+    public void Test_QueryWithout_013()
+    {
+        string testName = "Test_QueryWithout_013";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 with Velocity
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Create Entity3 with Health
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Health { Amount = 100f });
+            
+            // 4. Create Entity4 with Dead
+            Entity entity4 = World.CreateEntity();
+            World.AddComponent(entity4, new Dead());
+            
+            // 5. Create Entity5 without any of these
+            Entity entity5 = World.CreateEntity();
+            World.AddComponent(entity5, new TestComponent { Value = 42 });
+            
+            // 6. Call GetEntitiesWithout<Position, Velocity, Health, Dead>()
+            var entities = World.GetEntitiesWithout<Position, Velocity, Health, Dead>();
+            
+            // Returns only Entity5
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity5.Id, entities[0].Id, "Returned entity should be Entity5");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Five Types")]
+    public void Test_QueryWithout_014()
+    {
+        string testName = "Test_QueryWithout_014";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create Entity2 with Velocity
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Create Entity3 with Health
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Health { Amount = 100f });
+            
+            // 4. Create Entity4 with Dead
+            Entity entity4 = World.CreateEntity();
+            World.AddComponent(entity4, new Dead());
+            
+            // 5. Create Entity5 with Destroyed
+            Entity entity5 = World.CreateEntity();
+            World.AddComponent(entity5, new Destroyed());
+            
+            // 6. Create Entity6 without any of these
+            Entity entity6 = World.CreateEntity();
+            World.AddComponent(entity6, new TestComponent { Value = 42 });
+            
+            // 7. Call GetEntitiesWithout<Position, Velocity, Health, Dead, Destroyed>()
+            var entities = World.GetEntitiesWithout<Position, Velocity, Health, Dead, Destroyed>();
+            
+            // Returns only Entity6
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity6.Id, entities[0].Id, "Returned entity should be Entity6");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Six Types")]
+    public void Test_QueryWithout_015()
+    {
+        string testName = "Test_QueryWithout_015";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entities with various components
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Health { Amount = 100f });
+            
+            Entity entity4 = World.CreateEntity();
+            World.AddComponent(entity4, new Dead());
+            
+            Entity entity5 = World.CreateEntity();
+            World.AddComponent(entity5, new Destroyed());
+            
+            Entity entity6 = World.CreateEntity();
+            World.AddComponent(entity6, new TestComponent { Value = 42 });
+            
+            // 2. Create Entity7 without any of the exclusion components
+            Entity entity7 = World.CreateEntity();
+            // No components added - entity must have at least one component to appear in query
+            // So we add a component that's not in the exclusion list
+            World.AddComponent(entity7, new Acceleration { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Call GetEntitiesWithout<Position, Velocity, Health, Dead, Destroyed, TestComponent>()
+            var entities = World.GetEntitiesWithout<Position, Velocity, Health, Dead, Destroyed, TestComponent>();
+            
+            // Returns only Entity7 (has Acceleration, not in exclusion list)
+            AssertEquals(1, entities.Length, "Should return one entity");
+            AssertEquals(entity7.Id, entities[0].Id, "Returned entity should be Entity7");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetEntitiesWithout Entity With Multiple Components")]
+    public void Test_QueryWithout_016()
+    {
+        string testName = "Test_QueryWithout_016";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity1 with Position, Velocity, Health (has Position - should be excluded)
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Health { Amount = 100f });
+            
+            // 2. Create Entity2 with Velocity, Health (no Position - should be included)
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity2, new Health { Amount = 100f });
+            
+            // 3. Create Entity3 with Health only (no Position - should be included)
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Health { Amount = 50f });
+            
+            // 4. Call GetEntitiesWithout<Position>()
+            var entities = World.GetEntitiesWithout<Position>();
+            
+            // Returns Entity2 and Entity3 (not Entity1, which has Position)
+            AssertEquals(2, entities.Length, "Should return two entities");
+            
+            // Verify Entity1 is not in results
+            bool entity1Found = false;
+            for (int i = 0; i < entities.Length; i++)
+            {
+                if (entities[i].Id == entity1.Id && entities[i].Generation == entity1.Generation)
+                {
+                    entity1Found = true;
+                    break;
+                }
+            }
+            Assert(!entity1Found, "Entity1 should not be in results (has Position)");
+        });
+    }
+    
     // ========== Core-009: GetComponentsWithout removed (API-003) ==========
     // Tests removed - GetComponentsWithout methods no longer exist
     

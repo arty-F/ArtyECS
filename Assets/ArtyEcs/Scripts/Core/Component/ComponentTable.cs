@@ -141,6 +141,11 @@ namespace ArtyECS.Core
             return true;
         }
 
+        ReadOnlySpan<Entity> IComponentTable.GetEntities()
+        {
+            return GetEntities();
+        }
+
         internal void RemoveComponentInternal(Entity entity)
         {
             if (!_entityToIndex.TryGetValue(entity, out int removeIndex))

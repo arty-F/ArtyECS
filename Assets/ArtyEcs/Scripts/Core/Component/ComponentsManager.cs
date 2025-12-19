@@ -539,6 +539,259 @@ namespace ArtyECS.Core
             return result;
         }
 
+        private static HashSet<Entity> GetAllEntitiesInWorld(WorldInstance world)
+        {
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
+            var allEntities = new HashSet<Entity>();
+
+            if (!WorldTables.TryGetValue(world, out var worldTable))
+            {
+                return allEntities;
+            }
+
+            foreach (var table in worldTable.Values)
+            {
+                var entities = table.GetEntities();
+                foreach (var entity in entities)
+                {
+                    allEntities.Add(entity);
+                }
+            }
+
+            return allEntities;
+        }
+
+        internal static ReadOnlySpan<Entity> GetEntitiesWithout<T1>(WorldInstance world) where T1 : struct, IComponent
+        {
+            var allEntities = GetAllEntitiesInWorld(world);
+            
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var table1 = GetOrCreateTable<T1>(world);
+            var exclusionSet = table1.GetEntitiesSet();
+            
+            allEntities.ExceptWith(exclusionSet);
+
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[allEntities.Count];
+            int index = 0;
+            foreach (var entity in allEntities)
+            {
+                result[index++] = entity;
+            }
+
+            return result;
+        }
+
+        internal static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2>(WorldInstance world) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+        {
+            var allEntities = GetAllEntitiesInWorld(world);
+            
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            
+            var exclusionSet = table1.GetEntitiesSet();
+            exclusionSet.UnionWith(table2.GetEntitiesSet());
+            
+            allEntities.ExceptWith(exclusionSet);
+
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[allEntities.Count];
+            int index = 0;
+            foreach (var entity in allEntities)
+            {
+                result[index++] = entity;
+            }
+
+            return result;
+        }
+
+        internal static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2, T3>(WorldInstance world) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+            where T3 : struct, IComponent
+        {
+            var allEntities = GetAllEntitiesInWorld(world);
+            
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
+            
+            var exclusionSet = table1.GetEntitiesSet();
+            exclusionSet.UnionWith(table2.GetEntitiesSet());
+            exclusionSet.UnionWith(table3.GetEntitiesSet());
+            
+            allEntities.ExceptWith(exclusionSet);
+
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[allEntities.Count];
+            int index = 0;
+            foreach (var entity in allEntities)
+            {
+                result[index++] = entity;
+            }
+
+            return result;
+        }
+
+        internal static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2, T3, T4>(WorldInstance world) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+            where T3 : struct, IComponent
+            where T4 : struct, IComponent
+        {
+            var allEntities = GetAllEntitiesInWorld(world);
+            
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
+            var table4 = GetOrCreateTable<T4>(world);
+            
+            var exclusionSet = table1.GetEntitiesSet();
+            exclusionSet.UnionWith(table2.GetEntitiesSet());
+            exclusionSet.UnionWith(table3.GetEntitiesSet());
+            exclusionSet.UnionWith(table4.GetEntitiesSet());
+            
+            allEntities.ExceptWith(exclusionSet);
+
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[allEntities.Count];
+            int index = 0;
+            foreach (var entity in allEntities)
+            {
+                result[index++] = entity;
+            }
+
+            return result;
+        }
+
+        internal static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2, T3, T4, T5>(WorldInstance world) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+            where T3 : struct, IComponent
+            where T4 : struct, IComponent
+            where T5 : struct, IComponent
+        {
+            var allEntities = GetAllEntitiesInWorld(world);
+            
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
+            var table4 = GetOrCreateTable<T4>(world);
+            var table5 = GetOrCreateTable<T5>(world);
+            
+            var exclusionSet = table1.GetEntitiesSet();
+            exclusionSet.UnionWith(table2.GetEntitiesSet());
+            exclusionSet.UnionWith(table3.GetEntitiesSet());
+            exclusionSet.UnionWith(table4.GetEntitiesSet());
+            exclusionSet.UnionWith(table5.GetEntitiesSet());
+            
+            allEntities.ExceptWith(exclusionSet);
+
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[allEntities.Count];
+            int index = 0;
+            foreach (var entity in allEntities)
+            {
+                result[index++] = entity;
+            }
+
+            return result;
+        }
+
+        internal static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2, T3, T4, T5, T6>(WorldInstance world) 
+            where T1 : struct, IComponent 
+            where T2 : struct, IComponent
+            where T3 : struct, IComponent
+            where T4 : struct, IComponent
+            where T5 : struct, IComponent
+            where T6 : struct, IComponent
+        {
+            var allEntities = GetAllEntitiesInWorld(world);
+            
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var table1 = GetOrCreateTable<T1>(world);
+            var table2 = GetOrCreateTable<T2>(world);
+            var table3 = GetOrCreateTable<T3>(world);
+            var table4 = GetOrCreateTable<T4>(world);
+            var table5 = GetOrCreateTable<T5>(world);
+            var table6 = GetOrCreateTable<T6>(world);
+            
+            var exclusionSet = table1.GetEntitiesSet();
+            exclusionSet.UnionWith(table2.GetEntitiesSet());
+            exclusionSet.UnionWith(table3.GetEntitiesSet());
+            exclusionSet.UnionWith(table4.GetEntitiesSet());
+            exclusionSet.UnionWith(table5.GetEntitiesSet());
+            exclusionSet.UnionWith(table6.GetEntitiesSet());
+            
+            allEntities.ExceptWith(exclusionSet);
+
+            if (allEntities.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+
+            var result = new Entity[allEntities.Count];
+            int index = 0;
+            foreach (var entity in allEntities)
+            {
+                result[index++] = entity;
+            }
+
+            return result;
+        }
+
         internal static ModifiableComponentCollection<T> GetModifiableComponents<T>(WorldInstance world) where T : struct, IComponent
         {
             var table = GetOrCreateTable<T>(world);

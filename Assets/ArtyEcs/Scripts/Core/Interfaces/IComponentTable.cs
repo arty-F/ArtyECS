@@ -5,6 +5,7 @@ namespace ArtyECS.Core
     internal interface IComponentTable
     {
         bool TryRemoveComponentForEntity(Entity entity);
+        ReadOnlySpan<Entity> GetEntities();
     }
 }
 
