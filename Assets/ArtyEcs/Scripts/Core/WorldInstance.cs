@@ -135,6 +135,11 @@ namespace ArtyECS.Core
             return ComponentsManager.GetEntitiesWithout<T1, T2, T3, T4, T5, T6>(this);
         }
 
+        public QueryBuilder Query()
+        {
+            return new QueryBuilder(this);
+        }
+
         public T GetComponent<T>(Entity entity) where T : struct, IComponent
         {
             return ComponentsManager.GetComponent<T>(entity, this);

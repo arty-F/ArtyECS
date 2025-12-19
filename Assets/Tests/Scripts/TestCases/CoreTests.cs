@@ -1062,9 +1062,10 @@ public class CoreTests : TestBase
         string testName = "Test_QueryWithout_009";
         ExecuteTest(testName, () =>
         {
-            // 1. Create Entity1 with Position
+            // 1. Create Entity1 with Position and Velocity
             Entity entity1 = World.CreateEntity();
             World.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
             // 2. Create Entity2 without Position
             Entity entity2 = World.CreateEntity();
@@ -1074,13 +1075,13 @@ public class CoreTests : TestBase
             var entities = World.GetEntitiesWithout<Position>();
             AssertEquals(1, entities.Length, "Should return one entity before removal");
             
-            // 4. Remove Position from Entity1
+            // 4. Remove Position from Entity1 (Entity1 still has Velocity)
             World.RemoveComponent<Position>(entity1);
             
             // 5. Call GetEntitiesWithout<Position>() again
             entities = World.GetEntitiesWithout<Position>();
             
-            // Returns both Entity1 and Entity2 (Entity1 no longer has Position)
+            // Returns both Entity1 and Entity2 (Entity1 no longer has Position, but still has Velocity)
             AssertEquals(2, entities.Length, "Should return two entities after removal");
         });
     }
