@@ -515,5 +515,414 @@ public class WorldTests : TestBase
             AssertEquals(testWorld, testWorld2, "TestWorld should be same instance");
         });
     }
+    
+    // ========== API-015: GetAllEntities Method ==========
+    
+    [ContextMenu("Run Test: GetAllEntities Empty World")]
+    public void Test_GetAllEntities_001()
+    {
+        string testName = "Test_GetAllEntities_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create empty world
+            WorldInstance world = World.GetOrCreate("EmptyWorld");
+            
+            // 2. Call GetAllEntities()
+            var entities = world.GetAllEntities();
+            
+            // Empty world returns empty span
+            AssertEquals(0, entities.Length, "Empty world should return empty span");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities Single Entity")]
+    public void Test_GetAllEntities_002()
+    {
+        string testName = "Test_GetAllEntities_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create single entity with component
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new TestComponent { Value = 42 });
+            
+            // 3. Call GetAllEntities()
+            var entities = world.GetAllEntities();
+            
+            // Single entity returned
+            AssertEquals(1, entities.Length, "World with single entity should return 1 entity");
+            AssertEquals(entity, entities[0], "Returned entity should match created entity");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities Multiple Entities")]
+    public void Test_GetAllEntities_003()
+    {
+        string testName = "Test_GetAllEntities_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create multiple entities with components
+            Entity entity1 = world.CreateEntity();
+            world.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            Entity entity2 = world.CreateEntity();
+            world.AddComponent(entity2, new TestComponent { Value = 2 });
+            
+            Entity entity3 = world.CreateEntity();
+            world.AddComponent(entity3, new TestComponent { Value = 3 });
+            
+            // 3. Call GetAllEntities()
+            var entities = world.GetAllEntities();
+            
+            // All entities returned
+            AssertEquals(3, entities.Length, "World with 3 entities should return 3 entities");
+            
+            // Verify all entities are present
+            bool found1 = false, found2 = false, found3 = false;
+            foreach (var e in entities)
+            {
+                if (e == entity1) found1 = true;
+                if (e == entity2) found2 = true;
+                if (e == entity3) found3 = true;
+            }
+            Assert(found1, "Entity1 should be in result");
+            Assert(found2, "Entity2 should be in result");
+            Assert(found3, "Entity3 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities Deduplication Multiple Components")]
+    public void Test_GetAllEntities_004()
+    {
+        string testName = "Test_GetAllEntities_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with multiple components
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            world.AddComponent(entity, new Health { Amount = 100f });
+            
+            // 3. Call GetAllEntities()
+            var entities = world.GetAllEntities();
+            
+            // Entity appears only once (deduplication)
+            AssertEquals(1, entities.Length, "Entity with multiple components should appear only once");
+            AssertEquals(entity, entities[0], "Returned entity should match created entity");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities Entities Without Components Not Included")]
+    public void Test_GetAllEntities_005()
+    {
+        string testName = "Test_GetAllEntities_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with component
+            Entity entity1 = world.CreateEntity();
+            world.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            // 3. Create entity without components (note: this entity won't appear in ComponentTable)
+            // Since GetAllEntities() iterates through ComponentTables, entities without components won't be included
+            Entity entity2 = world.CreateEntity();
+            // Don't add any component to entity2
+            
+            // 4. Call GetAllEntities()
+            var entities = world.GetAllEntities();
+            
+            // Only entity with component is returned
+            // Note: Entities without components are not included because they don't appear in any ComponentTable
+            AssertEquals(1, entities.Length, "Only entity with component should be returned");
+            AssertEquals(entity1, entities[0], "Returned entity should be entity1");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities Static World Method")]
+    public void Test_GetAllEntities_006()
+    {
+        string testName = "Test_GetAllEntities_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entities in global world
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new TestComponent { Value = 2 });
+            
+            // 2. Call static World.GetAllEntities()
+            var entities = World.GetAllEntities();
+            
+            // All entities from global world returned
+            AssertEquals(2, entities.Length, "Global world with 2 entities should return 2 entities");
+            
+            // Verify entities are present
+            bool found1 = false, found2 = false;
+            foreach (var e in entities)
+            {
+                if (e == entity1) found1 = true;
+                if (e == entity2) found2 = true;
+            }
+            Assert(found1, "Entity1 should be in result");
+            Assert(found2, "Entity2 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities After Entity Creation")]
+    public void Test_GetAllEntities_007()
+    {
+        string testName = "Test_GetAllEntities_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create first entity
+            Entity entity1 = world.CreateEntity();
+            world.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            // 3. Get all entities (should have 1)
+            var entities1 = world.GetAllEntities();
+            AssertEquals(1, entities1.Length, "Should have 1 entity");
+            
+            // 4. Create second entity
+            Entity entity2 = world.CreateEntity();
+            world.AddComponent(entity2, new TestComponent { Value = 2 });
+            
+            // 5. Get all entities again (should have 2)
+            var entities2 = world.GetAllEntities();
+            AssertEquals(2, entities2.Length, "Should have 2 entities after creating second entity");
+            
+            // 6. Verify both entities are present
+            bool found1 = false, found2 = false;
+            foreach (var e in entities2)
+            {
+                if (e == entity1) found1 = true;
+                if (e == entity2) found2 = true;
+            }
+            Assert(found1, "Entity1 should be in result");
+            Assert(found2, "Entity2 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities After Entity Destruction")]
+    public void Test_GetAllEntities_008()
+    {
+        string testName = "Test_GetAllEntities_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create multiple entities
+            Entity entity1 = world.CreateEntity();
+            world.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            Entity entity2 = world.CreateEntity();
+            world.AddComponent(entity2, new TestComponent { Value = 2 });
+            
+            Entity entity3 = world.CreateEntity();
+            world.AddComponent(entity3, new TestComponent { Value = 3 });
+            
+            // 3. Get all entities (should have 3)
+            var entities1 = world.GetAllEntities();
+            AssertEquals(3, entities1.Length, "Should have 3 entities");
+            
+            // 4. Destroy entity2
+            world.DestroyEntity(entity2);
+            
+            // 5. Get all entities again (should have 2)
+            var entities2 = world.GetAllEntities();
+            AssertEquals(2, entities2.Length, "Should have 2 entities after destroying entity2");
+            
+            // 6. Verify entity2 is not present, but entity1 and entity3 are
+            bool found1 = false, found2 = false, found3 = false;
+            foreach (var e in entities2)
+            {
+                if (e == entity1) found1 = true;
+                if (e == entity2) found2 = true;
+                if (e == entity3) found3 = true;
+            }
+            Assert(found1, "Entity1 should be in result");
+            Assert(!found2, "Entity2 should not be in result (destroyed)");
+            Assert(found3, "Entity3 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities Different Component Combinations")]
+    public void Test_GetAllEntities_009()
+    {
+        string testName = "Test_GetAllEntities_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entities with different component combinations
+            Entity entity1 = world.CreateEntity();
+            world.AddComponent(entity1, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            Entity entity2 = world.CreateEntity();
+            world.AddComponent(entity2, new Position { X = 2f, Y = 3f, Z = 4f });
+            world.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            Entity entity3 = world.CreateEntity();
+            world.AddComponent(entity3, new Health { Amount = 100f });
+            
+            Entity entity4 = world.CreateEntity();
+            world.AddComponent(entity4, new Position { X = 3f, Y = 4f, Z = 5f });
+            world.AddComponent(entity4, new Velocity { X = 2f, Y = 3f, Z = 4f });
+            world.AddComponent(entity4, new Health { Amount = 200f });
+            
+            // 3. Call GetAllEntities()
+            var entities = world.GetAllEntities();
+            
+            // All entities returned (each appears only once)
+            AssertEquals(4, entities.Length, "World with 4 entities should return 4 entities");
+            
+            // Verify all entities are present
+            bool found1 = false, found2 = false, found3 = false, found4 = false;
+            foreach (var e in entities)
+            {
+                if (e == entity1) found1 = true;
+                if (e == entity2) found2 = true;
+                if (e == entity3) found3 = true;
+                if (e == entity4) found4 = true;
+            }
+            Assert(found1, "Entity1 should be in result");
+            Assert(found2, "Entity2 should be in result");
+            Assert(found3, "Entity3 should be in result");
+            Assert(found4, "Entity4 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities World Isolation")]
+    public void Test_GetAllEntities_010()
+    {
+        string testName = "Test_GetAllEntities_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create two separate worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 2. Create entities in world1
+            Entity entity1 = world1.CreateEntity();
+            world1.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            Entity entity2 = world1.CreateEntity();
+            world1.AddComponent(entity2, new TestComponent { Value = 2 });
+            
+            // 3. Create entities in world2
+            Entity entity3 = world2.CreateEntity();
+            world2.AddComponent(entity3, new TestComponent { Value = 3 });
+            
+            // 4. Get all entities from each world
+            var entities1 = world1.GetAllEntities();
+            var entities2 = world2.GetAllEntities();
+            
+            // Each world returns only its own entities
+            AssertEquals(2, entities1.Length, "World1 should have 2 entities");
+            AssertEquals(1, entities2.Length, "World2 should have 1 entity");
+            
+            // Verify world isolation
+            bool found1 = false, found2 = false;
+            foreach (var e in entities1)
+            {
+                if (e == entity1) found1 = true;
+                if (e == entity2) found2 = true;
+            }
+            Assert(found1, "Entity1 should be in World1 result");
+            Assert(found2, "Entity2 should be in World1 result");
+            
+            AssertEquals(entity3, entities2[0], "Entity3 should be in World2 result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities Many Entities Performance")]
+    public void Test_GetAllEntities_011()
+    {
+        string testName = "Test_GetAllEntities_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create many entities (100 entities)
+            const int entityCount = 100;
+            Entity[] createdEntities = new Entity[entityCount];
+            
+            for (int i = 0; i < entityCount; i++)
+            {
+                Entity entity = world.CreateEntity();
+                world.AddComponent(entity, new TestComponent { Value = i });
+                createdEntities[i] = entity;
+            }
+            
+            // 3. Call GetAllEntities()
+            var entities = world.GetAllEntities();
+            
+            // All entities returned
+            AssertEquals(entityCount, entities.Length, $"World with {entityCount} entities should return {entityCount} entities");
+            
+            // Verify all entities are present
+            var foundEntities = new System.Collections.Generic.HashSet<Entity>();
+            foreach (var e in entities)
+            {
+                foundEntities.Add(e);
+            }
+            
+            for (int i = 0; i < entityCount; i++)
+            {
+                Assert(foundEntities.Contains(createdEntities[i]), $"Entity {i} should be in result");
+            }
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllEntities ReadOnlySpan Iteration")]
+    public void Test_GetAllEntities_012()
+    {
+        string testName = "Test_GetAllEntities_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create multiple entities
+            Entity entity1 = world.CreateEntity();
+            world.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            Entity entity2 = world.CreateEntity();
+            world.AddComponent(entity2, new TestComponent { Value = 2 });
+            
+            Entity entity3 = world.CreateEntity();
+            world.AddComponent(entity3, new TestComponent { Value = 3 });
+            
+            // 3. Call GetAllEntities() and iterate over ReadOnlySpan
+            var entities = world.GetAllEntities();
+            
+            // Verify ReadOnlySpan can be iterated
+            int count = 0;
+            foreach (var entity in entities)
+            {
+                count++;
+                Assert(entity.IsValid, "Entity should be valid");
+            }
+            
+            AssertEquals(3, count, "Should iterate over 3 entities");
+            AssertEquals(3, entities.Length, "ReadOnlySpan.Length should be 3");
+        });
+    }
 }
 

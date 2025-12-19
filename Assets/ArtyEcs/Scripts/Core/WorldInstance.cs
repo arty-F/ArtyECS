@@ -140,6 +140,24 @@ namespace ArtyECS.Core
             return new QueryBuilder(this);
         }
 
+        public ReadOnlySpan<Entity> GetAllEntities()
+        {
+            var entitySet = ComponentsManager.GetAllEntitiesInWorld(this);
+            if (entitySet.Count == 0)
+            {
+                return ReadOnlySpan<Entity>.Empty;
+            }
+            
+            var entityArray = new Entity[entitySet.Count];
+            int index = 0;
+            foreach (var entity in entitySet)
+            {
+                entityArray[index++] = entity;
+            }
+            
+            return new ReadOnlySpan<Entity>(entityArray);
+        }
+
         public T GetComponent<T>(Entity entity) where T : struct, IComponent
         {
             return ComponentsManager.GetComponent<T>(entity, this);

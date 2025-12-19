@@ -181,6 +181,11 @@ namespace ArtyECS.Core
             return new QueryBuilder(GlobalWorld);
         }
 
+        public static ReadOnlySpan<Entity> GetAllEntities()
+        {
+            return GlobalWorld.GetAllEntities();
+        }
+
         public static T GetComponent<T>(Entity entity) where T : struct, IComponent
         {
             return ComponentsManager.GetComponent<T>(entity, GlobalWorld);
