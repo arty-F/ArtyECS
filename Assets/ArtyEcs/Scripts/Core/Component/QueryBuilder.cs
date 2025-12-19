@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace ArtyECS.Core
 {
@@ -221,27 +220,24 @@ namespace ArtyECS.Core
 
         private ReadOnlySpan<Entity> GetEntitiesWithType(Type componentType)
         {
-            var method = typeof(WorldInstance).GetMethod(
-                nameof(WorldInstance.GetEntitiesWith),
-                BindingFlags.Public | BindingFlags.Instance,
-                null,
-                Type.EmptyTypes,
-                null);
-
-            if (method == null)
+            var table = ComponentsManager.GetTableByType(componentType, _world);
+            if (table == null)
             {
                 return ReadOnlySpan<Entity>.Empty;
             }
 
-            var genericMethod = method.MakeGenericMethod(componentType);
-            var result = genericMethod.Invoke(_world, null);
-            
-            return result is ReadOnlySpan<Entity> span ? span : ReadOnlySpan<Entity>.Empty;
+            return table.GetEntities();
         }
 
         private HashSet<Entity> GetEntitiesWithTypeAsSet(Type componentType)
         {
-            var entities = GetEntitiesWithType(componentType);
+            var table = ComponentsManager.GetTableByType(componentType, _world);
+            if (table == null)
+            {
+                return new HashSet<Entity>();
+            }
+
+            var entities = table.GetEntities();
             var set = new HashSet<Entity>(entities.Length);
             foreach (var entity in entities)
             {
@@ -252,20 +248,7 @@ namespace ArtyECS.Core
 
         private HashSet<Entity> GetAllEntitiesInWorld()
         {
-            var allEntities = new HashSet<Entity>();
-
-            var method = typeof(ComponentsManager).GetMethod(
-                "GetAllEntitiesInWorld",
-                BindingFlags.NonPublic | BindingFlags.Static);
-
-            if (method == null)
-            {
-                return allEntities;
-            }
-
-            var result = method.Invoke(null, new object[] { _world });
-            
-            return result is HashSet<Entity> set ? set : allEntities;
+            return ComponentsManager.GetAllEntitiesInWorld(_world);
         }
     }
 }

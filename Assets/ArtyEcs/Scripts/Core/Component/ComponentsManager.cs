@@ -78,6 +78,27 @@ namespace ArtyECS.Core
             return (ComponentTable<T>)table;
         }
 
+        internal static IComponentTable GetTableByType(Type componentType, WorldInstance world)
+        {
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
+            if (componentType == null)
+                throw new ArgumentNullException(nameof(componentType));
+
+            if (!WorldTables.TryGetValue(world, out var worldTable))
+            {
+                return null;
+            }
+
+            if (worldTable.TryGetValue(componentType, out var table))
+            {
+                return table;
+            }
+
+            return null;
+        }
+
         internal static int GetWorldCount()
         {
             return WorldTables.Count;
@@ -539,7 +560,7 @@ namespace ArtyECS.Core
             return result;
         }
 
-        private static HashSet<Entity> GetAllEntitiesInWorld(WorldInstance world)
+        internal static HashSet<Entity> GetAllEntitiesInWorld(WorldInstance world)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
