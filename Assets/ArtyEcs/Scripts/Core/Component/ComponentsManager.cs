@@ -871,5 +871,41 @@ namespace ArtyECS.Core
             TableCache.Clear();
             WorldTables.Clear();
         }
+
+        internal static ComponentInfo[] GetAllComponentInfos(Entity entity, WorldInstance world)
+        {
+            ValidateEntityForRead(entity, world);
+
+            if (!WorldTables.TryGetValue(world, out var worldTable))
+            {
+                return Array.Empty<ComponentInfo>();
+            }
+
+            var componentInfos = new List<ComponentInfo>();
+
+            foreach (var kvp in worldTable)
+            {
+                var componentType = kvp.Key;
+                var table = kvp.Value;
+
+                if (table.HasComponentForEntity(entity))
+                {
+                    var componentValue = table.GetComponentValue(entity);
+                    var jsonValue = GetJsonValue(componentValue);
+
+                    componentInfos.Add(new ComponentInfo(componentType, componentValue, jsonValue));
+                }
+            }
+
+            return componentInfos.ToArray();
+        }
+
+        private static string GetJsonValue(object value)
+        {
+            if (value == null)
+                return null;
+
+            return UnityEngine.JsonUtility.ToJson(value);
+        }
     }
 }

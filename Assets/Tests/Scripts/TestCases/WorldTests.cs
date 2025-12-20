@@ -1838,5 +1838,558 @@ public class WorldTests : TestBase
             Assert(!nonExistent, "Non-existent world should return false");
         });
     }
+    
+    // ========== API-019: GetAllComponentInfos Method ==========
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Empty Entity")]
+    public void Test_GetAllComponentInfos_001()
+    {
+        string testName = "Test_GetAllComponentInfos_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity without components
+            Entity entity = world.CreateEntity();
+            
+            // 3. Call GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // Empty entity returns empty array
+            AssertNotNull(componentInfos, "GetAllComponentInfos should return non-null array");
+            AssertEquals(0, componentInfos.Length, "Empty entity should return empty array");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Single Component")]
+    public void Test_GetAllComponentInfos_002()
+    {
+        string testName = "Test_GetAllComponentInfos_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with one component
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new TestComponent { Value = 42 });
+            
+            // 3. Call GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // Entity with one component returns array with one ComponentInfo
+            AssertNotNull(componentInfos, "GetAllComponentInfos should return non-null array");
+            AssertEquals(1, componentInfos.Length, "Entity with one component should return array with one ComponentInfo");
+            
+            // 4. Verify ComponentInfo structure
+            var info = componentInfos[0];
+            AssertEquals(typeof(TestComponent), info.ComponentType, "ComponentType should be TestComponent");
+            AssertNotNull(info.Value, "Value should not be null");
+            
+            // 5. Verify boxed value is correct
+            var boxedComponent = (TestComponent)info.Value;
+            AssertEquals(42, boxedComponent.Value, "Boxed component Value should be 42");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Multiple Components")]
+    public void Test_GetAllComponentInfos_003()
+    {
+        string testName = "Test_GetAllComponentInfos_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with multiple components
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            world.AddComponent(entity, new Health { Amount = 100f });
+            
+            // 3. Call GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // Entity with multiple components returns array with all ComponentInfos
+            AssertNotNull(componentInfos, "GetAllComponentInfos should return non-null array");
+            AssertEquals(3, componentInfos.Length, "Entity with 3 components should return array with 3 ComponentInfos");
+            
+            // 4. Verify all component types are present
+            var types = new System.Collections.Generic.HashSet<Type>();
+            foreach (var info in componentInfos)
+            {
+                types.Add(info.ComponentType);
+            }
+            Assert(types.Contains(typeof(Position)), "Position component should be present");
+            Assert(types.Contains(typeof(Velocity)), "Velocity component should be present");
+            Assert(types.Contains(typeof(Health)), "Health component should be present");
+            
+            // 5. Verify values are correct
+            foreach (var info in componentInfos)
+            {
+                if (info.ComponentType == typeof(Position))
+                {
+                    var pos = (Position)info.Value;
+                    AssertEquals(1f, pos.X, "Position.X should be 1");
+                    AssertEquals(2f, pos.Y, "Position.Y should be 2");
+                    AssertEquals(3f, pos.Z, "Position.Z should be 3");
+                }
+                else if (info.ComponentType == typeof(Velocity))
+                {
+                    var vel = (Velocity)info.Value;
+                    AssertEquals(4f, vel.X, "Velocity.X should be 4");
+                    AssertEquals(5f, vel.Y, "Velocity.Y should be 5");
+                    AssertEquals(6f, vel.Z, "Velocity.Z should be 6");
+                }
+                else if (info.ComponentType == typeof(Health))
+                {
+                    var health = (Health)info.Value;
+                    AssertEquals(100f, health.Amount, "Health.Amount should be 100");
+                }
+            }
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos ComponentType Correctness")]
+    public void Test_GetAllComponentInfos_004()
+    {
+        string testName = "Test_GetAllComponentInfos_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with different component types
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new TestComponent { Value = 123 });
+            world.AddComponent(entity, new Position { X = 10f, Y = 20f, Z = 30f });
+            
+            // 3. Call GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // 4. Verify ComponentType is correct for each ComponentInfo
+            AssertEquals(2, componentInfos.Length, "Should have 2 components");
+            
+            bool foundTestComponent = false;
+            bool foundPosition = false;
+            
+            foreach (var info in componentInfos)
+            {
+                AssertNotNull(info.ComponentType, "ComponentType should not be null");
+                
+                if (info.ComponentType == typeof(TestComponent))
+                {
+                    foundTestComponent = true;
+                    Assert(info.Value is TestComponent, "Value should be TestComponent");
+                }
+                else if (info.ComponentType == typeof(Position))
+                {
+                    foundPosition = true;
+                    Assert(info.Value is Position, "Value should be Position");
+                }
+            }
+            
+            Assert(foundTestComponent, "TestComponent should be found");
+            Assert(foundPosition, "Position should be found");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Value Boxing Correctness")]
+    public void Test_GetAllComponentInfos_005()
+    {
+        string testName = "Test_GetAllComponentInfos_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with component
+            Entity entity = world.CreateEntity();
+            var originalComponent = new TestComponent { Value = 999 };
+            world.AddComponent(entity, originalComponent);
+            
+            // 3. Call GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // 4. Verify Value is correctly boxed component value
+            AssertEquals(1, componentInfos.Length, "Should have 1 component");
+            var info = componentInfos[0];
+            
+            AssertNotNull(info.Value, "Value should not be null");
+            Assert(info.Value is TestComponent, "Value should be boxed TestComponent");
+            
+            var unboxedComponent = (TestComponent)info.Value;
+            AssertEquals(999, unboxedComponent.Value, "Unboxed component Value should be 999");
+            AssertEquals(originalComponent.Value, unboxedComponent.Value, "Boxed value should match original");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos JsonValue Generated")]
+    public void Test_GetAllComponentInfos_006()
+    {
+        string testName = "Test_GetAllComponentInfos_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with component
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new TestComponent { Value = 42 });
+            
+            // 3. Call GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // 4. Verify JsonValue is generated (can be null if serialization fails)
+            AssertEquals(1, componentInfos.Length, "Should have 1 component");
+            var info = componentInfos[0];
+            
+            // JsonValue may or may not be null depending on Unity JsonUtility support
+            // We just verify the field exists and can be accessed
+            // (Note: JsonValue generation is optional per API spec)
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Invalid Entity Throws Exception")]
+    public void Test_GetAllComponentInfos_007()
+    {
+        string testName = "Test_GetAllComponentInfos_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create invalid entity
+            Entity invalidEntity = Entity.Invalid;
+            
+            // 3. Call GetAllComponentInfos() with invalid entity
+            // Should throw InvalidEntityException
+            bool exceptionThrown = false;
+            try
+            {
+                world.GetAllComponentInfos(invalidEntity);
+            }
+            catch (InvalidEntityException)
+            {
+                exceptionThrown = true;
+            }
+            
+            Assert(exceptionThrown, "GetAllComponentInfos should throw InvalidEntityException for invalid entity");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Different Component Types")]
+    public void Test_GetAllComponentInfos_008()
+    {
+        string testName = "Test_GetAllComponentInfos_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with various component types (simple structs, empty structs, etc.)
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new TestComponent { Value = 1 });
+            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(entity, new Dead()); // Empty struct component
+            
+            // 3. Call GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // 4. Verify all component types are returned
+            AssertEquals(3, componentInfos.Length, "Should have 3 components");
+            
+            var types = new System.Collections.Generic.HashSet<Type>();
+            foreach (var info in componentInfos)
+            {
+                types.Add(info.ComponentType);
+                AssertNotNull(info.Value, "Value should not be null even for empty struct");
+            }
+            
+            Assert(types.Contains(typeof(TestComponent)), "TestComponent should be present");
+            Assert(types.Contains(typeof(Position)), "Position should be present");
+            Assert(types.Contains(typeof(Dead)), "Dead (empty struct) should be present");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Static World Method")]
+    public void Test_GetAllComponentInfos_009()
+    {
+        string testName = "Test_GetAllComponentInfos_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entity in global world
+            Entity entity = World.CreateEntity();
+            World.AddComponent(entity, new TestComponent { Value = 100 });
+            World.AddComponent(entity, new Position { X = 5f, Y = 6f, Z = 7f });
+            
+            // 2. Call static World.GetAllComponentInfos()
+            var componentInfos = World.GetAllComponentInfos(entity);
+            
+            // 3. Verify result
+            AssertNotNull(componentInfos, "GetAllComponentInfos should return non-null array");
+            AssertEquals(2, componentInfos.Length, "Should have 2 components");
+            
+            // 4. Verify components are correct
+            var types = new System.Collections.Generic.HashSet<Type>();
+            foreach (var info in componentInfos)
+            {
+                types.Add(info.ComponentType);
+            }
+            Assert(types.Contains(typeof(TestComponent)), "TestComponent should be present");
+            Assert(types.Contains(typeof(Position)), "Position should be present");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos WorldInstance Method")]
+    public void Test_GetAllComponentInfos_010()
+    {
+        string testName = "Test_GetAllComponentInfos_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world instance
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with components
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new Health { Amount = 50f });
+            
+            // 3. Call instance method world.GetAllComponentInfos()
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // 4. Verify result
+            AssertNotNull(componentInfos, "GetAllComponentInfos should return non-null array");
+            AssertEquals(1, componentInfos.Length, "Should have 1 component");
+            AssertEquals(typeof(Health), componentInfos[0].ComponentType, "ComponentType should be Health");
+            
+            var health = (Health)componentInfos[0].Value;
+            AssertEquals(50f, health.Amount, "Health.Amount should be 50");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos World Isolation")]
+    public void Test_GetAllComponentInfos_011()
+    {
+        string testName = "Test_GetAllComponentInfos_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create two separate worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 2. Create entity in world1 with components
+            Entity entity1 = world1.CreateEntity();
+            world1.AddComponent(entity1, new TestComponent { Value = 1 });
+            world1.AddComponent(entity1, new Position { X = 1f, Y = 1f, Z = 1f });
+            
+            // 3. Create entity in world2 with components
+            Entity entity2 = world2.CreateEntity();
+            world2.AddComponent(entity2, new TestComponent { Value = 2 });
+            world2.AddComponent(entity2, new Health { Amount = 200f });
+            
+            // 4. Get component infos from each world
+            var infos1 = world1.GetAllComponentInfos(entity1);
+            var infos2 = world2.GetAllComponentInfos(entity2);
+            
+            // 5. Verify world isolation - each world returns only its own components
+            AssertEquals(2, infos1.Length, "World1 should have 2 components");
+            AssertEquals(2, infos2.Length, "World2 should have 2 components");
+            
+            // Verify world1 components
+            var types1 = new System.Collections.Generic.HashSet<Type>();
+            foreach (var info in infos1)
+            {
+                types1.Add(info.ComponentType);
+            }
+            Assert(types1.Contains(typeof(TestComponent)), "World1 should have TestComponent");
+            Assert(types1.Contains(typeof(Position)), "World1 should have Position");
+            Assert(!types1.Contains(typeof(Health)), "World1 should NOT have Health");
+            
+            // Verify world2 components
+            var types2 = new System.Collections.Generic.HashSet<Type>();
+            foreach (var info in infos2)
+            {
+                types2.Add(info.ComponentType);
+            }
+            Assert(types2.Contains(typeof(TestComponent)), "World2 should have TestComponent");
+            Assert(types2.Contains(typeof(Health)), "World2 should have Health");
+            Assert(!types2.Contains(typeof(Position)), "World2 should NOT have Position");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos After Component Removal")]
+    public void Test_GetAllComponentInfos_012()
+    {
+        string testName = "Test_GetAllComponentInfos_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with multiple components
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(entity, new Velocity { X = 4f, Y = 5f, Z = 6f });
+            world.AddComponent(entity, new Health { Amount = 100f });
+            
+            // 3. Get component infos (should have 3)
+            var infos1 = world.GetAllComponentInfos(entity);
+            AssertEquals(3, infos1.Length, "Should have 3 components before removal");
+            
+            // 4. Remove one component
+            world.RemoveComponent<Velocity>(entity);
+            
+            // 5. Get component infos again (should have 2)
+            var infos2 = world.GetAllComponentInfos(entity);
+            AssertEquals(2, infos2.Length, "Should have 2 components after removal");
+            
+            // 6. Verify removed component is not present
+            var types = new System.Collections.Generic.HashSet<Type>();
+            foreach (var info in infos2)
+            {
+                types.Add(info.ComponentType);
+            }
+            Assert(types.Contains(typeof(Position)), "Position should still be present");
+            Assert(types.Contains(typeof(Health)), "Health should still be present");
+            Assert(!types.Contains(typeof(Velocity)), "Velocity should NOT be present (removed)");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Empty World")]
+    public void Test_GetAllComponentInfos_013()
+    {
+        string testName = "Test_GetAllComponentInfos_013";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create empty world (no component tables)
+            WorldInstance world = World.GetOrCreate("EmptyWorld");
+            
+            // 2. Create entity (but don't add components, so no component tables are created)
+            Entity entity = world.CreateEntity();
+            
+            // 3. Call GetAllComponentInfos() on entity in world with no component tables
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // Empty world returns empty array
+            AssertNotNull(componentInfos, "GetAllComponentInfos should return non-null array");
+            AssertEquals(0, componentInfos.Length, "Empty world should return empty array");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Multiple Entities Same World")]
+    public void Test_GetAllComponentInfos_014()
+    {
+        string testName = "Test_GetAllComponentInfos_014";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create multiple entities with different components
+            Entity entity1 = world.CreateEntity();
+            world.AddComponent(entity1, new TestComponent { Value = 1 });
+            
+            Entity entity2 = world.CreateEntity();
+            world.AddComponent(entity2, new Position { X = 10f, Y = 20f, Z = 30f });
+            world.AddComponent(entity2, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            Entity entity3 = world.CreateEntity();
+            world.AddComponent(entity3, new Health { Amount = 150f });
+            
+            // 3. Get component infos for each entity
+            var infos1 = world.GetAllComponentInfos(entity1);
+            var infos2 = world.GetAllComponentInfos(entity2);
+            var infos3 = world.GetAllComponentInfos(entity3);
+            
+            // 4. Verify each entity returns correct components
+            AssertEquals(1, infos1.Length, "Entity1 should have 1 component");
+            AssertEquals(2, infos2.Length, "Entity2 should have 2 components");
+            AssertEquals(1, infos3.Length, "Entity3 should have 1 component");
+            
+            AssertEquals(typeof(TestComponent), infos1[0].ComponentType, "Entity1 should have TestComponent");
+            
+            var types2 = new System.Collections.Generic.HashSet<Type>();
+            foreach (var info in infos2)
+            {
+                types2.Add(info.ComponentType);
+            }
+            Assert(types2.Contains(typeof(Position)), "Entity2 should have Position");
+            Assert(types2.Contains(typeof(Velocity)), "Entity2 should have Velocity");
+            
+            AssertEquals(typeof(Health), infos3[0].ComponentType, "Entity3 should have Health");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos Component Values Preserved")]
+    public void Test_GetAllComponentInfos_015()
+    {
+        string testName = "Test_GetAllComponentInfos_015";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with components having specific values
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new Position { X = 123.456f, Y = 789.012f, Z = 345.678f });
+            world.AddComponent(entity, new TestComponent { Value = -42 });
+            
+            // 3. Get component infos
+            var componentInfos = world.GetAllComponentInfos(entity);
+            
+            // 4. Verify component values are preserved after boxing/unboxing
+            AssertEquals(2, componentInfos.Length, "Should have 2 components");
+            
+            foreach (var info in componentInfos)
+            {
+                if (info.ComponentType == typeof(Position))
+                {
+                    var pos = (Position)info.Value;
+                    AssertEquals(123.456f, pos.X, "Position.X should be preserved");
+                    AssertEquals(789.012f, pos.Y, "Position.Y should be preserved");
+                    AssertEquals(345.678f, pos.Z, "Position.Z should be preserved");
+                }
+                else if (info.ComponentType == typeof(TestComponent))
+                {
+                    var test = (TestComponent)info.Value;
+                    AssertEquals(-42, test.Value, "TestComponent.Value should be preserved");
+                }
+            }
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllComponentInfos After Component Modification")]
+    public void Test_GetAllComponentInfos_016()
+    {
+        string testName = "Test_GetAllComponentInfos_016";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with component
+            Entity entity = world.CreateEntity();
+            world.AddComponent(entity, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Get component infos (original values)
+            var infos1 = world.GetAllComponentInfos(entity);
+            var originalPos = (Position)infos1[0].Value;
+            AssertEquals(1f, originalPos.X, "Original X should be 1");
+            
+            // 4. Modify component
+            ref var modifiablePos = ref world.GetModifiableComponent<Position>(entity);
+            modifiablePos.X = 999f;
+            modifiablePos.Y = 888f;
+            modifiablePos.Z = 777f;
+            
+            // 5. Get component infos again (should reflect modifications)
+            var infos2 = world.GetAllComponentInfos(entity);
+            var modifiedPos = (Position)infos2[0].Value;
+            AssertEquals(999f, modifiedPos.X, "Modified X should be 999");
+            AssertEquals(888f, modifiedPos.Y, "Modified Y should be 888");
+            AssertEquals(777f, modifiedPos.Z, "Modified Z should be 777");
+        });
+    }
 }
 

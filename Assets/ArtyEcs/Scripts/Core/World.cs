@@ -217,6 +217,11 @@ namespace ArtyECS.Core
             return ComponentsManager.GetModifiableComponents<T>(GlobalWorld);
         }
 
+        public static ComponentInfo[] GetAllComponentInfos(Entity entity)
+        {
+            return GlobalWorld.GetAllComponentInfos(entity);
+        }
+
         public static void AddToUpdate(SystemHandler system)
         {
             SystemsManager.AddToUpdate(system, GlobalWorld);

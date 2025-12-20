@@ -6,6 +6,8 @@ namespace ArtyECS.Core
     {
         bool TryRemoveComponentForEntity(Entity entity);
         ReadOnlySpan<Entity> GetEntities();
+        bool HasComponentForEntity(Entity entity);
+        object GetComponentValue(Entity entity);
     }
 }
 

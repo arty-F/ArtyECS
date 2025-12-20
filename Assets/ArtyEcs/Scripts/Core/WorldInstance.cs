@@ -189,6 +189,11 @@ namespace ArtyECS.Core
             return ComponentsManager.GetModifiableComponents<T>(this);
         }
 
+        public ComponentInfo[] GetAllComponentInfos(Entity entity)
+        {
+            return ComponentsManager.GetAllComponentInfos(entity, this);
+        }
+
         public void AddToUpdate(SystemHandler system)
         {
             SystemsManager.AddToUpdate(system, this);

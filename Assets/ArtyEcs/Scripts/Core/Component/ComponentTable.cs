@@ -146,6 +146,20 @@ namespace ArtyECS.Core
             return GetEntities();
         }
 
+        bool IComponentTable.HasComponentForEntity(Entity entity)
+        {
+            return HasComponent(entity);
+        }
+
+        object IComponentTable.GetComponentValue(Entity entity)
+        {
+            if (TryGetComponent(entity, out T component))
+            {
+                return component;
+            }
+            return null;
+        }
+
         internal void RemoveComponentInternal(Entity entity)
         {
             if (!_entityToIndex.TryGetValue(entity, out int removeIndex))
