@@ -119,17 +119,6 @@ namespace ArtyECS.Core
             return (_components, _entities, _entityToIndex);
         }
 
-        internal ref int GetCountRef()
-        {
-            return ref _count;
-        }
-
-        internal (T[] components, Entity[] entities, Dictionary<Entity, int> entityToIndex) GetInternalTableForAdd(int minCapacity)
-        {
-            EnsureCapacity(minCapacity);
-            return GetInternalTable();
-        }
-
         public bool TryRemoveComponentForEntity(Entity entity)
         {
             if (!HasComponent(entity))
@@ -158,6 +147,28 @@ namespace ArtyECS.Core
                 return component;
             }
             return null;
+        }
+
+        void IComponentTable.AddComponentForEntity(Entity entity, object componentValue)
+        {
+            if (componentValue == null)
+                throw new ArgumentNullException(nameof(componentValue));
+
+            if (!(componentValue is T))
+                throw new ArgumentException($"Component value must be of type {typeof(T).Name}", nameof(componentValue));
+
+            if (HasComponent(entity))
+                throw new InvalidOperationException($"Entity already has component of type {typeof(T).Name}");
+
+            T component = (T)componentValue;
+
+            EnsureCapacity(_count + 1);
+
+            _components[_count] = component;
+            _entities[_count] = entity;
+            _entityToIndex[entity] = _count;
+
+            _count++;
         }
 
         internal void RemoveComponentInternal(Entity entity)

@@ -8,6 +8,7 @@ namespace ArtyECS.Core
         ReadOnlySpan<Entity> GetEntities();
         bool HasComponentForEntity(Entity entity);
         object GetComponentValue(Entity entity);
+        void AddComponentForEntity(Entity entity, object componentValue);
     }
 }
 

@@ -2391,5 +2391,531 @@ public class WorldTests : TestBase
             AssertEquals(777f, modifiedPos.Z, "Modified Z should be 777");
         });
     }
+    
+    // ========== API-020: CloneEntity Methods ==========
+    
+    [ContextMenu("Run Test: CloneEntity Empty Entity")]
+    public void Test_CloneEntity_001()
+    {
+        string testName = "Test_CloneEntity_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create empty entity (no components)
+            Entity sourceEntity = world.CreateEntity();
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Verify cloned entity is different instance
+            Assert(clonedEntity.Id != sourceEntity.Id || clonedEntity.Generation != sourceEntity.Generation, 
+                "Cloned entity should be different Entity instance");
+            
+            // 5. Verify cloned entity has no components
+            Assert(!clonedEntity.Has<Position>(world), "Cloned entity should have no Position component");
+            Assert(!clonedEntity.Has<TestComponent>(world), "Cloned entity should have no TestComponent");
+            Assert(!clonedEntity.Has<Health>(world), "Cloned entity should have no Health component");
+            
+            // 6. Verify cloned entity is in same world
+            var componentInfos = world.GetAllComponentInfos(clonedEntity);
+            AssertEquals(0, componentInfos.Length, "Cloned entity should have 0 components");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Single Component")]
+    public void Test_CloneEntity_002()
+    {
+        string testName = "Test_CloneEntity_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with one component
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Verify cloned entity is different instance
+            Assert(clonedEntity.Id != sourceEntity.Id || clonedEntity.Generation != sourceEntity.Generation, 
+                "Cloned entity should be different Entity instance");
+            
+            // 5. Verify cloned entity has Position component
+            Assert(clonedEntity.Has<Position>(world), "Cloned entity should have Position component");
+            
+            // 6. Verify component values are copied correctly
+            var sourcePos = world.GetComponent<Position>(sourceEntity);
+            var clonedPos = world.GetComponent<Position>(clonedEntity);
+            AssertEquals(1f, clonedPos.X, "Cloned Position.X should be 1");
+            AssertEquals(2f, clonedPos.Y, "Cloned Position.Y should be 2");
+            AssertEquals(3f, clonedPos.Z, "Cloned Position.Z should be 3");
+            AssertEquals(sourcePos.X, clonedPos.X, "Cloned X should equal source X");
+            AssertEquals(sourcePos.Y, clonedPos.Y, "Cloned Y should equal source Y");
+            AssertEquals(sourcePos.Z, clonedPos.Z, "Cloned Z should equal source Z");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Multiple Components")]
+    public void Test_CloneEntity_003()
+    {
+        string testName = "Test_CloneEntity_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with multiple components
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(sourceEntity, new Health { Amount = 100f });
+            world.AddComponent(sourceEntity, new Velocity { X = 0.5f, Y = 0.3f, Z = 0.1f });
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Verify cloned entity is different instance
+            Assert(clonedEntity.Id != sourceEntity.Id || clonedEntity.Generation != sourceEntity.Generation, 
+                "Cloned entity should be different Entity instance");
+            
+            // 5. Verify cloned entity has all components
+            Assert(clonedEntity.Has<Position>(world), "Cloned entity should have Position component");
+            Assert(clonedEntity.Has<Health>(world), "Cloned entity should have Health component");
+            Assert(clonedEntity.Has<Velocity>(world), "Cloned entity should have Velocity component");
+            
+            // 6. Verify all component values are copied correctly
+            var sourcePos = world.GetComponent<Position>(sourceEntity);
+            var clonedPos = world.GetComponent<Position>(clonedEntity);
+            AssertEquals(sourcePos.X, clonedPos.X, "Cloned Position.X should equal source");
+            AssertEquals(sourcePos.Y, clonedPos.Y, "Cloned Position.Y should equal source");
+            AssertEquals(sourcePos.Z, clonedPos.Z, "Cloned Position.Z should equal source");
+            
+            var sourceHealth = world.GetComponent<Health>(sourceEntity);
+            var clonedHealth = world.GetComponent<Health>(clonedEntity);
+            AssertEquals(sourceHealth.Amount, clonedHealth.Amount, "Cloned Health.Amount should equal source");
+            
+            var sourceVel = world.GetComponent<Velocity>(sourceEntity);
+            var clonedVel = world.GetComponent<Velocity>(clonedEntity);
+            AssertEquals(sourceVel.X, clonedVel.X, "Cloned Velocity.X should equal source");
+            AssertEquals(sourceVel.Y, clonedVel.Y, "Cloned Velocity.Y should equal source");
+            AssertEquals(sourceVel.Z, clonedVel.Z, "Cloned Velocity.Z should equal source");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Same World")]
+    public void Test_CloneEntity_004()
+    {
+        string testName = "Test_CloneEntity_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with components
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Verify cloned entity is in same world (can access components via same world instance)
+            Assert(clonedEntity.Has<Position>(world), "Cloned entity should be accessible via same world");
+            
+            // 5. Verify both entities exist in same world
+            var allEntities = world.GetAllEntities();
+            bool foundSource = false, foundCloned = false;
+            foreach (var e in allEntities)
+            {
+                if (e == sourceEntity) foundSource = true;
+                if (e == clonedEntity) foundCloned = true;
+            }
+            Assert(foundSource, "Source entity should be in world");
+            Assert(foundCloned, "Cloned entity should be in same world");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Different Entity Instance")]
+    public void Test_CloneEntity_005()
+    {
+        string testName = "Test_CloneEntity_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new TestComponent { Value = 42 });
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Verify cloned entity is different Entity instance (not same reference)
+            Assert(clonedEntity.Id != sourceEntity.Id || clonedEntity.Generation != sourceEntity.Generation, 
+                "Cloned entity must be different Entity instance");
+            
+            // 5. Verify they are not equal
+            Assert(!clonedEntity.Equals(sourceEntity), "Cloned entity should not equal source entity");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Component Values Copied")]
+    public void Test_CloneEntity_006()
+    {
+        string testName = "Test_CloneEntity_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with components having specific values
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new Position { X = 123.456f, Y = 789.012f, Z = 345.678f });
+            world.AddComponent(sourceEntity, new TestComponent { Value = -42 });
+            world.AddComponent(sourceEntity, new Health { Amount = 99.5f });
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Verify component values are copied correctly (struct value copy)
+            var sourcePos = world.GetComponent<Position>(sourceEntity);
+            var clonedPos = world.GetComponent<Position>(clonedEntity);
+            AssertEquals(123.456f, clonedPos.X, "Cloned Position.X should be 123.456");
+            AssertEquals(789.012f, clonedPos.Y, "Cloned Position.Y should be 789.012");
+            AssertEquals(345.678f, clonedPos.Z, "Cloned Position.Z should be 345.678");
+            
+            var sourceTest = world.GetComponent<TestComponent>(sourceEntity);
+            var clonedTest = world.GetComponent<TestComponent>(clonedEntity);
+            AssertEquals(-42, clonedTest.Value, "Cloned TestComponent.Value should be -42");
+            
+            var sourceHealth = world.GetComponent<Health>(sourceEntity);
+            var clonedHealth = world.GetComponent<Health>(clonedEntity);
+            AssertEquals(99.5f, clonedHealth.Amount, "Cloned Health.Amount should be 99.5");
+            
+            // 5. Verify modifying source doesn't affect clone (value copy)
+            ref var modifiablePos = ref world.GetModifiableComponent<Position>(sourceEntity);
+            modifiablePos.X = 999f;
+            
+            var clonedPosAfter = world.GetComponent<Position>(clonedEntity);
+            AssertEquals(123.456f, clonedPosAfter.X, "Cloned Position.X should remain 123.456 after source modification");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Invalid Source Entity")]
+    public void Test_CloneEntity_007()
+    {
+        string testName = "Test_CloneEntity_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create invalid entity
+            Entity invalidEntity = Entity.Invalid;
+            
+            // 3. Attempt to clone invalid entity
+            bool exceptionThrown = false;
+            try
+            {
+                world.CloneEntity(invalidEntity);
+            }
+            catch (InvalidEntityException)
+            {
+                exceptionThrown = true;
+            }
+            
+            // 4. Verify InvalidEntityException was thrown
+            Assert(exceptionThrown, "CloneEntity should throw InvalidEntityException for invalid entity");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Different Component Types")]
+    public void Test_CloneEntity_008()
+    {
+        string testName = "Test_CloneEntity_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity with various component types
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(sourceEntity, new Velocity { X = 0.5f, Y = 0.3f, Z = 0.1f });
+            world.AddComponent(sourceEntity, new Health { Amount = 100f });
+            world.AddComponent(sourceEntity, new TestComponent { Value = 42 });
+            world.AddComponent(sourceEntity, new Dead());
+            world.AddComponent(sourceEntity, new Destroyed());
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Verify all component types are cloned
+            Assert(clonedEntity.Has<Position>(world), "Cloned entity should have Position");
+            Assert(clonedEntity.Has<Velocity>(world), "Cloned entity should have Velocity");
+            Assert(clonedEntity.Has<Health>(world), "Cloned entity should have Health");
+            Assert(clonedEntity.Has<TestComponent>(world), "Cloned entity should have TestComponent");
+            Assert(clonedEntity.Has<Dead>(world), "Cloned entity should have Dead");
+            Assert(clonedEntity.Has<Destroyed>(world), "Cloned entity should have Destroyed");
+            
+            // 5. Verify component count matches
+            var sourceInfos = world.GetAllComponentInfos(sourceEntity);
+            var clonedInfos = world.GetAllComponentInfos(clonedEntity);
+            AssertEquals(sourceInfos.Length, clonedInfos.Length, "Cloned entity should have same number of components");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Static Method")]
+    public void Test_CloneEntity_009()
+    {
+        string testName = "Test_CloneEntity_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entity in global world using static method
+            Entity sourceEntity = World.CreateEntity();
+            World.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            World.AddComponent(sourceEntity, new Health { Amount = 100f });
+            
+            // 2. Clone entity using static method
+            Entity clonedEntity = World.CloneEntity(sourceEntity);
+            
+            // 3. Verify cloned entity is different instance
+            Assert(clonedEntity.Id != sourceEntity.Id || clonedEntity.Generation != sourceEntity.Generation, 
+                "Cloned entity should be different Entity instance");
+            
+            // 4. Verify cloned entity has components
+            Assert(clonedEntity.Has<Position>(), "Cloned entity should have Position component");
+            Assert(clonedEntity.Has<Health>(), "Cloned entity should have Health component");
+            
+            // 5. Verify component values are copied
+            var clonedPos = World.GetComponent<Position>(clonedEntity);
+            AssertEquals(1f, clonedPos.X, "Cloned Position.X should be 1");
+            AssertEquals(2f, clonedPos.Y, "Cloned Position.Y should be 2");
+            AssertEquals(3f, clonedPos.Z, "Cloned Position.Z should be 3");
+            
+            var clonedHealth = World.GetComponent<Health>(clonedEntity);
+            AssertEquals(100f, clonedHealth.Amount, "Cloned Health.Amount should be 100");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity WorldInstance Method")]
+    public void Test_CloneEntity_010()
+    {
+        string testName = "Test_CloneEntity_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create specific world
+            WorldInstance gameWorld = World.GetOrCreate("GameWorld");
+            
+            // 2. Create entity in specific world
+            Entity sourceEntity = gameWorld.CreateEntity();
+            gameWorld.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            gameWorld.AddComponent(sourceEntity, new Velocity { X = 0.5f, Y = 0.3f, Z = 0.1f });
+            
+            // 3. Clone entity using WorldInstance method
+            Entity clonedEntity = gameWorld.CloneEntity(sourceEntity);
+            
+            // 4. Verify cloned entity is different instance
+            Assert(clonedEntity.Id != sourceEntity.Id || clonedEntity.Generation != sourceEntity.Generation, 
+                "Cloned entity should be different Entity instance");
+            
+            // 5. Verify cloned entity has components
+            Assert(clonedEntity.Has<Position>(gameWorld), "Cloned entity should have Position component");
+            Assert(clonedEntity.Has<Velocity>(gameWorld), "Cloned entity should have Velocity component");
+            
+            // 6. Verify cloned entity is in same world
+            var allEntities = gameWorld.GetAllEntities();
+            bool foundSource = false, foundCloned = false;
+            foreach (var e in allEntities)
+            {
+                if (e == sourceEntity) foundSource = true;
+                if (e == clonedEntity) foundCloned = true;
+            }
+            Assert(foundSource, "Source entity should be in GameWorld");
+            Assert(foundCloned, "Cloned entity should be in GameWorld");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Entity Template Pattern")]
+    public void Test_CloneEntity_011()
+    {
+        string testName = "Test_CloneEntity_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create entity template
+            var template = world.CreateEntity();
+            world.AddComponent(template, new TestComponent { Value = 100 });
+            world.AddComponent(template, new Health { Amount = 100f });
+            
+            // 3. Clone template to create multiple entities
+            Entity[] clonedEntities = new Entity[10];
+            for (int i = 0; i < 10; i++)
+            {
+                clonedEntities[i] = world.CloneEntity(template);
+            }
+            
+            // 4. Verify all cloned entities have same base components
+            for (int i = 0; i < 10; i++)
+            {
+                Assert(clonedEntities[i].Has<TestComponent>(world), $"Cloned entity {i} should have TestComponent");
+                Assert(clonedEntities[i].Has<Health>(world), $"Cloned entity {i} should have Health");
+                
+                var test = world.GetComponent<TestComponent>(clonedEntities[i]);
+                var health = world.GetComponent<Health>(clonedEntities[i]);
+                AssertEquals(100, test.Value, $"Cloned entity {i} TestComponent.Value should be 100");
+                AssertEquals(100f, health.Amount, $"Cloned entity {i} Health.Amount should be 100");
+            }
+            
+            // 5. Verify all cloned entities are different instances
+            for (int i = 0; i < 10; i++)
+            {
+                for (int j = i + 1; j < 10; j++)
+                {
+                    Assert(clonedEntities[i].Id != clonedEntities[j].Id || 
+                           clonedEntities[i].Generation != clonedEntities[j].Generation,
+                        $"Cloned entities {i} and {j} should be different instances");
+                }
+            }
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Prefab Instantiation Pattern")]
+    public void Test_CloneEntity_012()
+    {
+        string testName = "Test_CloneEntity_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create prefab entity
+            var enemyPrefab = world.CreateEntity();
+            world.AddComponent(enemyPrefab, new TestComponent { Value = 50 });
+            world.AddComponent(enemyPrefab, new Health { Amount = 50f });
+            world.AddComponent(enemyPrefab, new Position { X = 0f, Y = 0f, Z = 0f });
+            
+            // 3. Instantiate prefab (clone)
+            var enemy = world.CloneEntity(enemyPrefab);
+            
+            // 4. Verify enemy has all components from prefab
+            Assert(enemy.Has<TestComponent>(world), "Enemy should have TestComponent");
+            Assert(enemy.Has<Health>(world), "Enemy should have Health");
+            Assert(enemy.Has<Position>(world), "Enemy should have Position");
+            
+            // 5. Verify component values match prefab
+            var prefabTest = world.GetComponent<TestComponent>(enemyPrefab);
+            var enemyTest = world.GetComponent<TestComponent>(enemy);
+            AssertEquals(prefabTest.Value, enemyTest.Value, "Enemy TestComponent.Value should match prefab");
+            
+            var prefabHealth = world.GetComponent<Health>(enemyPrefab);
+            var enemyHealth = world.GetComponent<Health>(enemy);
+            AssertEquals(prefabHealth.Amount, enemyHealth.Amount, "Enemy Health.Amount should match prefab");
+            
+            // 6. Verify enemy is different entity instance
+            Assert(enemy.Id != enemyPrefab.Id || enemy.Generation != enemyPrefab.Generation,
+                "Enemy should be different Entity instance from prefab");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity Component Modification After Clone")]
+    public void Test_CloneEntity_013()
+    {
+        string testName = "Test_CloneEntity_013";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create source entity
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(sourceEntity, new Health { Amount = 100f });
+            
+            // 3. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 4. Modify source entity components
+            ref var sourcePos = ref world.GetModifiableComponent<Position>(sourceEntity);
+            sourcePos.X = 999f;
+            ref var sourceHealth = ref world.GetModifiableComponent<Health>(sourceEntity);
+            sourceHealth.Amount = 50f;
+            
+            // 5. Verify cloned entity components are not affected (value copy)
+            var clonedPos = world.GetComponent<Position>(clonedEntity);
+            var clonedHealth = world.GetComponent<Health>(clonedEntity);
+            AssertEquals(1f, clonedPos.X, "Cloned Position.X should remain 1 after source modification");
+            AssertEquals(2f, clonedPos.Y, "Cloned Position.Y should remain 2");
+            AssertEquals(3f, clonedPos.Z, "Cloned Position.Z should remain 3");
+            AssertEquals(100f, clonedHealth.Amount, "Cloned Health.Amount should remain 100 after source modification");
+            
+            // 6. Modify cloned entity components
+            ref var clonedPosRef = ref world.GetModifiableComponent<Position>(clonedEntity);
+            clonedPosRef.X = 777f;
+            ref var clonedHealthRef = ref world.GetModifiableComponent<Health>(clonedEntity);
+            clonedHealthRef.Amount = 200f;
+            
+            // 7. Verify source entity components are not affected
+            var sourcePosAfter = world.GetComponent<Position>(sourceEntity);
+            var sourceHealthAfter = world.GetComponent<Health>(sourceEntity);
+            AssertEquals(999f, sourcePosAfter.X, "Source Position.X should remain 999 after clone modification");
+            AssertEquals(50f, sourceHealthAfter.Amount, "Source Health.Amount should remain 50 after clone modification");
+        });
+    }
+    
+    [ContextMenu("Run Test: CloneEntity All Component Infos Match")]
+    public void Test_CloneEntity_014()
+    {
+        string testName = "Test_CloneEntity_014";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Create source entity with multiple components
+            Entity sourceEntity = world.CreateEntity();
+            world.AddComponent(sourceEntity, new Position { X = 1f, Y = 2f, Z = 3f });
+            world.AddComponent(sourceEntity, new Health { Amount = 100f });
+            world.AddComponent(sourceEntity, new Velocity { X = 0.5f, Y = 0.3f, Z = 0.1f });
+            
+            // 3. Get source component infos
+            var sourceInfos = world.GetAllComponentInfos(sourceEntity);
+            
+            // 4. Clone entity
+            Entity clonedEntity = world.CloneEntity(sourceEntity);
+            
+            // 5. Get cloned component infos
+            var clonedInfos = world.GetAllComponentInfos(clonedEntity);
+            
+            // 6. Verify component count matches
+            AssertEquals(sourceInfos.Length, clonedInfos.Length, 
+                "Cloned entity should have same number of components as source");
+            
+            // 7. Verify all component types match
+            var sourceTypes = new System.Collections.Generic.HashSet<Type>();
+            var clonedTypes = new System.Collections.Generic.HashSet<Type>();
+            
+            foreach (var info in sourceInfos)
+            {
+                sourceTypes.Add(info.ComponentType);
+            }
+            
+            foreach (var info in clonedInfos)
+            {
+                clonedTypes.Add(info.ComponentType);
+            }
+            
+            AssertEquals(sourceTypes.Count, clonedTypes.Count, "Component type count should match");
+            foreach (var type in sourceTypes)
+            {
+                Assert(clonedTypes.Contains(type), $"Cloned entity should have component type {type.Name}");
+            }
+        });
+    }
 }
 

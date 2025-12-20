@@ -222,6 +222,11 @@ namespace ArtyECS.Core
             return GlobalWorld.GetAllComponentInfos(entity);
         }
 
+        public static Entity CloneEntity(Entity source)
+        {
+            return GlobalWorld.CloneEntity(source);
+        }
+
         public static void AddToUpdate(SystemHandler system)
         {
             SystemsManager.AddToUpdate(system, GlobalWorld);

@@ -194,6 +194,11 @@ namespace ArtyECS.Core
             return ComponentsManager.GetAllComponentInfos(entity, this);
         }
 
+        public Entity CloneEntity(Entity source)
+        {
+            return ComponentsManager.CloneEntity(source, this);
+        }
+
         public void AddToUpdate(SystemHandler system)
         {
             SystemsManager.AddToUpdate(system, this);

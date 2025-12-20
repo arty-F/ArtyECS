@@ -122,16 +122,7 @@ namespace ArtyECS.Core
                 throw new DuplicateComponentException(entity, typeof(T));
             }
 
-            var currentCount = table.Count;
-            var (components, entities, entityToIndex) = table.GetInternalTableForAdd(currentCount + 1);
-            ref int count = ref table.GetCountRef();
-
-            components[count] = component;
-            entities[count] = entity;
-
-            entityToIndex[entity] = count;
-
-            count++;
+            ((IComponentTable)table).AddComponentForEntity(entity, component);
         }
 
         internal static bool RemoveComponent<T>(Entity entity, WorldInstance world) where T : struct, IComponent
@@ -906,6 +897,28 @@ namespace ArtyECS.Core
                 return null;
 
             return UnityEngine.JsonUtility.ToJson(value);
+        }
+
+        internal static Entity CloneEntity(Entity source, WorldInstance world)
+        {
+            ValidateEntityForRead(source, world);
+            
+            var newEntity = EntitiesManager.Allocate(world);
+            
+            var componentInfos = GetAllComponentInfos(source, world);
+            
+            foreach (var info in componentInfos)
+            {
+                var table = GetTableByType(info.ComponentType, world);
+                if (table == null)
+                {
+                    throw new InvalidOperationException($"Component table for type {info.ComponentType.Name} does not exist. This should not happen when cloning an entity with existing components.");
+                }
+                
+                table.AddComponentForEntity(newEntity, info.Value);
+            }
+            
+            return newEntity;
         }
     }
 }
