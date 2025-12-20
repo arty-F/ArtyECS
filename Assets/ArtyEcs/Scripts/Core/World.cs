@@ -296,6 +296,24 @@ namespace ArtyECS.Core
             return new ReadOnlyCollection<WorldInstance>(worlds);
         }
 
+        public static bool Exists(string name)
+        {
+            if (string.IsNullOrEmpty(name) || name == "Global")
+            {
+                return _globalWorld != null;
+            }
+            
+            lock (_localWorldsLock)
+            {
+                if (_localWorlds.TryGetValue(name, out var world))
+                {
+                    return !_destroyedWorlds.Contains(world);
+                }
+            }
+            
+            return false;
+        }
+
         public override string ToString()
         {
             return $"World({GlobalWorld.Name})";

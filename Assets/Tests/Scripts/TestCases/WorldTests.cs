@@ -1437,5 +1437,406 @@ public class WorldTests : TestBase
             AssertNotNull(finalWorlds, "GetAllWorlds should still work after concurrent access");
         });
     }
+    
+    // ========== API-018: World.Exists Method ==========
+    
+    [ContextMenu("Run Test: Exists Null Name Global World")]
+    public void Test_Exists_001()
+    {
+        string testName = "Test_Exists_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world (lazy initialization)
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Call Exists(null)
+            bool exists = World.Exists(null);
+            
+            // Null name returns true if global world exists
+            Assert(exists, "Exists(null) should return true when global world exists");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Empty String Global World")]
+    public void Test_Exists_002()
+    {
+        string testName = "Test_Exists_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world (lazy initialization)
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Call Exists("")
+            bool exists = World.Exists("");
+            
+            // Empty string returns true if global world exists
+            Assert(exists, "Exists(\"\") should return true when global world exists");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Global Name")]
+    public void Test_Exists_003()
+    {
+        string testName = "Test_Exists_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world (lazy initialization)
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Call Exists("Global")
+            bool exists = World.Exists("Global");
+            
+            // "Global" name returns true if global world exists
+            Assert(exists, "Exists(\"Global\") should return true when global world exists");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists NonExistent Local World")]
+    public void Test_Exists_004()
+    {
+        string testName = "Test_Exists_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Don't create any local world
+            // 2. Call Exists("NonExistentWorld")
+            bool exists = World.Exists("NonExistentWorld");
+            
+            // Non-existent local world returns false
+            Assert(!exists, "Exists(\"NonExistentWorld\") should return false for non-existent world");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Existing Local World")]
+    public void Test_Exists_005()
+    {
+        string testName = "Test_Exists_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Call Exists("TestWorld")
+            bool exists = World.Exists("TestWorld");
+            
+            // Existing local world returns true
+            Assert(exists, "Exists(\"TestWorld\") should return true for existing world");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Destroyed Local World")]
+    public void Test_Exists_006()
+    {
+        string testName = "Test_Exists_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local world
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Verify world exists
+            bool existsBefore = World.Exists("TestWorld");
+            Assert(existsBefore, "World should exist before destruction");
+            
+            // 3. Destroy world
+            bool destroyed = World.Destroy(world);
+            Assert(destroyed, "World.Destroy should return true");
+            
+            // 4. Call Exists("TestWorld")
+            bool existsAfter = World.Exists("TestWorld");
+            
+            // Destroyed local world returns false
+            Assert(!existsAfter, "Exists(\"TestWorld\") should return false for destroyed world");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Global World Not Initialized")]
+    public void Test_Exists_007()
+    {
+        string testName = "Test_Exists_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. ClearAllECSState is called in ExecuteTest, which clears _globalWorld
+            // 2. Don't access global world (keep it uninitialized)
+            // 3. Call Exists(null)
+            bool exists = World.Exists(null);
+            
+            // Global world not initialized returns false
+            Assert(!exists, "Exists(null) should return false when global world is not initialized");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Case Sensitive Name Matching")]
+    public void Test_Exists_008()
+    {
+        string testName = "Test_Exists_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local world with specific case
+            WorldInstance world = World.GetOrCreate("TestWorld");
+            
+            // 2. Call Exists with different case
+            bool existsExact = World.Exists("TestWorld");
+            bool existsLower = World.Exists("testworld");
+            bool existsUpper = World.Exists("TESTWORLD");
+            
+            // Case-sensitive matching: only exact match returns true
+            Assert(existsExact, "Exists(\"TestWorld\") should return true for exact match");
+            Assert(!existsLower, "Exists(\"testworld\") should return false (case-sensitive)");
+            Assert(!existsUpper, "Exists(\"TESTWORLD\") should return false (case-sensitive)");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Checks Existence At Call Time")]
+    public void Test_Exists_009()
+    {
+        string testName = "Test_Exists_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Verify world doesn't exist
+            bool existsBefore = World.Exists("DynamicWorld");
+            Assert(!existsBefore, "World should not exist before creation");
+            
+            // 2. Create world
+            WorldInstance world = World.GetOrCreate("DynamicWorld");
+            
+            // 3. Verify world exists (method checks at call time, not cached)
+            bool existsAfter = World.Exists("DynamicWorld");
+            Assert(existsAfter, "World should exist after creation");
+            
+            // 4. Destroy world
+            bool destroyed = World.Destroy(world);
+            Assert(destroyed, "World.Destroy should return true");
+            
+            // 5. Verify world doesn't exist (method checks at call time)
+            bool existsAfterDestroy = World.Exists("DynamicWorld");
+            Assert(!existsAfterDestroy, "World should not exist after destruction");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Multiple Local Worlds")]
+    public void Test_Exists_010()
+    {
+        string testName = "Test_Exists_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple local worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            WorldInstance world3 = World.GetOrCreate("World3");
+            
+            // 2. Check existence of each world
+            bool exists1 = World.Exists("World1");
+            bool exists2 = World.Exists("World2");
+            bool exists3 = World.Exists("World3");
+            bool exists4 = World.Exists("World4");
+            
+            // All created worlds exist, non-existent world doesn't
+            Assert(exists1, "World1 should exist");
+            Assert(exists2, "World2 should exist");
+            Assert(exists3, "World3 should exist");
+            Assert(!exists4, "World4 should not exist");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Global World After Access")]
+    public void Test_Exists_011()
+    {
+        string testName = "Test_Exists_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Verify global world doesn't exist before access
+            bool existsBefore = World.Exists(null);
+            Assert(!existsBefore, "Global world should not exist before access");
+            
+            // 2. Access global world (lazy initialization)
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 3. Verify global world exists after access
+            bool existsAfter = World.Exists(null);
+            Assert(existsAfter, "Global world should exist after access");
+            
+            // 4. Verify with explicit "Global" name
+            bool existsGlobal = World.Exists("Global");
+            Assert(existsGlobal, "Global world should exist with explicit \"Global\" name");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Thread Safety")]
+    public void Test_Exists_012()
+    {
+        string testName = "Test_Exists_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create initial world
+            WorldInstance world = World.GetOrCreate("ThreadTestWorld");
+            
+            // 2. Test that Exists() can be called safely from multiple threads
+            Thread[] threads = new Thread[5];
+            System.Collections.Generic.List<Exception> exceptions = 
+                new System.Collections.Generic.List<Exception>();
+            object lockObject = new object();
+            
+            // 3. Create multiple threads that call Exists() concurrently
+            for (int i = 0; i < threads.Length; i++)
+            {
+                int threadIndex = i;
+                threads[i] = new Thread(() =>
+                {
+                    try
+                    {
+                        // Call Exists() multiple times in each thread
+                        for (int j = 0; j < 10; j++)
+                        {
+                            bool exists = World.Exists("ThreadTestWorld");
+                            Assert(exists, "World should exist during concurrent access");
+                            
+                            // Also test non-existent world
+                            bool notExists = World.Exists($"NonExistentWorld{threadIndex}_{j}");
+                            Assert(!notExists, "Non-existent world should return false");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lock (lockObject)
+                        {
+                            exceptions.Add(ex);
+                        }
+                    }
+                });
+            }
+            
+            // 4. Start all threads
+            foreach (var thread in threads)
+            {
+                thread.Start();
+            }
+            
+            // 5. Wait for all threads to complete
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+            
+            // 6. Verify no exceptions occurred
+            AssertEquals(0, exceptions.Count, 
+                $"No exceptions should occur during concurrent Exists() calls. Found {exceptions.Count} exceptions.");
+            
+            // 7. Verify final state is consistent
+            bool finalExists = World.Exists("ThreadTestWorld");
+            Assert(finalExists, "World should still exist after concurrent access");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Concurrent Creation And Destruction")]
+    public void Test_Exists_013()
+    {
+        string testName = "Test_Exists_013";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Test Exists() during concurrent world creation and destruction
+            Thread[] threads = new Thread[3];
+            System.Collections.Generic.List<Exception> exceptions = 
+                new System.Collections.Generic.List<Exception>();
+            object lockObject = new object();
+            
+            // 2. Create threads that create/destroy worlds and check existence
+            for (int i = 0; i < threads.Length; i++)
+            {
+                int threadIndex = i;
+                threads[i] = new Thread(() =>
+                {
+                    try
+                    {
+                        string worldName = $"ConcurrentWorld{threadIndex}";
+                        
+                        // Create world
+                        WorldInstance world = World.GetOrCreate(worldName);
+                        
+                        // Verify it exists
+                        bool exists = World.Exists(worldName);
+                        Assert(exists, $"World {worldName} should exist after creation");
+                        
+                        // Destroy world
+                        bool destroyed = World.Destroy(world);
+                        Assert(destroyed, $"World {worldName} should be destroyed");
+                        
+                        // Verify it doesn't exist
+                        bool existsAfter = World.Exists(worldName);
+                        Assert(!existsAfter, $"World {worldName} should not exist after destruction");
+                    }
+                    catch (Exception ex)
+                    {
+                        lock (lockObject)
+                        {
+                            exceptions.Add(ex);
+                        }
+                    }
+                });
+            }
+            
+            // 3. Start all threads
+            foreach (var thread in threads)
+            {
+                thread.Start();
+            }
+            
+            // 4. Wait for all threads to complete
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+            
+            // 5. Verify no exceptions occurred
+            AssertEquals(0, exceptions.Count, 
+                $"No exceptions should occur during concurrent creation/destruction. Found {exceptions.Count} exceptions.");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists All Name Variants For Global World")]
+    public void Test_Exists_014()
+    {
+        string testName = "Test_Exists_014";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world (lazy initialization)
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Test all name variants that should refer to global world
+            bool existsNull = World.Exists(null);
+            bool existsEmpty = World.Exists("");
+            bool existsGlobal = World.Exists("Global");
+            
+            // All variants should return true
+            Assert(existsNull, "Exists(null) should return true for global world");
+            Assert(existsEmpty, "Exists(\"\") should return true for global world");
+            Assert(existsGlobal, "Exists(\"Global\") should return true for global world");
+        });
+    }
+    
+    [ContextMenu("Run Test: Exists Integration With GetAllWorlds")]
+    public void Test_Exists_015()
+    {
+        string testName = "Test_Exists_015";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple worlds
+            WorldInstance globalWorld = World.GlobalWorld;
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 2. Get all worlds
+            var allWorlds = World.GetAllWorlds();
+            
+            // 3. Verify Exists() returns true for all worlds from GetAllWorlds()
+            foreach (var world in allWorlds)
+            {
+                bool exists = World.Exists(world.Name);
+                Assert(exists, $"World '{world.Name}' from GetAllWorlds() should exist according to Exists()");
+            }
+            
+            // 4. Verify Exists() returns false for non-existent world
+            bool nonExistent = World.Exists("NonExistentWorld");
+            Assert(!nonExistent, "Non-existent world should return false");
+        });
+    }
 }
 
