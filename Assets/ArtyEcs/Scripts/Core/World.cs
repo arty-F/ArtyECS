@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace ArtyECS.Core
 {
@@ -271,6 +272,30 @@ namespace ArtyECS.Core
             return GlobalWorld.GetFixedUpdateQueue();
         }
 
+        public static IReadOnlyList<WorldInstance> GetAllWorlds()
+        {
+            var worlds = new List<WorldInstance>();
+            
+            if (_globalWorld != null)
+            {
+                worlds.Add(_globalWorld);
+            }
+            
+            lock (_localWorldsLock)
+            {
+                foreach (var kvp in _localWorlds)
+                {
+                    var world = kvp.Value;
+                    if (!_destroyedWorlds.Contains(world))
+                    {
+                        worlds.Add(world);
+                    }
+                }
+            }
+            
+            return new ReadOnlyCollection<WorldInstance>(worlds);
+        }
+
         public override string ToString()
         {
             return $"World({GlobalWorld.Name})";
@@ -323,6 +348,13 @@ namespace ArtyECS.Core
             EntitiesManager.ClearAll();
             SystemsManager.ClearAll();
             _destroyedWorlds.Clear();
+            
+            lock (_localWorldsLock)
+            {
+                _localWorlds.Clear();
+            }
+            
+            _globalWorld = null;
         }
     }
 }

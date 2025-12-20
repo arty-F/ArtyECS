@@ -1,6 +1,7 @@
 using UnityEngine;
 using ArtyECS.Core;
 using System;
+using System.Threading;
 
 /// <summary>
 /// Test class for World Management functionality (World-000 through World-003).
@@ -922,6 +923,518 @@ public class WorldTests : TestBase
             
             AssertEquals(3, count, "Should iterate over 3 entities");
             AssertEquals(3, entities.Length, "ReadOnlySpan.Length should be 3");
+        });
+    }
+    
+    // ========== API-017: GetAllWorlds Method ==========
+    
+    [ContextMenu("Run Test: GetAllWorlds Empty State")]
+    public void Test_GetAllWorlds_001()
+    {
+        string testName = "Test_GetAllWorlds_001";
+        ExecuteTest(testName, () =>
+        {
+            // 1. ClearAllECSState is called in ExecuteTest, which now clears _globalWorld and _localWorlds
+            // 2. Call GetAllWorlds() without creating any worlds
+            var allWorlds = World.GetAllWorlds();
+            
+            // Empty state returns empty list
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            AssertEquals(0, allWorlds.Count, "Empty state should return empty list");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Only Global World")]
+    public void Test_GetAllWorlds_002()
+    {
+        string testName = "Test_GetAllWorlds_002";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world (lazy initialization)
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // Global world is included in result
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            AssertEquals(1, allWorlds.Count, "Should return 1 world (global world)");
+            AssertEquals(globalWorld, allWorlds[0], "First world should be global world");
+            AssertEquals("Global", allWorlds[0].Name, "Global world name should be 'Global'");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Only Local Worlds")]
+    public void Test_GetAllWorlds_003()
+    {
+        string testName = "Test_GetAllWorlds_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local worlds without accessing global world
+            WorldInstance world1 = World.GetOrCreate("LocalWorld1");
+            WorldInstance world2 = World.GetOrCreate("LocalWorld2");
+            WorldInstance world3 = World.GetOrCreate("LocalWorld3");
+            
+            // 2. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // Local worlds are included in result
+            // Note: Global world might also be included if it was initialized
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            Assert(allWorlds.Count >= 3, "Should return at least 3 local worlds");
+            
+            // Verify all local worlds are present
+            bool found1 = false, found2 = false, found3 = false;
+            foreach (var world in allWorlds)
+            {
+                if (world == world1) found1 = true;
+                if (world == world2) found2 = true;
+                if (world == world3) found3 = true;
+            }
+            Assert(found1, "LocalWorld1 should be in result");
+            Assert(found2, "LocalWorld2 should be in result");
+            Assert(found3, "LocalWorld3 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Global And Local Worlds")]
+    public void Test_GetAllWorlds_004()
+    {
+        string testName = "Test_GetAllWorlds_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Create local worlds
+            WorldInstance localWorld1 = World.GetOrCreate("LocalWorld1");
+            WorldInstance localWorld2 = World.GetOrCreate("LocalWorld2");
+            
+            // 3. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // Both global and local worlds are included
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            AssertEquals(3, allWorlds.Count, "Should return 3 worlds (1 global + 2 local)");
+            
+            // Verify global world is present
+            bool foundGlobal = false;
+            bool foundLocal1 = false;
+            bool foundLocal2 = false;
+            foreach (var world in allWorlds)
+            {
+                if (world == globalWorld) foundGlobal = true;
+                if (world == localWorld1) foundLocal1 = true;
+                if (world == localWorld2) foundLocal2 = true;
+            }
+            Assert(foundGlobal, "Global world should be in result");
+            Assert(foundLocal1, "LocalWorld1 should be in result");
+            Assert(foundLocal2, "LocalWorld2 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Excludes Destroyed Worlds")]
+    public void Test_GetAllWorlds_005()
+    {
+        string testName = "Test_GetAllWorlds_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            WorldInstance world3 = World.GetOrCreate("World3");
+            
+            // 2. Verify all worlds are in result
+            var allWorlds1 = World.GetAllWorlds();
+            Assert(allWorlds1.Count >= 3, "Should have at least 3 worlds before destruction");
+            
+            // 3. Destroy world2
+            bool destroyed = World.Destroy(world2);
+            Assert(destroyed, "World.Destroy should return true");
+            
+            // 4. Call GetAllWorlds() again
+            var allWorlds2 = World.GetAllWorlds();
+            
+            // Destroyed world is excluded from result
+            AssertNotNull(allWorlds2, "GetAllWorlds should return non-null list");
+            
+            bool foundWorld1 = false;
+            bool foundWorld2 = false;
+            bool foundWorld3 = false;
+            foreach (var world in allWorlds2)
+            {
+                if (world == world1) foundWorld1 = true;
+                if (world == world2) foundWorld2 = true;
+                if (world == world3) foundWorld3 = true;
+            }
+            Assert(foundWorld1, "World1 should be in result");
+            Assert(!foundWorld2, "World2 should NOT be in result (destroyed)");
+            Assert(foundWorld3, "World3 should be in result");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Snapshot Semantics")]
+    public void Test_GetAllWorlds_006()
+    {
+        string testName = "Test_GetAllWorlds_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 2. Call GetAllWorlds() and store result
+            var allWorlds1 = World.GetAllWorlds();
+            Assert(allWorlds1.Count >= 2, "Should have at least 2 worlds");
+            
+            // 3. Destroy world2 after getting snapshot
+            bool destroyed = World.Destroy(world2);
+            Assert(destroyed, "World.Destroy should return true");
+            
+            // 4. Verify snapshot still contains world2 (snapshot semantics)
+            bool foundWorld2InSnapshot = false;
+            foreach (var world in allWorlds1)
+            {
+                if (world == world2) foundWorld2InSnapshot = true;
+            }
+            Assert(foundWorld2InSnapshot, "Snapshot should still contain world2 (snapshot semantics)");
+            
+            // 5. Call GetAllWorlds() again - new snapshot should not contain world2
+            var allWorlds2 = World.GetAllWorlds();
+            bool foundWorld2InNewSnapshot = false;
+            foreach (var world in allWorlds2)
+            {
+                if (world == world2) foundWorld2InNewSnapshot = true;
+            }
+            Assert(!foundWorld2InNewSnapshot, "New snapshot should NOT contain world2");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds ReadOnlyList")]
+    public void Test_GetAllWorlds_007()
+    {
+        string testName = "Test_GetAllWorlds_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local world
+            WorldInstance world1 = World.GetOrCreate("World1");
+            
+            // 2. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // 3. Verify return type is IReadOnlyList
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            Assert(allWorlds is System.Collections.Generic.IReadOnlyList<WorldInstance>, 
+                "GetAllWorlds should return IReadOnlyList<WorldInstance>");
+            
+            // 4. Verify read-only guarantee by attempting to modify (should fail)
+            // Try to cast to IList and verify it's not directly modifiable
+            var asIList = allWorlds as System.Collections.Generic.IList<WorldInstance>;
+            if (asIList != null)
+            {
+                // If it implements IList, verify it's read-only by checking IsReadOnly
+                Assert(asIList.IsReadOnly, "IList should be read-only");
+            }
+            
+            // 5. Verify we can access Count and indexed access
+            Assert(allWorlds.Count >= 1, "Should have at least 1 world");
+            AssertNotNull(allWorlds[0], "Should be able to access world by index");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Multiple Local Worlds")]
+    public void Test_GetAllWorlds_008()
+    {
+        string testName = "Test_GetAllWorlds_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple local worlds
+            const int worldCount = 10;
+            WorldInstance[] createdWorlds = new WorldInstance[worldCount];
+            
+            for (int i = 0; i < worldCount; i++)
+            {
+                createdWorlds[i] = World.GetOrCreate($"World{i}");
+            }
+            
+            // 2. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // All local worlds are included
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            Assert(allWorlds.Count >= worldCount, $"Should return at least {worldCount} local worlds");
+            
+            // Verify all created worlds are present
+            var foundWorlds = new System.Collections.Generic.HashSet<WorldInstance>();
+            foreach (var world in allWorlds)
+            {
+                foundWorlds.Add(world);
+            }
+            
+            for (int i = 0; i < worldCount; i++)
+            {
+                Assert(foundWorlds.Contains(createdWorlds[i]), $"World{i} should be in result");
+            }
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Global World Not Initialized")]
+    public void Test_GetAllWorlds_009()
+    {
+        string testName = "Test_GetAllWorlds_009";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local world without accessing global world
+            WorldInstance localWorld = World.GetOrCreate("LocalWorld");
+            
+            // 2. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // Local world is included
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            Assert(allWorlds.Count >= 1, "Should return at least 1 local world");
+            
+            // Verify local world is present
+            bool foundLocal = false;
+            foreach (var world in allWorlds)
+            {
+                if (world == localWorld) foundLocal = true;
+            }
+            Assert(foundLocal, "LocalWorld should be in result");
+            
+            // Note: We can't easily test that global world is NOT included without
+            // being able to reset _globalWorld, but the implementation should handle
+            // null _globalWorld correctly
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Consistent Order")]
+    public void Test_GetAllWorlds_010()
+    {
+        string testName = "Test_GetAllWorlds_010";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Create local worlds in specific order
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            WorldInstance world3 = World.GetOrCreate("World3");
+            
+            // 3. Call GetAllWorlds() multiple times
+            var allWorlds1 = World.GetAllWorlds();
+            var allWorlds2 = World.GetAllWorlds();
+            var allWorlds3 = World.GetAllWorlds();
+            
+            // Order should be consistent (implementation-defined)
+            AssertEquals(allWorlds1.Count, allWorlds2.Count, "Count should be consistent");
+            AssertEquals(allWorlds2.Count, allWorlds3.Count, "Count should be consistent");
+            
+            // Verify all calls return same worlds (order may vary, but same worlds)
+            var worlds1Set = new System.Collections.Generic.HashSet<WorldInstance>(allWorlds1);
+            var worlds2Set = new System.Collections.Generic.HashSet<WorldInstance>(allWorlds2);
+            var worlds3Set = new System.Collections.Generic.HashSet<WorldInstance>(allWorlds3);
+            
+            Assert(worlds1Set.SetEquals(worlds2Set), "Worlds should be same between calls");
+            Assert(worlds2Set.SetEquals(worlds3Set), "Worlds should be same between calls");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds All Worlds Destroyed")]
+    public void Test_GetAllWorlds_011()
+    {
+        string testName = "Test_GetAllWorlds_011";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create local worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 2. Destroy all local worlds
+            bool destroyed1 = World.Destroy(world1);
+            bool destroyed2 = World.Destroy(world2);
+            Assert(destroyed1, "World1 should be destroyed");
+            Assert(destroyed2, "World2 should be destroyed");
+            
+            // 3. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // Destroyed worlds are excluded
+            // Note: Global world might still be in result if it was initialized
+            AssertNotNull(allWorlds, "GetAllWorlds should return non-null list");
+            
+            // Verify destroyed worlds are not in result
+            bool foundWorld1 = false;
+            bool foundWorld2 = false;
+            foreach (var world in allWorlds)
+            {
+                if (world == world1) foundWorld1 = true;
+                if (world == world2) foundWorld2 = true;
+            }
+            Assert(!foundWorld1, "World1 should NOT be in result (destroyed)");
+            Assert(!foundWorld2, "World2 should NOT be in result (destroyed)");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Iteration")]
+    public void Test_GetAllWorlds_012()
+    {
+        string testName = "Test_GetAllWorlds_012";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Create local worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 3. Call GetAllWorlds() and iterate
+            var allWorlds = World.GetAllWorlds();
+            
+            // Verify iteration works
+            int count = 0;
+            var foundWorlds = new System.Collections.Generic.HashSet<WorldInstance>();
+            foreach (var world in allWorlds)
+            {
+                count++;
+                AssertNotNull(world, "World should not be null");
+                AssertNotNull(world.Name, "World.Name should not be null");
+                foundWorlds.Add(world);
+            }
+            
+            Assert(count >= 3, "Should iterate over at least 3 worlds");
+            Assert(foundWorlds.Contains(globalWorld), "Global world should be found during iteration");
+            Assert(foundWorlds.Contains(world1), "World1 should be found during iteration");
+            Assert(foundWorlds.Contains(world2), "World2 should be found during iteration");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Indexed Access")]
+    public void Test_GetAllWorlds_013()
+    {
+        string testName = "Test_GetAllWorlds_013";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Access global world
+            WorldInstance globalWorld = World.GlobalWorld;
+            
+            // 2. Create local world
+            WorldInstance localWorld = World.GetOrCreate("LocalWorld");
+            
+            // 3. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // Verify indexed access works
+            Assert(allWorlds.Count >= 2, "Should have at least 2 worlds");
+            AssertNotNull(allWorlds[0], "First world should not be null");
+            AssertNotNull(allWorlds[allWorlds.Count - 1], "Last world should not be null");
+            
+            // Verify we can access all worlds by index
+            for (int i = 0; i < allWorlds.Count; i++)
+            {
+                AssertNotNull(allWorlds[i], $"World at index {i} should not be null");
+                AssertNotNull(allWorlds[i].Name, $"World at index {i} should have name");
+            }
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Count Property")]
+    public void Test_GetAllWorlds_014()
+    {
+        string testName = "Test_GetAllWorlds_014";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create multiple local worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            WorldInstance world3 = World.GetOrCreate("World3");
+            
+            // 2. Call GetAllWorlds()
+            var allWorlds = World.GetAllWorlds();
+            
+            // Verify Count property works
+            Assert(allWorlds.Count >= 3, "Count should be at least 3");
+            
+            // Verify Count matches actual number of worlds
+            int actualCount = 0;
+            foreach (var world in allWorlds)
+            {
+                actualCount++;
+            }
+            AssertEquals(allWorlds.Count, actualCount, "Count property should match iteration count");
+        });
+    }
+    
+    [ContextMenu("Run Test: GetAllWorlds Thread Safety")]
+    public void Test_GetAllWorlds_015()
+    {
+        string testName = "Test_GetAllWorlds_015";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create initial worlds
+            WorldInstance world1 = World.GetOrCreate("World1");
+            WorldInstance world2 = World.GetOrCreate("World2");
+            
+            // 2. Test that GetAllWorlds() can be called safely from multiple threads
+            // Note: Full thread-safety testing is complex, but we can verify the method
+            // doesn't throw exceptions when called concurrently
+            
+            Thread[] threads = new Thread[5];
+            System.Collections.Generic.List<Exception> exceptions = 
+                new System.Collections.Generic.List<Exception>();
+            object lockObject = new object();
+            
+            // 3. Create multiple threads that call GetAllWorlds() concurrently
+            for (int i = 0; i < threads.Length; i++)
+            {
+                int threadIndex = i;
+                threads[i] = new Thread(() =>
+                {
+                    try
+                    {
+                        // Call GetAllWorlds() multiple times in each thread
+                        for (int j = 0; j < 10; j++)
+                        {
+                            var worlds = World.GetAllWorlds();
+                            AssertNotNull(worlds, "GetAllWorlds should return non-null");
+                            // Verify we can iterate without exceptions
+                            foreach (var world in worlds)
+                            {
+                                AssertNotNull(world, "World should not be null");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lock (lockObject)
+                        {
+                            exceptions.Add(ex);
+                        }
+                    }
+                });
+            }
+            
+            // 4. Start all threads
+            foreach (var thread in threads)
+            {
+                thread.Start();
+            }
+            
+            // 5. Wait for all threads to complete
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+            
+            // 6. Verify no exceptions occurred
+            AssertEquals(0, exceptions.Count, 
+                $"No exceptions should occur during concurrent GetAllWorlds() calls. Found {exceptions.Count} exceptions.");
+            
+            // 7. Verify final state is consistent
+            var finalWorlds = World.GetAllWorlds();
+            AssertNotNull(finalWorlds, "GetAllWorlds should still work after concurrent access");
         });
     }
 }
