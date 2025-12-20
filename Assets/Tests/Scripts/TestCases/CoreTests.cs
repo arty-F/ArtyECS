@@ -1343,13 +1343,11 @@ public class CoreTests : TestBase
             
             // 3. Use GetModifiableComponents<Health>()
             // 4. Change Amount to 50 via ref
-            using (var components = World.GetModifiableComponents<Health>())
+            var components = World.GetModifiableComponents<Health>();
+            for (int i = 0; i < components.Count; i++)
             {
-                for (int i = 0; i < components.Count; i++)
-                {
-                    components[i].Amount = 50f;
-                }
-            } // 5. Dispose collection (applies changes)
+                components[i].Amount = 50f;
+            }
             
             // 6. Get component back
             Health health = World.GetComponent<Health>(entity);
@@ -1375,13 +1373,11 @@ public class CoreTests : TestBase
             
             // 3. Use GetModifiableComponents<Health>()
             // 4. Change Amount for all three
-            using (var components = World.GetModifiableComponents<Health>())
+            var components = World.GetModifiableComponents<Health>();
+            for (int i = 0; i < components.Count; i++)
             {
-                for (int i = 0; i < components.Count; i++)
-                {
-                    components[i].Amount = 50f + i * 10f;
-                }
-            } // 5. Dispose collection
+                components[i].Amount = 50f + i * 10f;
+            }
             
             // 6. Check all components
             Health health1 = World.GetComponent<Health>(entity1);
@@ -1413,16 +1409,11 @@ public class CoreTests : TestBase
             {
                 components[i].Amount = 50f;
             }
-            // 5. DON'T call Dispose or Apply()
+            // 5. Changes are applied immediately (no Dispose or Apply() needed)
             
-            // 6. Get component back - should still be 100
+            // 6. Get component back - should be 50 (immediate modification)
             Health health = World.GetComponent<Health>(entity);
-            AssertEquals(100f, health.Amount, "Health.Amount should still be 100 (modifications not applied)");
-            
-            // Now apply explicitly
-            components.Apply();
-            health = World.GetComponent<Health>(entity);
-            AssertEquals(50f, health.Amount, "Health.Amount should be 50 after Apply()");
+            AssertEquals(50f, health.Amount, "Health.Amount should be 50 after immediate modification");
         });
     }
     
@@ -1444,13 +1435,11 @@ public class CoreTests : TestBase
             
             // 3. Use GetModifiableComponents<Health>()
             // 4. Iterate and modify all components
-            using (var components = World.GetModifiableComponents<Health>())
+            var components = World.GetModifiableComponents<Health>();
+            for (int i = 0; i < components.Count; i++)
             {
-                for (int i = 0; i < components.Count; i++)
-                {
-                    components[i].Amount -= 10f; // Decrement by 10
-                }
-            } // 5. Dispose collection
+                components[i].Amount -= 10f; // Decrement by 10
+            }
             
             // All components modified correctly, no exceptions
             Health health1 = World.GetComponent<Health>(entity1);

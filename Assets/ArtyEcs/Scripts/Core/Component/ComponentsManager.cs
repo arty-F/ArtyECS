@@ -807,7 +807,7 @@ namespace ArtyECS.Core
         internal static ModifiableComponentCollection<T> GetModifiableComponents<T>(WorldInstance world) where T : struct, IComponent
         {
             var table = GetOrCreateTable<T>(world);
-            return new ModifiableComponentCollection<T>(table, world);
+            return new ModifiableComponentCollection<T>(table);
         }
 
         internal static int RemoveAllComponents(Entity entity, WorldInstance world)

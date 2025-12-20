@@ -26,12 +26,10 @@ public class IncrementSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        using (var counters = world.GetModifiableComponents<CounterComponent>())
+        var counters = world.GetModifiableComponents<CounterComponent>();
+        for (int i = 0; i < counters.Count; i++)
         {
-            for (int i = 0; i < counters.Count; i++)
-            {
-                counters[i].Value++;
-            }
+            counters[i].Value++;
         }
     }
 }
@@ -43,16 +41,14 @@ public class MovementSystem : SystemHandler
         // Use GetEntitiesWith pattern for entities with both Position and Velocity
         var entities = world.GetEntitiesWith<Position, Velocity>();
         
-        using (var positions = world.GetModifiableComponents<Position>())
+        var positions = world.GetModifiableComponents<Position>();
+        for (int i = 0; i < entities.Length && i < positions.Count; i++)
         {
-            for (int i = 0; i < entities.Length && i < positions.Count; i++)
-            {
-                // Get velocity for this entity
-                Velocity velocity = world.GetComponent<Velocity>(entities[i]);
-                positions[i].X += velocity.X;
-                positions[i].Y += velocity.Y;
-                positions[i].Z += velocity.Z;
-            }
+            // Get velocity for this entity
+            Velocity velocity = world.GetComponent<Velocity>(entities[i]);
+            positions[i].X += velocity.X;
+            positions[i].Y += velocity.Y;
+            positions[i].Z += velocity.Z;
         }
     }
 }
@@ -61,12 +57,10 @@ public class HealthSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        using (var healths = world.GetModifiableComponents<Health>())
+        var healths = world.GetModifiableComponents<Health>();
+        for (int i = 0; i < healths.Count; i++)
         {
-            for (int i = 0; i < healths.Count; i++)
-            {
-                healths[i].Amount -= 1f;
-            }
+            healths[i].Amount -= 1f;
         }
     }
 }
@@ -75,12 +69,10 @@ public class ModifiableHealthSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        using (var healths = world.GetModifiableComponents<Health>())
+        var healths = world.GetModifiableComponents<Health>();
+        for (int i = 0; i < healths.Count; i++)
         {
-            for (int i = 0; i < healths.Count; i++)
-            {
-                healths[i].Amount -= 1f;
-            }
+            healths[i].Amount -= 1f;
         }
     }
 }
@@ -127,12 +119,10 @@ public class SetValueSystem : SystemHandler
     
     public override void Execute(WorldInstance world)
     {
-        using (var counters = world.GetModifiableComponents<CounterComponent>())
+        var counters = world.GetModifiableComponents<CounterComponent>();
+        for (int i = 0; i < counters.Count; i++)
         {
-            for (int i = 0; i < counters.Count; i++)
-            {
-                counters[i].Value = valueToSet;
-            }
+            counters[i].Value = valueToSet;
         }
     }
 }
@@ -141,12 +131,10 @@ public class UpdateCounterSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        using (var counters = world.GetModifiableComponents<UpdateCounter>())
+        var counters = world.GetModifiableComponents<UpdateCounter>();
+        for (int i = 0; i < counters.Count; i++)
         {
-            for (int i = 0; i < counters.Count; i++)
-            {
-                counters[i].Value++;
-            }
+            counters[i].Value++;
         }
     }
 }
@@ -155,12 +143,10 @@ public class FixedUpdateCounterSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        using (var counters = world.GetModifiableComponents<FixedUpdateCounter>())
+        var counters = world.GetModifiableComponents<FixedUpdateCounter>();
+        for (int i = 0; i < counters.Count; i++)
         {
-            for (int i = 0; i < counters.Count; i++)
-            {
-                counters[i].Value++;
-            }
+            counters[i].Value++;
         }
     }
 }
