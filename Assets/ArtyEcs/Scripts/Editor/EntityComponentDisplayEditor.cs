@@ -25,6 +25,15 @@ namespace ArtyECS.Editor
             var display = (EntityComponentDisplay)target;
             serializedObject.Update();
 
+            if (Application.isPlaying)
+            {
+                bool hasChanges = display.RefreshFromECS();
+                if (hasChanges)
+                {
+                    Repaint();
+                }
+            }
+
             EditorGUILayout.LabelField("Entity Component Display", EditorStyles.boldLabel);
             EditorGUILayout.Space();
 
@@ -59,8 +68,11 @@ namespace ArtyECS.Editor
                 
                 if (GUILayout.Button("Refresh Now", GUILayout.Width(100)))
                 {
-                    display.RefreshComponents();
-                    Repaint();
+                    bool hasChanges = display.RefreshFromECS();
+                    if (hasChanges)
+                    {
+                        Repaint();
+                    }
                 }
 
                 if (_autoRefresh)
@@ -68,9 +80,12 @@ namespace ArtyECS.Editor
                     double currentTime = EditorApplication.timeSinceStartup;
                     if (currentTime - _lastRefreshTime >= AUTO_REFRESH_INTERVAL)
                     {
-                        display.RefreshComponents();
+                        bool hasChanges = display.RefreshFromECS();
                         _lastRefreshTime = currentTime;
-                        Repaint();
+                        if (hasChanges)
+                        {
+                            Repaint();
+                        }
                     }
                 }
             }
@@ -320,8 +335,11 @@ namespace ArtyECS.Editor
                 _modifiedFields[fieldKey] = Color.yellow;
                 _lastFlashTime = EditorApplication.timeSinceStartup;
                 
-                display.RefreshComponents();
-                Repaint();
+                bool hasChanges = display.RefreshFromECS();
+                if (hasChanges)
+                {
+                    Repaint();
+                }
             }
             catch (Exception ex)
             {

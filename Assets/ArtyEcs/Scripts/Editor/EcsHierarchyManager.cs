@@ -45,6 +45,7 @@ namespace ArtyECS.Editor
         }
 
         private readonly Dictionary<EntityWorldKey, GameObject> _entityGameObjects = new Dictionary<EntityWorldKey, GameObject>();
+        private readonly Dictionary<WorldInstance, HashSet<Entity>> _previousEntitySets = new Dictionary<WorldInstance, HashSet<Entity>>();
         
         private struct SystemKey : IEquatable<SystemKey>
         {
@@ -71,9 +72,36 @@ namespace ArtyECS.Editor
         }
 
         private readonly Dictionary<SystemKey, GameObject> _systemGameObjects = new Dictionary<SystemKey, GameObject>();
+        
+        private struct WorldQueueKey : IEquatable<WorldQueueKey>
+        {
+            public readonly WorldInstance World;
+            public readonly string QueueName;
+
+            public WorldQueueKey(WorldInstance world, string queueName)
+            {
+                World = world;
+                QueueName = queueName;
+            }
+
+            public bool Equals(WorldQueueKey other)
+            {
+                return ReferenceEquals(World, other.World) && QueueName == other.QueueName;
+            }
+
+            public override int GetHashCode()
+            {
+                return World.GetHashCode() ^ QueueName.GetHashCode();
+            }
+        }
+
+        private readonly Dictionary<WorldQueueKey, List<SystemHandler>> _previousSystemLists = new Dictionary<WorldQueueKey, List<SystemHandler>>();
 
         private float _lastUpdateTime;
         private const float UPDATE_INTERVAL = 0.5f;
+        
+        [SerializeField]
+        private bool _preserveOnExit = false;
 
         static EcsHierarchyManager()
         {
@@ -153,6 +181,14 @@ namespace ArtyECS.Editor
             var allWorlds = World.GetAllWorlds();
             foreach (var world in allWorlds)
             {
+                var entities = world.GetAllEntities();
+                HashSet<Entity> initialEntitySet = new HashSet<Entity>();
+                foreach (var entity in entities)
+                {
+                    initialEntitySet.Add(entity);
+                }
+                _previousEntitySets[world] = initialEntitySet;
+                
                 UpdateEntityGameObjects(world);
                 UpdateSystemGameObjects(world);
             }
@@ -172,6 +208,14 @@ namespace ArtyECS.Editor
             {
                 UpdateHierarchy();
                 _lastUpdateTime = currentTime;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (!Application.isPlaying && _instance == this)
+            {
+                CleanupHierarchy();
             }
         }
 
@@ -524,13 +568,44 @@ namespace ArtyECS.Editor
 
         public void CleanupHierarchy()
         {
-            foreach (var kvp in _worldGameObjects)
+            if (_preserveOnExit)
             {
-                if (kvp.Value != null)
+                return;
+            }
+
+            if (_rootGameObject != null && _rootGameObject != gameObject)
+            {
+                DestroyImmediate(_rootGameObject);
+                _rootGameObject = null;
+            }
+
+            var worldsToCleanup = new List<WorldInstance>(_worldGameObjects.Keys);
+            foreach (var world in worldsToCleanup)
+            {
+                if (_worldGameObjects.TryGetValue(world, out var worldGO) && worldGO != null)
                 {
-                    DestroyImmediate(kvp.Value);
+                    DestroyImmediate(worldGO);
                 }
             }
+
+            var entitiesToCleanup = new List<EntityWorldKey>(_entityGameObjects.Keys);
+            foreach (var key in entitiesToCleanup)
+            {
+                if (_entityGameObjects.TryGetValue(key, out var entityGO) && entityGO != null)
+                {
+                    DestroyImmediate(entityGO);
+                }
+            }
+
+            var systemsToCleanup = new List<SystemKey>(_systemGameObjects.Keys);
+            foreach (var key in systemsToCleanup)
+            {
+                if (_systemGameObjects.TryGetValue(key, out var systemGO) && systemGO != null)
+                {
+                    DestroyImmediate(systemGO);
+                }
+            }
+
             _worldGameObjects.Clear();
             _entitiesContainers.Clear();
             _systemsContainers.Clear();
@@ -538,7 +613,13 @@ namespace ArtyECS.Editor
             _fixedUpdateContainers.Clear();
             _entityGameObjects.Clear();
             _systemGameObjects.Clear();
-            _rootGameObject = null;
+            _previousEntitySets.Clear();
+            _previousSystemLists.Clear();
+            
+            if (_rootGameObject != gameObject)
+            {
+                _rootGameObject = null;
+            }
         }
 
         private void UpdateWorldGameObjects()
@@ -572,7 +653,100 @@ namespace ArtyECS.Editor
             foreach (var world in worldsToRemove)
             {
                 _worldGameObjects.Remove(world);
+                _previousEntitySets.Remove(world);
             }
+        }
+
+        private void UpdateEntityHierarchy(WorldInstance world)
+        {
+            if (world == null || !Application.isPlaying)
+            {
+                return;
+            }
+
+            var currentEntitiesSpan = world.GetAllEntities();
+            HashSet<Entity> currentEntities = new HashSet<Entity>();
+            
+            foreach (var entity in currentEntitiesSpan)
+            {
+                currentEntities.Add(entity);
+            }
+
+            if (!_previousEntitySets.TryGetValue(world, out var previousEntities))
+            {
+                previousEntities = new HashSet<Entity>();
+                _previousEntitySets[world] = previousEntities;
+            }
+
+            var entitiesToAdd = new List<Entity>();
+            var entitiesToRemove = new List<Entity>();
+
+            foreach (var entity in currentEntities)
+            {
+                if (!previousEntities.Contains(entity))
+                {
+                    entitiesToAdd.Add(entity);
+                }
+            }
+
+            foreach (var entity in previousEntities)
+            {
+                if (!currentEntities.Contains(entity))
+                {
+                    entitiesToRemove.Add(entity);
+                }
+            }
+
+            foreach (var entity in entitiesToAdd)
+            {
+                GetOrCreateEntityGameObject(entity, world);
+            }
+
+            foreach (var entity in entitiesToRemove)
+            {
+                var key = new EntityWorldKey(entity, world);
+                if (_entityGameObjects.TryGetValue(key, out var gameObject))
+                {
+                    if (gameObject != null)
+                    {
+                        DestroyImmediate(gameObject);
+                    }
+                    _entityGameObjects.Remove(key);
+                }
+            }
+
+            var entitiesContainer = GetOrCreateEntitiesContainer(world);
+            if (entitiesContainer != null)
+            {
+                var orphanedGameObjects = new List<GameObject>();
+                for (int i = 0; i < entitiesContainer.transform.childCount; i++)
+                {
+                    var child = entitiesContainer.transform.GetChild(i).gameObject;
+                    var key = FindEntityKeyByGameObject(child, world);
+                    if (!key.HasValue || !currentEntities.Contains(key.Value.Entity))
+                    {
+                        orphanedGameObjects.Add(child);
+                    }
+                }
+                foreach (var orphaned in orphanedGameObjects)
+                {
+                    DestroyImmediate(orphaned);
+                }
+            }
+
+            _previousEntitySets[world] = new HashSet<Entity>(currentEntities);
+        }
+
+        private EntityWorldKey? FindEntityKeyByGameObject(GameObject gameObject, WorldInstance world)
+        {
+            foreach (var kvp in _entityGameObjects)
+            {
+                if (ReferenceEquals(kvp.Key.World, world) && kvp.Value == gameObject)
+                {
+                    return kvp.Key;
+                }
+            }
+            return null;
         }
 
         private void UpdateEntityGameObjects(WorldInstance world)
@@ -626,7 +800,7 @@ namespace ArtyECS.Editor
 
             foreach (var world in allWorlds)
             {
-                UpdateEntityGameObjects(world);
+                UpdateEntityHierarchy(world);
                 UpdateSystemGameObjects(world);
             }
         }
@@ -638,59 +812,141 @@ namespace ArtyECS.Editor
                 return;
             }
 
+            UpdateSystemHierarchy(world);
+        }
+
+        private void UpdateSystemHierarchy(WorldInstance world)
+        {
+            if (world == null || !Application.isPlaying)
+            {
+                return;
+            }
+
             var updateQueue = world.GetUpdateQueue();
             var fixedUpdateQueue = world.GetFixedUpdateQueue();
 
-            HashSet<SystemKey> currentSystems = new HashSet<SystemKey>();
+            UpdateSystemQueue(world, "Update", updateQueue);
+            UpdateSystemQueue(world, "FixedUpdate", fixedUpdateQueue);
+        }
 
-            GameObject updateContainer = GetOrCreateUpdateContainer(world);
-            GameObject fixedUpdateContainer = GetOrCreateFixedUpdateContainer(world);
-
-            for (int i = 0; i < updateQueue.Count; i++)
+        private void UpdateSystemQueue(WorldInstance world, string queueName, IReadOnlyList<SystemHandler> currentQueue)
+        {
+            var queueKey = new WorldQueueKey(world, queueName);
+            
+            List<SystemHandler> previousList = null;
+            if (!_previousSystemLists.TryGetValue(queueKey, out previousList))
             {
-                var system = updateQueue[i];
-                var key = new SystemKey(system, world, "Update");
-                currentSystems.Add(key);
-                
-                var systemGO = GetOrCreateSystemGameObject(system, world, "Update");
-                if (systemGO != null && systemGO.transform.parent == updateContainer.transform)
-                {
-                    systemGO.transform.SetSiblingIndex(i);
-                }
+                previousList = new List<SystemHandler>();
+                _previousSystemLists[queueKey] = previousList;
             }
 
-            for (int i = 0; i < fixedUpdateQueue.Count; i++)
+            List<SystemHandler> currentList = new List<SystemHandler>();
+            for (int i = 0; i < currentQueue.Count; i++)
             {
-                var system = fixedUpdateQueue[i];
-                var key = new SystemKey(system, world, "FixedUpdate");
-                currentSystems.Add(key);
-                
-                var systemGO = GetOrCreateSystemGameObject(system, world, "FixedUpdate");
-                if (systemGO != null && systemGO.transform.parent == fixedUpdateContainer.transform)
-                {
-                    systemGO.transform.SetSiblingIndex(i);
-                }
+                currentList.Add(currentQueue[i]);
             }
 
-            var systemsToRemove = new List<SystemKey>();
-            foreach (var kvp in _systemGameObjects)
+            bool hasChanges = false;
+            if (previousList.Count != currentList.Count)
             {
-                if (ReferenceEquals(kvp.Key.World, world))
+                hasChanges = true;
+            }
+            else
+            {
+                for (int i = 0; i < currentList.Count; i++)
                 {
-                    if (!currentSystems.Contains(kvp.Key) || kvp.Value == null)
+                    if (!ReferenceEquals(previousList[i], currentList[i]))
                     {
-                        if (kvp.Value != null)
-                        {
-                            DestroyImmediate(kvp.Value);
-                        }
-                        systemsToRemove.Add(kvp.Key);
+                        hasChanges = true;
+                        break;
                     }
                 }
             }
-            foreach (var systemKey in systemsToRemove)
+
+            if (!hasChanges)
             {
-                _systemGameObjects.Remove(systemKey);
+                bool missingGameObjects = false;
+                foreach (var system in currentList)
+                {
+                    var key = new SystemKey(system, world, queueName);
+                    if (!_systemGameObjects.TryGetValue(key, out var gameObject) || gameObject == null)
+                    {
+                        missingGameObjects = true;
+                        break;
+                    }
+                }
+                
+                if (!missingGameObjects)
+                {
+                    return;
+                }
             }
+
+            GameObject container = null;
+            if (queueName == "Update")
+            {
+                container = GetOrCreateUpdateContainer(world);
+            }
+            else if (queueName == "FixedUpdate")
+            {
+                container = GetOrCreateFixedUpdateContainer(world);
+            }
+            else
+            {
+                return;
+            }
+
+            if (container == null)
+            {
+                return;
+            }
+
+            HashSet<SystemHandler> previousSet = new HashSet<SystemHandler>(previousList);
+            HashSet<SystemHandler> currentSet = new HashSet<SystemHandler>(currentList);
+
+            var systemsToAdd = new List<SystemHandler>();
+            var systemsToRemove = new List<SystemHandler>();
+
+            foreach (var system in currentList)
+            {
+                if (!previousSet.Contains(system))
+                {
+                    systemsToAdd.Add(system);
+                }
+            }
+
+            foreach (var system in previousList)
+            {
+                if (!currentSet.Contains(system))
+                {
+                    systemsToRemove.Add(system);
+                }
+            }
+
+            foreach (var system in systemsToRemove)
+            {
+                var key = new SystemKey(system, world, queueName);
+                if (_systemGameObjects.TryGetValue(key, out var gameObject))
+                {
+                    if (gameObject != null)
+                    {
+                        DestroyImmediate(gameObject);
+                    }
+                    _systemGameObjects.Remove(key);
+                }
+            }
+
+            for (int i = 0; i < currentList.Count; i++)
+            {
+                var system = currentList[i];
+                var systemGO = GetOrCreateSystemGameObject(system, world, queueName);
+                if (systemGO != null && systemGO.transform.parent == container.transform)
+                {
+                    systemGO.transform.SetSiblingIndex(i);
+                }
+            }
+
+            _previousSystemLists[queueKey] = new List<SystemHandler>(currentList);
         }
     }
 }
