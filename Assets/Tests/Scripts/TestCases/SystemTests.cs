@@ -735,6 +735,135 @@ public class SystemTests : TestBase
         });
     }
     
+    [ContextMenu("Run Test: MovementSystem - Entity with Position only (should not move)")]
+    public void Test_MovementSystem_003()
+    {
+        string testName = "Test_MovementSystem_003";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entity with Position but WITHOUT Velocity
+            Entity entity = World.CreateEntity();
+            
+            World.AddComponent(entity, new Position { X = 10f, Y = 20f, Z = 30f });
+            
+            // 2. Create and execute MovementSystem
+            MovementSystem system = new MovementSystem();
+            WorldInstance world = World.GetOrCreate();
+            system.Execute(world);
+            
+            // 3. Verify position was NOT changed (entity should be ignored)
+            Position position = World.GetComponent<Position>(entity);
+            
+            AssertEquals(10f, position.X, "Position.X should remain 10 (not changed)");
+            AssertEquals(20f, position.Y, "Position.Y should remain 20 (not changed)");
+            AssertEquals(30f, position.Z, "Position.Z should remain 30 (not changed)");
+        });
+    }
+    
+    [ContextMenu("Run Test: MovementSystem - Mixed entities (some with both, some with Position only)")]
+    public void Test_MovementSystem_004()
+    {
+        string testName = "Test_MovementSystem_004";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entity1 with both Position and Velocity
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 0f, Y = 0f, Z = 0f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create entity2 with Position ONLY (no Velocity)
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 100f, Y = 200f, Z = 300f });
+            
+            // 3. Create entity3 with both Position and Velocity
+            Entity entity3 = World.CreateEntity();
+            World.AddComponent(entity3, new Position { X = 5f, Y = 5f, Z = 5f });
+            World.AddComponent(entity3, new Velocity { X = -1f, Y = -1f, Z = -1f });
+            
+            // 4. Create and execute MovementSystem
+            MovementSystem system = new MovementSystem();
+            WorldInstance world = World.GetOrCreate();
+            system.Execute(world);
+            
+            // 5. Verify entity1 position was updated
+            Position pos1 = World.GetComponent<Position>(entity1);
+            AssertEquals(1f, pos1.X, "Entity1 Position.X should be 1");
+            AssertEquals(2f, pos1.Y, "Entity1 Position.Y should be 2");
+            AssertEquals(3f, pos1.Z, "Entity1 Position.Z should be 3");
+            
+            // 6. Verify entity2 position was NOT changed (no Velocity, should be ignored)
+            Position pos2 = World.GetComponent<Position>(entity2);
+            AssertEquals(100f, pos2.X, "Entity2 Position.X should remain 100 (not changed)");
+            AssertEquals(200f, pos2.Y, "Entity2 Position.Y should remain 200 (not changed)");
+            AssertEquals(300f, pos2.Z, "Entity2 Position.Z should remain 300 (not changed)");
+            
+            // 7. Verify entity3 position was updated
+            Position pos3 = World.GetComponent<Position>(entity3);
+            AssertEquals(4f, pos3.X, "Entity3 Position.X should be 4");
+            AssertEquals(4f, pos3.Y, "Entity3 Position.Y should be 4");
+            AssertEquals(4f, pos3.Z, "Entity3 Position.Z should be 4");
+        });
+    }
+    
+    [ContextMenu("Run Test: MovementSystem - Entity with Velocity only (should not process)")]
+    public void Test_MovementSystem_005()
+    {
+        string testName = "Test_MovementSystem_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entity with Velocity but WITHOUT Position
+            Entity entity = World.CreateEntity();
+            
+            World.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
+            
+            // 2. Create and execute MovementSystem
+            MovementSystem system = new MovementSystem();
+            WorldInstance world = World.GetOrCreate();
+            system.Execute(world);
+            
+            // 3. Verify entity does not have Position component (system should not create it)
+            bool hasPosition = entity.Has<Position>(world);
+            Assert(!hasPosition, "Entity should not have Position component");
+        });
+    }
+    
+    [ContextMenu("Run Test: MovementSystem - Multiple executions with mixed entities")]
+    public void Test_MovementSystem_006()
+    {
+        string testName = "Test_MovementSystem_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create entity1 with both components
+            Entity entity1 = World.CreateEntity();
+            World.AddComponent(entity1, new Position { X = 0f, Y = 0f, Z = 0f });
+            World.AddComponent(entity1, new Velocity { X = 1f, Y = 1f, Z = 1f });
+            
+            // 2. Create entity2 with Position only
+            Entity entity2 = World.CreateEntity();
+            World.AddComponent(entity2, new Position { X = 50f, Y = 50f, Z = 50f });
+            
+            // 3. Execute system multiple times
+            MovementSystem system = new MovementSystem();
+            WorldInstance world = World.GetOrCreate();
+            
+            system.Execute(world);
+            system.Execute(world);
+            system.Execute(world);
+            
+            // 4. Verify entity1 moved 3 times (3 * velocity)
+            Position pos1 = World.GetComponent<Position>(entity1);
+            AssertEquals(3f, pos1.X, "Entity1 Position.X should be 3 after 3 executions");
+            AssertEquals(3f, pos1.Y, "Entity1 Position.Y should be 3 after 3 executions");
+            AssertEquals(3f, pos1.Z, "Entity1 Position.Z should be 3 after 3 executions");
+            
+            // 5. Verify entity2 did not move (no Velocity)
+            Position pos2 = World.GetComponent<Position>(entity2);
+            AssertEquals(50f, pos2.X, "Entity2 Position.X should remain 50 (not changed)");
+            AssertEquals(50f, pos2.Y, "Entity2 Position.Y should remain 50 (not changed)");
+            AssertEquals(50f, pos2.Z, "Entity2 Position.Z should remain 50 (not changed)");
+        });
+    }
+    
     [ContextMenu("Run Test: HealthSystem")]
     public void Test_HealthSystem_001()
     {

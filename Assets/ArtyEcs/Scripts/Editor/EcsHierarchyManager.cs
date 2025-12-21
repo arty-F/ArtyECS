@@ -398,6 +398,12 @@ namespace ArtyECS.Editor
                 {
                     if (existing.name == expectedName)
                     {
+                        var display = existing.GetComponent<EntityComponentDisplay>();
+                        if (display == null)
+                        {
+                            display = existing.AddComponent<EntityComponentDisplay>();
+                            display.Initialize(entity, world);
+                        }
                         return existing;
                     }
                     
@@ -418,6 +424,10 @@ namespace ArtyECS.Editor
 
             var entityGO = new GameObject(expectedName);
             entityGO.transform.SetParent(entitiesContainer.transform);
+            
+            var componentDisplay = entityGO.AddComponent<EntityComponentDisplay>();
+            componentDisplay.Initialize(entity, world);
+            
             _entityGameObjects[key] = entityGO;
             return entityGO;
         }

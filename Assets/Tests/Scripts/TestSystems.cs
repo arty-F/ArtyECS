@@ -38,17 +38,16 @@ public class MovementSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        // Use GetEntitiesWith pattern for entities with both Position and Velocity
         var entities = world.GetEntitiesWith<Position, Velocity>();
         
-        var positions = world.GetModifiableComponents<Position>();
-        for (int i = 0; i < entities.Length && i < positions.Count; i++)
+        foreach (var entity in entities)
         {
-            // Get velocity for this entity
-            Velocity velocity = world.GetComponent<Velocity>(entities[i]);
-            positions[i].X += velocity.X;
-            positions[i].Y += velocity.Y;
-            positions[i].Z += velocity.Z;
+            Velocity velocity = world.GetComponent<Velocity>(entity);
+            
+            ref var position = ref world.GetModifiableComponent<Position>(entity);
+            position.X += velocity.X;
+            position.Y += velocity.Y;
+            position.Z += velocity.Z;
         }
     }
 }
