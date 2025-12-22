@@ -10,99 +10,42 @@ namespace ArtyECS.Editor
     [InitializeOnLoad]
     public class EcsHierarchyManager : MonoBehaviour
     {
+        #region Constants
+        private const float UPDATE_INTERVAL = 0.5f;
+        private const string CONTAINER_ENTITIES = "Entities";
+        private const string CONTAINER_SYSTEMS = "Systems";
+        private const string CONTAINER_UPDATE = "Update";
+        private const string CONTAINER_FIXED_UPDATE = "FixedUpdate";
+        private const string QUEUE_UPDATE = "Update";
+        private const string QUEUE_FIXED_UPDATE = "FixedUpdate";
+        #endregion
+
+        #region Static Fields and Properties
         private static EcsHierarchyManager _instance;
         private static bool _initialized = false;
 
         public static EcsHierarchyManager Instance => _instance;
+        #endregion
 
+        #region Instance Fields
         private GameObject _rootGameObject;
         private readonly Dictionary<WorldInstance, GameObject> _worldGameObjects = new Dictionary<WorldInstance, GameObject>();
         private readonly Dictionary<WorldInstance, GameObject> _entitiesContainers = new Dictionary<WorldInstance, GameObject>();
         private readonly Dictionary<WorldInstance, GameObject> _systemsContainers = new Dictionary<WorldInstance, GameObject>();
         private readonly Dictionary<WorldInstance, GameObject> _updateContainers = new Dictionary<WorldInstance, GameObject>();
         private readonly Dictionary<WorldInstance, GameObject> _fixedUpdateContainers = new Dictionary<WorldInstance, GameObject>();
-        
-        private struct EntityWorldKey : IEquatable<EntityWorldKey>
-        {
-            public readonly Entity Entity;
-            public readonly WorldInstance World;
-
-            public EntityWorldKey(Entity entity, WorldInstance world)
-            {
-                Entity = entity;
-                World = world;
-            }
-
-            public bool Equals(EntityWorldKey other)
-            {
-                return Entity.Equals(other.Entity) && ReferenceEquals(World, other.World);
-            }
-
-            public override int GetHashCode()
-            {
-                return Entity.GetHashCode() ^ World.GetHashCode();
-            }
-        }
-
         private readonly Dictionary<EntityWorldKey, GameObject> _entityGameObjects = new Dictionary<EntityWorldKey, GameObject>();
         private readonly Dictionary<WorldInstance, HashSet<Entity>> _previousEntitySets = new Dictionary<WorldInstance, HashSet<Entity>>();
-        
-        private struct SystemKey : IEquatable<SystemKey>
-        {
-            public readonly SystemHandler System;
-            public readonly WorldInstance World;
-            public readonly string QueueName;
-
-            public SystemKey(SystemHandler system, WorldInstance world, string queueName)
-            {
-                System = system;
-                World = world;
-                QueueName = queueName;
-            }
-
-            public bool Equals(SystemKey other)
-            {
-                return ReferenceEquals(System, other.System) && ReferenceEquals(World, other.World) && QueueName == other.QueueName;
-            }
-
-            public override int GetHashCode()
-            {
-                return System.GetHashCode() ^ World.GetHashCode() ^ QueueName.GetHashCode();
-            }
-        }
-
         private readonly Dictionary<SystemKey, GameObject> _systemGameObjects = new Dictionary<SystemKey, GameObject>();
-        
-        private struct WorldQueueKey : IEquatable<WorldQueueKey>
-        {
-            public readonly WorldInstance World;
-            public readonly string QueueName;
-
-            public WorldQueueKey(WorldInstance world, string queueName)
-            {
-                World = world;
-                QueueName = queueName;
-            }
-
-            public bool Equals(WorldQueueKey other)
-            {
-                return ReferenceEquals(World, other.World) && QueueName == other.QueueName;
-            }
-
-            public override int GetHashCode()
-            {
-                return World.GetHashCode() ^ QueueName.GetHashCode();
-            }
-        }
-
         private readonly Dictionary<WorldQueueKey, List<SystemHandler>> _previousSystemLists = new Dictionary<WorldQueueKey, List<SystemHandler>>();
 
         private float _lastUpdateTime;
-        private const float UPDATE_INTERVAL = 0.5f;
         
         [SerializeField]
         private bool _preserveOnExit = false;
+        #endregion
 
+        #region Static Initialization
         static EcsHierarchyManager()
         {
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
@@ -159,7 +102,9 @@ namespace ArtyECS.Editor
             }
             _initialized = false;
         }
+        #endregion
 
+        #region Unity Lifecycle
         private void Awake()
         {
             if (_initialized && _instance != null && _instance != this)
@@ -171,29 +116,6 @@ namespace ArtyECS.Editor
 
             _initialized = true;
             _instance = this;
-        }
-
-        private void Initialize()
-        {
-            GetOrCreateRoot();
-            UpdateWorldGameObjects();
-            
-            var allWorlds = World.GetAllWorlds();
-            foreach (var world in allWorlds)
-            {
-                var entities = world.GetAllEntities();
-                HashSet<Entity> initialEntitySet = new HashSet<Entity>();
-                foreach (var entity in entities)
-                {
-                    initialEntitySet.Add(entity);
-                }
-                _previousEntitySets[world] = initialEntitySet;
-                
-                UpdateEntityGameObjects(world);
-                UpdateSystemGameObjects(world);
-            }
-            
-            _lastUpdateTime = Time.realtimeSinceStartup;
         }
 
         private void Update()
@@ -228,7 +150,93 @@ namespace ArtyECS.Editor
                 _instance = null;
             }
         }
+        #endregion
 
+        #region Initialization
+        private void Initialize()
+        {
+            GetOrCreateRoot();
+            UpdateWorldGameObjects();
+            
+            var allWorlds = World.GetAllWorlds();
+            foreach (var world in allWorlds)
+            {
+                var entities = world.GetAllEntities();
+                HashSet<Entity> initialEntitySet = new HashSet<Entity>();
+                foreach (var entity in entities)
+                {
+                    initialEntitySet.Add(entity);
+                    GetOrCreateEntityGameObject(entity, world);
+                }
+                _previousEntitySets[world] = initialEntitySet;
+                
+                UpdateSystemHierarchy(world);
+            }
+            
+            _lastUpdateTime = Time.realtimeSinceStartup;
+        }
+        #endregion
+
+        #region Helper Methods
+        private static bool TryGetValidValue<TKey, TValue>(Dictionary<TKey, TValue> dict, TKey key, out TValue value) where TValue : class
+        {
+            if (dict.TryGetValue(key, out value))
+            {
+                if (value != null)
+                {
+                    return true;
+                }
+                dict.Remove(key);
+            }
+            value = null;
+            return false;
+        }
+
+        private GameObject GetOrCreateContainer(WorldInstance world, Dictionary<WorldInstance, GameObject> containerDict, string containerName, GameObject parent)
+        {
+            if (world == null)
+            {
+                return null;
+            }
+
+            if (TryGetValidValue(containerDict, world, out var existing))
+            {
+                return existing;
+            }
+
+            if (parent == null)
+            {
+                return null;
+            }
+
+            Transform containerTransform = parent.transform.Find(containerName);
+            if (containerTransform != null)
+            {
+                containerDict[world] = containerTransform.gameObject;
+                return containerTransform.gameObject;
+            }
+
+            var containerGO = new GameObject(containerName);
+            containerGO.transform.SetParent(parent.transform);
+            containerDict[world] = containerGO;
+            return containerGO;
+        }
+
+        private void CleanupGameObjectDictionary<TKey>(Dictionary<TKey, GameObject> dict)
+        {
+            var keysToCleanup = new List<TKey>(dict.Keys);
+            foreach (var key in keysToCleanup)
+            {
+                if (dict.TryGetValue(key, out var gameObject) && gameObject != null)
+                {
+                    DestroyImmediate(gameObject);
+                }
+            }
+            dict.Clear();
+        }
+        #endregion
+
+        #region Root/World GameObject Management
         private GameObject GetOrCreateRoot()
         {
             if (_rootGameObject != null)
@@ -263,13 +271,9 @@ namespace ArtyECS.Editor
                 return null;
             }
 
-            if (_worldGameObjects.TryGetValue(world, out var existing))
+            if (TryGetValidValue(_worldGameObjects, world, out var existing))
             {
-                if (existing != null)
-                {
-                    return existing;
-                }
-                _worldGameObjects.Remove(world);
+                return existing;
             }
 
             var root = GetOrCreateRoot();
@@ -285,147 +289,35 @@ namespace ArtyECS.Editor
             
             return worldGO;
         }
+        #endregion
 
+        #region Container GameObject Management
         private GameObject GetOrCreateEntitiesContainer(WorldInstance world)
         {
-            if (world == null)
-            {
-                return null;
-            }
-
-            if (_entitiesContainers.TryGetValue(world, out var existing))
-            {
-                if (existing != null)
-                {
-                    return existing;
-                }
-                _entitiesContainers.Remove(world);
-            }
-
             var worldGO = GetOrCreateWorldGameObject(world);
-            if (worldGO == null)
-            {
-                return null;
-            }
-
-            Transform entitiesTransform = worldGO.transform.Find("Entities");
-            if (entitiesTransform != null)
-            {
-                _entitiesContainers[world] = entitiesTransform.gameObject;
-                return entitiesTransform.gameObject;
-            }
-
-            var entitiesGO = new GameObject("Entities");
-            entitiesGO.transform.SetParent(worldGO.transform);
-            _entitiesContainers[world] = entitiesGO;
-            return entitiesGO;
+            return GetOrCreateContainer(world, _entitiesContainers, CONTAINER_ENTITIES, worldGO);
         }
 
         private GameObject GetOrCreateSystemsContainer(WorldInstance world)
         {
-            if (world == null)
-            {
-                return null;
-            }
-
-            if (_systemsContainers.TryGetValue(world, out var existing))
-            {
-                if (existing != null)
-                {
-                    return existing;
-                }
-                _systemsContainers.Remove(world);
-            }
-
             var worldGO = GetOrCreateWorldGameObject(world);
-            if (worldGO == null)
-            {
-                return null;
-            }
-
-            Transform systemsTransform = worldGO.transform.Find("Systems");
-            if (systemsTransform != null)
-            {
-                _systemsContainers[world] = systemsTransform.gameObject;
-                return systemsTransform.gameObject;
-            }
-
-            var systemsGO = new GameObject("Systems");
-            systemsGO.transform.SetParent(worldGO.transform);
-            _systemsContainers[world] = systemsGO;
-            return systemsGO;
+            return GetOrCreateContainer(world, _systemsContainers, CONTAINER_SYSTEMS, worldGO);
         }
 
         private GameObject GetOrCreateUpdateContainer(WorldInstance world)
         {
-            if (world == null)
-            {
-                return null;
-            }
-
-            if (_updateContainers.TryGetValue(world, out var existing))
-            {
-                if (existing != null)
-                {
-                    return existing;
-                }
-                _updateContainers.Remove(world);
-            }
-
             var systemsGO = GetOrCreateSystemsContainer(world);
-            if (systemsGO == null)
-            {
-                return null;
-            }
-
-            Transform updateTransform = systemsGO.transform.Find("Update");
-            if (updateTransform != null)
-            {
-                _updateContainers[world] = updateTransform.gameObject;
-                return updateTransform.gameObject;
-            }
-
-            var updateGO = new GameObject("Update");
-            updateGO.transform.SetParent(systemsGO.transform);
-            _updateContainers[world] = updateGO;
-            return updateGO;
+            return GetOrCreateContainer(world, _updateContainers, CONTAINER_UPDATE, systemsGO);
         }
 
         private GameObject GetOrCreateFixedUpdateContainer(WorldInstance world)
         {
-            if (world == null)
-            {
-                return null;
-            }
-
-            if (_fixedUpdateContainers.TryGetValue(world, out var existing))
-            {
-                if (existing != null)
-                {
-                    return existing;
-                }
-                _fixedUpdateContainers.Remove(world);
-            }
-
             var systemsGO = GetOrCreateSystemsContainer(world);
-            if (systemsGO == null)
-            {
-                return null;
-            }
-
-            Transform fixedUpdateTransform = systemsGO.transform.Find("FixedUpdate");
-            if (fixedUpdateTransform != null)
-            {
-                _fixedUpdateContainers[world] = fixedUpdateTransform.gameObject;
-                return fixedUpdateTransform.gameObject;
-            }
-
-            var fixedUpdateGO = new GameObject("FixedUpdate");
-            fixedUpdateGO.transform.SetParent(systemsGO.transform);
-            _fixedUpdateContainers[world] = fixedUpdateGO;
-            return fixedUpdateGO;
+            return GetOrCreateContainer(world, _fixedUpdateContainers, CONTAINER_FIXED_UPDATE, systemsGO);
         }
+        #endregion
 
+        #region Entity GameObject Management
         public GameObject GetOrCreateEntityGameObject(Entity entity, WorldInstance world)
         {
             if (!entity.IsValid || world == null)
@@ -476,6 +368,20 @@ namespace ArtyECS.Editor
             return entityGO;
         }
 
+        private EntityWorldKey? FindEntityKeyByGameObject(GameObject gameObject, WorldInstance world)
+        {
+            foreach (var kvp in _entityGameObjects)
+            {
+                if (ReferenceEquals(kvp.Key.World, world) && kvp.Value == gameObject)
+                {
+                    return kvp.Key;
+                }
+            }
+            return null;
+        }
+        #endregion
+
+        #region System GameObject Management
         public GameObject GetOrCreateSystemGameObject(SystemHandler system, WorldInstance world, string queueName)
         {
             if (system == null || world == null || string.IsNullOrEmpty(queueName))
@@ -484,21 +390,17 @@ namespace ArtyECS.Editor
             }
 
             var key = new SystemKey(system, world, queueName);
-            if (_systemGameObjects.TryGetValue(key, out var existing))
+            if (TryGetValidValue(_systemGameObjects, key, out var existing))
             {
-                if (existing != null)
-                {
-                    return existing;
-                }
-                _systemGameObjects.Remove(key);
+                return existing;
             }
 
             GameObject container = null;
-            if (queueName == "Update")
+            if (queueName == QUEUE_UPDATE)
             {
                 container = GetOrCreateUpdateContainer(world);
             }
-            else if (queueName == "FixedUpdate")
+            else if (queueName == QUEUE_FIXED_UPDATE)
             {
                 container = GetOrCreateFixedUpdateContainer(world);
             }
@@ -565,60 +467,25 @@ namespace ArtyECS.Editor
             }
             return null;
         }
+        #endregion
 
-        public void CleanupHierarchy()
+        #region Update/Refresh Logic
+        public void UpdateHierarchy()
         {
-            if (_preserveOnExit)
+            if (!Application.isPlaying)
             {
                 return;
             }
 
-            if (_rootGameObject != null && _rootGameObject != gameObject)
-            {
-                DestroyImmediate(_rootGameObject);
-                _rootGameObject = null;
-            }
+            UpdateWorldGameObjects();
 
-            var worldsToCleanup = new List<WorldInstance>(_worldGameObjects.Keys);
-            foreach (var world in worldsToCleanup)
-            {
-                if (_worldGameObjects.TryGetValue(world, out var worldGO) && worldGO != null)
-                {
-                    DestroyImmediate(worldGO);
-                }
-            }
+            var root = GetOrCreateRoot();
+            var allWorlds = World.GetAllWorlds();
 
-            var entitiesToCleanup = new List<EntityWorldKey>(_entityGameObjects.Keys);
-            foreach (var key in entitiesToCleanup)
+            foreach (var world in allWorlds)
             {
-                if (_entityGameObjects.TryGetValue(key, out var entityGO) && entityGO != null)
-                {
-                    DestroyImmediate(entityGO);
-                }
-            }
-
-            var systemsToCleanup = new List<SystemKey>(_systemGameObjects.Keys);
-            foreach (var key in systemsToCleanup)
-            {
-                if (_systemGameObjects.TryGetValue(key, out var systemGO) && systemGO != null)
-                {
-                    DestroyImmediate(systemGO);
-                }
-            }
-
-            _worldGameObjects.Clear();
-            _entitiesContainers.Clear();
-            _systemsContainers.Clear();
-            _updateContainers.Clear();
-            _fixedUpdateContainers.Clear();
-            _entityGameObjects.Clear();
-            _systemGameObjects.Clear();
-            _previousEntitySets.Clear();
-            _previousSystemLists.Clear();
-            
-            if (_rootGameObject != gameObject)
-            {
-                _rootGameObject = null;
+                UpdateEntityHierarchy(world);
+                UpdateSystemHierarchy(world);
             }
         }
 
@@ -737,84 +604,6 @@ namespace ArtyECS.Editor
             _previousEntitySets[world] = new HashSet<Entity>(currentEntities);
         }
 
-        private EntityWorldKey? FindEntityKeyByGameObject(GameObject gameObject, WorldInstance world)
-        {
-            foreach (var kvp in _entityGameObjects)
-            {
-                if (ReferenceEquals(kvp.Key.World, world) && kvp.Value == gameObject)
-                {
-                    return kvp.Key;
-                }
-            }
-            return null;
-        }
-
-        private void UpdateEntityGameObjects(WorldInstance world)
-        {
-            if (world == null || !Application.isPlaying)
-            {
-                return;
-            }
-
-            var entities = world.GetAllEntities();
-            HashSet<Entity> currentEntities = new HashSet<Entity>();
-
-            foreach (var entity in entities)
-            {
-                currentEntities.Add(entity);
-                GetOrCreateEntityGameObject(entity, world);
-            }
-
-            var entitiesToRemove = new List<EntityWorldKey>();
-            foreach (var kvp in _entityGameObjects)
-            {
-                if (ReferenceEquals(kvp.Key.World, world))
-                {
-                    if (!currentEntities.Contains(kvp.Key.Entity) || kvp.Value == null)
-                    {
-                        if (kvp.Value != null)
-                        {
-                            DestroyImmediate(kvp.Value);
-                        }
-                        entitiesToRemove.Add(kvp.Key);
-                    }
-                }
-            }
-            foreach (var key in entitiesToRemove)
-            {
-                _entityGameObjects.Remove(key);
-            }
-        }
-
-        public void UpdateHierarchy()
-        {
-            if (!Application.isPlaying)
-            {
-                return;
-            }
-
-            UpdateWorldGameObjects();
-
-            var root = GetOrCreateRoot();
-            var allWorlds = World.GetAllWorlds();
-
-            foreach (var world in allWorlds)
-            {
-                UpdateEntityHierarchy(world);
-                UpdateSystemGameObjects(world);
-            }
-        }
-
-        private void UpdateSystemGameObjects(WorldInstance world)
-        {
-            if (world == null || !Application.isPlaying)
-            {
-                return;
-            }
-
-            UpdateSystemHierarchy(world);
-        }
-
         private void UpdateSystemHierarchy(WorldInstance world)
         {
             if (world == null || !Application.isPlaying)
@@ -825,8 +614,8 @@ namespace ArtyECS.Editor
             var updateQueue = world.GetUpdateQueue();
             var fixedUpdateQueue = world.GetFixedUpdateQueue();
 
-            UpdateSystemQueue(world, "Update", updateQueue);
-            UpdateSystemQueue(world, "FixedUpdate", fixedUpdateQueue);
+            UpdateSystemQueue(world, QUEUE_UPDATE, updateQueue);
+            UpdateSystemQueue(world, QUEUE_FIXED_UPDATE, fixedUpdateQueue);
         }
 
         private void UpdateSystemQueue(WorldInstance world, string queueName, IReadOnlyList<SystemHandler> currentQueue)
@@ -883,11 +672,11 @@ namespace ArtyECS.Editor
             }
 
             GameObject container = null;
-            if (queueName == "Update")
+            if (queueName == QUEUE_UPDATE)
             {
                 container = GetOrCreateUpdateContainer(world);
             }
-            else if (queueName == "FixedUpdate")
+            else if (queueName == QUEUE_FIXED_UPDATE)
             {
                 container = GetOrCreateFixedUpdateContainer(world);
             }
@@ -948,7 +737,39 @@ namespace ArtyECS.Editor
 
             _previousSystemLists[queueKey] = new List<SystemHandler>(currentList);
         }
+        #endregion
+
+        #region Cleanup Logic
+        public void CleanupHierarchy()
+        {
+            if (_preserveOnExit)
+            {
+                return;
+            }
+
+            if (_rootGameObject != null && _rootGameObject != gameObject)
+            {
+                DestroyImmediate(_rootGameObject);
+                _rootGameObject = null;
+            }
+
+            CleanupGameObjectDictionary(_worldGameObjects);
+            CleanupGameObjectDictionary(_entityGameObjects);
+            CleanupGameObjectDictionary(_systemGameObjects);
+
+            _entitiesContainers.Clear();
+            _systemsContainers.Clear();
+            _updateContainers.Clear();
+            _fixedUpdateContainers.Clear();
+            _previousEntitySets.Clear();
+            _previousSystemLists.Clear();
+            
+            if (_rootGameObject != gameObject)
+            {
+                _rootGameObject = null;
+            }
+        }
+        #endregion
     }
 }
 #endif
-
