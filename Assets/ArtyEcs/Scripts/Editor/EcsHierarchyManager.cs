@@ -23,8 +23,62 @@ namespace ArtyECS.Editor
         #region Static Fields and Properties
         private static EcsHierarchyManager _instance;
         private static bool _initialized = false;
+        private static readonly HashSet<WorldInstance> _loadedWorlds = new HashSet<WorldInstance>();
 
         public static EcsHierarchyManager Instance => _instance;
+
+        public static bool IsWorldLoaded(WorldInstance world)
+        {
+            if (world == null)
+            {
+                return false;
+            }
+            return _loadedWorlds.Contains(world);
+        }
+
+        public static void SetWorldLoaded(WorldInstance world, bool loaded)
+        {
+            if (world == null)
+            {
+                return;
+            }
+
+            if (loaded)
+            {
+                _loadedWorlds.Add(world);
+                if (_instance != null && Application.isPlaying)
+                {
+                    _instance.GetOrCreateWorldGameObject(world);
+                    var entities = world.GetAllEntities();
+                    HashSet<Entity> initialEntitySet = new HashSet<Entity>();
+                    foreach (var entity in entities)
+                    {
+                        initialEntitySet.Add(entity);
+                        _instance.GetOrCreateEntityGameObject(entity, world);
+                    }
+                    _instance._previousEntitySets[world] = initialEntitySet;
+                    _instance.UpdateSystemHierarchy(world);
+                }
+            }
+            else
+            {
+                _loadedWorlds.Remove(world);
+                if (_instance != null)
+                {
+                    _instance.CleanupWorldContents(world);
+                }
+            }
+        }
+
+        public static void LoadWorld(WorldInstance world)
+        {
+            SetWorldLoaded(world, true);
+        }
+
+        public static void UnloadWorld(WorldInstance world)
+        {
+            SetWorldLoaded(world, false);
+        }
         #endregion
 
         #region Instance Fields
@@ -101,6 +155,7 @@ namespace ArtyECS.Editor
                 _instance = null;
             }
             _initialized = false;
+            _loadedWorlds.Clear();
         }
         #endregion
 
@@ -161,6 +216,11 @@ namespace ArtyECS.Editor
             var allWorlds = World.GetAllWorlds();
             foreach (var world in allWorlds)
             {
+                if (!IsWorldLoaded(world))
+                {
+                    continue;
+                }
+
                 var entities = world.GetAllEntities();
                 HashSet<Entity> initialEntitySet = new HashSet<Entity>();
                 foreach (var entity in entities)
@@ -271,21 +331,34 @@ namespace ArtyECS.Editor
                 return null;
             }
 
+            GameObject worldGO = null;
+            WorldInstanceDisplay worldDisplay = null;
+
             if (TryGetValidValue(_worldGameObjects, world, out var existing))
             {
-                return existing;
+                worldGO = existing;
+                worldDisplay = existing.GetComponent<WorldInstanceDisplay>();
+                if (worldDisplay == null)
+                {
+                    worldDisplay = existing.AddComponent<WorldInstanceDisplay>();
+                    worldDisplay.Initialize(world);
+                }
             }
-
-            var root = GetOrCreateRoot();
-            string worldName = world.Name ?? "Unknown";
-            var worldGO = new GameObject(worldName);
-            worldGO.transform.SetParent(root.transform);
-            _worldGameObjects[world] = worldGO;
-            
-            GetOrCreateEntitiesContainer(world);
-            GetOrCreateSystemsContainer(world);
-            GetOrCreateUpdateContainer(world);
-            GetOrCreateFixedUpdateContainer(world);
+            else
+            {
+                var root = GetOrCreateRoot();
+                string worldName = world.Name ?? "Unknown";
+                worldGO = new GameObject(worldName);
+                worldGO.transform.SetParent(root.transform);
+                _worldGameObjects[world] = worldGO;
+                
+                worldDisplay = worldGO.GetComponent<WorldInstanceDisplay>();
+                if (worldDisplay == null)
+                {
+                    worldDisplay = worldGO.AddComponent<WorldInstanceDisplay>();
+                    worldDisplay.Initialize(world);
+                }
+            }
             
             return worldGO;
         }
@@ -320,7 +393,7 @@ namespace ArtyECS.Editor
         #region Entity GameObject Management
         public GameObject GetOrCreateEntityGameObject(Entity entity, WorldInstance world)
         {
-            if (!entity.IsValid || world == null)
+            if (!entity.IsValid || world == null || !IsWorldLoaded(world))
             {
                 return null;
             }
@@ -384,7 +457,7 @@ namespace ArtyECS.Editor
         #region System GameObject Management
         public GameObject GetOrCreateSystemGameObject(SystemHandler system, WorldInstance world, string queueName)
         {
-            if (system == null || world == null || string.IsNullOrEmpty(queueName))
+            if (system == null || world == null || string.IsNullOrEmpty(queueName) || !IsWorldLoaded(world))
             {
                 return null;
             }
@@ -484,6 +557,11 @@ namespace ArtyECS.Editor
 
             foreach (var world in allWorlds)
             {
+                if (!IsWorldLoaded(world))
+                {
+                    continue;
+                }
+
                 UpdateEntityHierarchy(world);
                 UpdateSystemHierarchy(world);
             }
@@ -521,6 +599,20 @@ namespace ArtyECS.Editor
             {
                 _worldGameObjects.Remove(world);
                 _previousEntitySets.Remove(world);
+                _loadedWorlds.Remove(world);
+            }
+
+            var loadedWorldsToRemove = new List<WorldInstance>();
+            foreach (var world in _loadedWorlds)
+            {
+                if (!currentWorlds.Contains(world))
+                {
+                    loadedWorldsToRemove.Add(world);
+                }
+            }
+            foreach (var world in loadedWorldsToRemove)
+            {
+                _loadedWorlds.Remove(world);
             }
         }
 
@@ -740,6 +832,67 @@ namespace ArtyECS.Editor
         #endregion
 
         #region Cleanup Logic
+        private void CleanupWorldContents(WorldInstance world)
+        {
+            if (world == null)
+            {
+                return;
+            }
+
+            var keysToRemove = new List<EntityWorldKey>();
+            foreach (var kvp in _entityGameObjects)
+            {
+                if (ReferenceEquals(kvp.Key.World, world))
+                {
+                    if (kvp.Value != null)
+                    {
+                        DestroyImmediate(kvp.Value);
+                    }
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+            foreach (var key in keysToRemove)
+            {
+                _entityGameObjects.Remove(key);
+            }
+
+            var systemKeysToRemove = new List<SystemKey>();
+            foreach (var kvp in _systemGameObjects)
+            {
+                if (ReferenceEquals(kvp.Key.World, world))
+                {
+                    if (kvp.Value != null)
+                    {
+                        DestroyImmediate(kvp.Value);
+                    }
+                    systemKeysToRemove.Add(kvp.Key);
+                }
+            }
+            foreach (var key in systemKeysToRemove)
+            {
+                _systemGameObjects.Remove(key);
+            }
+
+            _entitiesContainers.Remove(world);
+            _systemsContainers.Remove(world);
+            _updateContainers.Remove(world);
+            _fixedUpdateContainers.Remove(world);
+            _previousEntitySets.Remove(world);
+
+            var queueKeysToRemove = new List<WorldQueueKey>();
+            foreach (var kvp in _previousSystemLists)
+            {
+                if (ReferenceEquals(kvp.Key.World, world))
+                {
+                    queueKeysToRemove.Add(kvp.Key);
+                }
+            }
+            foreach (var key in queueKeysToRemove)
+            {
+                _previousSystemLists.Remove(key);
+            }
+        }
+
         public void CleanupHierarchy()
         {
             if (_preserveOnExit)
