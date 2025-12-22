@@ -48,7 +48,7 @@ namespace ArtyECS.Editor
                 _loadedWorlds.Add(world);
                 if (_instance != null && Application.isPlaying)
                 {
-                    _instance.GetOrCreateWorldGameObject(world);
+                    var worldGO = _instance.GetOrCreateWorldGameObject(world);
                     var entities = world.GetAllEntities();
                     HashSet<Entity> initialEntitySet = new HashSet<Entity>();
                     foreach (var entity in entities)
@@ -58,6 +58,12 @@ namespace ArtyECS.Editor
                     }
                     _instance._previousEntitySets[world] = initialEntitySet;
                     _instance.UpdateSystemHierarchy(world);
+                    
+                    if (worldGO != null)
+                    {
+                        EditorGUIUtility.PingObject(worldGO);
+                        Selection.activeGameObject = worldGO;
+                    }
                 }
             }
             else
@@ -438,7 +444,27 @@ namespace ArtyECS.Editor
             componentDisplay.Initialize(entity, world);
             
             _entityGameObjects[key] = entityGO;
+            
+            if (!_previousEntitySets.TryGetValue(world, out var previousEntities))
+            {
+                previousEntities = new HashSet<Entity>();
+                _previousEntitySets[world] = previousEntities;
+            }
+            previousEntities.Add(entity);
+            
             return entityGO;
+        }
+        
+        public GameObject ForceCreateEntityGameObject(Entity entity, WorldInstance world)
+        {
+            if (!entity.IsValid || world == null)
+            {
+                return null;
+            }
+            
+            LoadWorld(world);
+            
+            return GetOrCreateEntityGameObject(entity, world);
         }
 
         private EntityWorldKey? FindEntityKeyByGameObject(GameObject gameObject, WorldInstance world)
@@ -663,6 +689,11 @@ namespace ArtyECS.Editor
 
             foreach (var entity in entitiesToRemove)
             {
+                if (world.IsEntityValid(entity))
+                {
+                    continue;
+                }
+                
                 var key = new EntityWorldKey(entity, world);
                 if (_entityGameObjects.TryGetValue(key, out var gameObject))
                 {
@@ -682,9 +713,17 @@ namespace ArtyECS.Editor
                 {
                     var child = entitiesContainer.transform.GetChild(i).gameObject;
                     var key = FindEntityKeyByGameObject(child, world);
-                    if (!key.HasValue || !currentEntities.Contains(key.Value.Entity))
+                    if (!key.HasValue)
                     {
                         orphanedGameObjects.Add(child);
+                    }
+                    else
+                    {
+                        var entity = key.Value.Entity;
+                        if (!currentEntities.Contains(entity) && !world.IsEntityValid(entity))
+                        {
+                            orphanedGameObjects.Add(child);
+                        }
                     }
                 }
                 foreach (var orphaned in orphanedGameObjects)
@@ -693,7 +732,15 @@ namespace ArtyECS.Editor
                 }
             }
 
-            _previousEntitySets[world] = new HashSet<Entity>(currentEntities);
+            var updatedEntitySet = new HashSet<Entity>(currentEntities);
+            foreach (var entity in previousEntities)
+            {
+                if (!currentEntities.Contains(entity) && world.IsEntityValid(entity))
+                {
+                    updatedEntitySet.Add(entity);
+                }
+            }
+            _previousEntitySets[world] = updatedEntitySet;
         }
 
         private void UpdateSystemHierarchy(WorldInstance world)

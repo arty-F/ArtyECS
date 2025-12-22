@@ -151,10 +151,56 @@ namespace ArtyECS.Editor
                 EditorGUI.indentLevel++;
                 DrawComponentFields(componentInfo.Value, componentInfo.ComponentType, componentInfo, componentKey);
                 EditorGUI.indentLevel--;
+                
+                EditorGUILayout.Space(5);
+                DrawComponentSystemInfo(componentInfo, componentKey);
             }
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
+        }
+
+        private void DrawComponentSystemInfo(ComponentInfo componentInfo, string componentKey)
+        {
+            var display = (EntityComponentDisplay)target;
+            var world = display.GetWorld();
+
+            if (world == null || !Application.isPlaying)
+            {
+                return;
+            }
+
+            EditorGUILayout.LabelField("Systems:", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            
+            try
+            {
+                var componentSystems = ComponentQueueAnalyzer.GetComponentSystems(world, componentInfo.ComponentType);
+                
+                if (componentSystems.Count == 0)
+                {
+                    EditorGUILayout.LabelField("Not processed", EditorStyles.miniLabel);
+                }
+                else
+                {
+                    foreach (var kvp in componentSystems)
+                    {
+                        string queueName = kvp.Key;
+                        var systems = kvp.Value;
+                        
+                        foreach (var system in systems)
+                        {
+                            EditorGUILayout.LabelField($"- {system.GetType().Name} ({queueName} Queue)", EditorStyles.miniLabel);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                EditorGUILayout.HelpBox($"Error analyzing systems: {ex.Message}", MessageType.Error);
+            }
+            
+            EditorGUI.indentLevel--;
         }
 
         private void DrawComponentFields(object componentValue, Type componentType, ComponentInfo componentInfo, string componentKey)
