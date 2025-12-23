@@ -13,9 +13,6 @@ namespace ArtyECS.Editor
     public class EntityComponentDisplayEditor : UnityEditor.Editor
     {
         private Dictionary<string, bool> _componentFoldouts = new Dictionary<string, bool>();
-        private bool _autoRefresh = true;
-        private double _lastRefreshTime;
-        private const double AUTO_REFRESH_INTERVAL = 0.1;
         private Dictionary<string, Color> _modifiedFields = new Dictionary<string, Color>();
         private double _lastFlashTime;
         private const double FLASH_DURATION = 0.5;
@@ -40,9 +37,6 @@ namespace ArtyECS.Editor
             DrawEntityInfo(display);
             EditorGUILayout.Space();
 
-            DrawRefreshControls(display);
-            EditorGUILayout.Space();
-
             DrawComponents(display);
 
             serializedObject.ApplyModifiedProperties();
@@ -56,45 +50,6 @@ namespace ArtyECS.Editor
             EditorGUILayout.IntField("Entity Generation", entity.Generation);
             EditorGUILayout.TextField("World", display.GetWorld()?.Name ?? "None");
             EditorGUI.EndDisabledGroup();
-        }
-
-        private void DrawRefreshControls(EntityComponentDisplay display)
-        {
-            EditorGUILayout.BeginHorizontal();
-            
-            if (Application.isPlaying)
-            {
-                _autoRefresh = EditorGUILayout.Toggle("Auto Refresh", _autoRefresh);
-                
-                if (GUILayout.Button("Refresh Now", GUILayout.Width(100)))
-                {
-                    bool hasChanges = display.RefreshFromECS();
-                    if (hasChanges)
-                    {
-                        Repaint();
-                    }
-                }
-
-                if (_autoRefresh)
-                {
-                    double currentTime = EditorApplication.timeSinceStartup;
-                    if (currentTime - _lastRefreshTime >= AUTO_REFRESH_INTERVAL)
-                    {
-                        bool hasChanges = display.RefreshFromECS();
-                        _lastRefreshTime = currentTime;
-                        if (hasChanges)
-                        {
-                            Repaint();
-                        }
-                    }
-                }
-            }
-            else
-            {
-                EditorGUILayout.HelpBox("Component values are only available in Play Mode", MessageType.Info);
-            }
-
-            EditorGUILayout.EndHorizontal();
         }
 
         private void DrawComponents(EntityComponentDisplay display)

@@ -100,9 +100,6 @@ namespace ArtyECS.Editor
         private readonly Dictionary<WorldQueueKey, List<SystemHandler>> _previousSystemLists = new Dictionary<WorldQueueKey, List<SystemHandler>>();
 
         private float _lastUpdateTime;
-        
-        [SerializeField]
-        private bool _preserveOnExit = false;
         #endregion
 
         #region Static Initialization
@@ -942,11 +939,6 @@ namespace ArtyECS.Editor
 
         public void CleanupHierarchy()
         {
-            if (_preserveOnExit)
-            {
-                return;
-            }
-
             if (_rootGameObject != null && _rootGameObject != gameObject)
             {
                 DestroyImmediate(_rootGameObject);
