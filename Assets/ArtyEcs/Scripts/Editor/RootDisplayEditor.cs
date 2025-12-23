@@ -84,28 +84,24 @@ namespace ArtyECS.Editor
                 
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField($"World: {world.Name}", EditorStyles.boldLabel);
+                GUILayout.FlexibleSpace();
                 
-                bool canDelete = world.Name != "Global";
+                bool canDelete = !ReferenceEquals(world, World.GlobalWorld);
                 EditorGUI.BeginDisabledGroup(!canDelete);
-                if (GUILayout.Button("Delete", GUILayout.Width(80)))
+                if (DrawDeleteButton("Delete", 60f))
                 {
-                    if (EditorUtility.DisplayDialog("Delete World", 
-                        $"Are you sure you want to delete world '{world.Name}'? This action cannot be undone.", 
-                        "Delete", "Cancel"))
+                    if (World.Destroy(world))
                     {
-                        if (World.Destroy(world))
+                        Debug.Log($"World '{world.Name}' deleted successfully");
+                        
+                        if (EcsHierarchyManager.Instance != null)
                         {
-                            Debug.Log($"World '{world.Name}' deleted successfully");
-                            
-                            if (EcsHierarchyManager.Instance != null)
-                            {
-                                EcsHierarchyManager.UnloadWorld(world);
-                            }
+                            EcsHierarchyManager.UnloadWorld(world);
                         }
-                        else
-                        {
-                            EditorUtility.DisplayDialog("Error", $"Failed to delete world '{world.Name}'", "OK");
-                        }
+                    }
+                    else
+                    {
+                        EditorUtility.DisplayDialog("Error", $"Failed to delete world '{world.Name}'", "OK");
                     }
                 }
                 EditorGUI.EndDisabledGroup();
@@ -126,6 +122,15 @@ namespace ArtyECS.Editor
                 
                 EditorGUILayout.EndVertical();
             }
+        }
+
+        private bool DrawDeleteButton(string label, float width = 60f)
+        {
+            Color originalColor = GUI.color;
+            GUI.color = Color.red;
+            bool clicked = GUILayout.Button(label, GUILayout.Width(width), GUILayout.Height(20));
+            GUI.color = originalColor;
+            return clicked;
         }
     }
 }

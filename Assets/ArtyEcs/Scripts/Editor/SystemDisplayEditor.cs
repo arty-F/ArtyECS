@@ -28,30 +28,26 @@ namespace ArtyECS.Editor
                 return;
             }
 
+            EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("System Information", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
             
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.TextField("System Type", system.GetType().Name);
-            EditorGUILayout.TextField("Queue", display.GetQueueName());
-            EditorGUI.EndDisabledGroup();
-
-            EditorGUILayout.Space();
-
-            if (GUILayout.Button("Remove System", GUILayout.Height(25)))
+            if (DrawDeleteButton("Delete", 60f))
             {
                 bool removed = false;
-                if (display.GetQueueName() == "Update")
+                string queueName = display.GetQueueName();
+                if (queueName == "Update")
                 {
                     removed = world.RemoveFromUpdate(system);
                 }
-                else if (display.GetQueueName() == "FixedUpdate")
+                else if (queueName == "FixedUpdate")
                 {
                     removed = world.RemoveFromFixedUpdate(system);
                 }
 
                 if (removed)
                 {
-                    Debug.Log($"Removed {system.GetType().Name} from {display.GetQueueName()} queue");
+                    Debug.Log($"System {system.GetType().Name} removed from {queueName} queue");
 
                     if (EcsHierarchyManager.Instance != null)
                     {
@@ -66,10 +62,26 @@ namespace ArtyECS.Editor
                 }
                 else
                 {
-                    EditorUtility.DisplayDialog("Error", $"Failed to remove system", "OK");
+                    EditorUtility.DisplayDialog("Error", "Failed to remove system", "OK");
                 }
             }
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.TextField("System Type", system.GetType().Name);
+            EditorGUILayout.TextField("Queue", display.GetQueueName());
+            EditorGUI.EndDisabledGroup();
         }
+
+        private bool DrawDeleteButton(string label, float width = 60f)
+        {
+            Color originalColor = GUI.color;
+            GUI.color = Color.red;
+            bool clicked = GUILayout.Button(label, GUILayout.Width(width), GUILayout.Height(20));
+            GUI.color = originalColor;
+            return clicked;
+        }
+
     }
 }
 #endif

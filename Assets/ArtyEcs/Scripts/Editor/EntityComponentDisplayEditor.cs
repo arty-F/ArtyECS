@@ -24,6 +24,8 @@ namespace ArtyECS.Editor
         private Type[] _componentTypes;
         private Dictionary<Type, Dictionary<string, object>> _componentFieldValues = new Dictionary<Type, Dictionary<string, object>>();
 
+        private GUIStyle _boldFoldoutStyle;
+
         public override void OnInspectorGUI()
         {
             var display = (EntityComponentDisplay)target;
@@ -54,11 +56,37 @@ namespace ArtyECS.Editor
 
         private void DrawEntityInfo(EntityComponentDisplay display)
         {
-            EditorGUI.BeginDisabledGroup(true);
             var entity = display.GetEntity();
+            var world = display.GetWorld();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"Entity_{entity.Id}_Gen{entity.Generation}", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            
+            if (DrawDeleteButton("Delete", 60f))
+            {
+                if (world != null)
+                {
+                    world.DestroyEntity(entity);
+                    Debug.Log($"Entity {entity} deleted");
+                    if (EcsHierarchyManager.Instance != null)
+                    {
+                        EditorApplication.delayCall += () =>
+                        {
+                            if (EcsHierarchyManager.Instance != null)
+                            {
+                                EcsHierarchyManager.Instance.UpdateHierarchy();
+                            }
+                        };
+                    }
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.IntField("Entity ID", entity.Id);
             EditorGUILayout.IntField("Entity Generation", entity.Generation);
-            EditorGUILayout.TextField("World", display.GetWorld()?.Name ?? "None");
+            EditorGUILayout.TextField("World", world?.Name ?? "None");
             EditorGUI.EndDisabledGroup();
         }
 
@@ -97,6 +125,12 @@ namespace ArtyECS.Editor
                 return;
             }
 
+            if (_boldFoldoutStyle == null)
+            {
+                _boldFoldoutStyle = new GUIStyle(EditorStyles.foldout);
+                _boldFoldoutStyle.fontStyle = FontStyle.Bold;
+            }
+
             string componentKey = componentInfo.ComponentType.FullName;
             if (!_componentFoldouts.ContainsKey(componentKey))
             {
@@ -105,14 +139,33 @@ namespace ArtyECS.Editor
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             
+            EditorGUILayout.BeginHorizontal();
             _componentFoldouts[componentKey] = EditorGUILayout.Foldout(
                 _componentFoldouts[componentKey],
                 componentInfo.ComponentType.Name,
-                true
+                _boldFoldoutStyle
             );
+            GUILayout.FlexibleSpace();
+            
+            var display = (EntityComponentDisplay)target;
+            var entity = display.GetEntity();
+            var world = display.GetWorld();
+            
+            GUILayout.Space(5);
+            if (DrawDeleteButton("X", 30f))
+            {
+                if (world != null && entity.IsValid)
+                {
+                    RemoveComponentByType(world, entity, componentInfo.ComponentType);
+                    display.RefreshFromECS();
+                    Repaint();
+                }
+            }
+            EditorGUILayout.EndHorizontal();
 
             if (_componentFoldouts[componentKey])
             {
+                EditorGUILayout.Space(3);
                 EditorGUI.indentLevel++;
                 DrawComponentFields(componentInfo.Value, componentInfo.ComponentType, componentInfo, componentKey);
                 EditorGUI.indentLevel--;
@@ -135,7 +188,7 @@ namespace ArtyECS.Editor
                 return;
             }
 
-            EditorGUILayout.LabelField("Systems:", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Systems:", EditorStyles.label);
             EditorGUI.indentLevel++;
             
             try
@@ -851,6 +904,37 @@ namespace ArtyECS.Editor
             catch (Exception ex)
             {
                 EditorUtility.DisplayDialog("Error", $"Failed to add component: {ex.Message}", "OK");
+            }
+        }
+
+        private bool DrawDeleteButton(string label, float width = 60f)
+        {
+            Color originalColor = GUI.color;
+            GUI.color = Color.red;
+            bool clicked = GUILayout.Button(label, GUILayout.Width(width), GUILayout.Height(20));
+            GUI.color = originalColor;
+            return clicked;
+        }
+
+        private void RemoveComponentByType(WorldInstance world, Entity entity, Type componentType)
+        {
+            try
+            {
+                MethodInfo removeMethod = typeof(WorldInstance).GetMethod("RemoveComponent").MakeGenericMethod(componentType);
+                bool removed = (bool)removeMethod.Invoke(world, new object[] { entity });
+                
+                if (removed)
+                {
+                    Debug.Log($"Removed {componentType.Name} from entity {entity.Id}_Gen{entity.Generation}");
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("Error", $"Failed to remove component {componentType.Name}", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                EditorUtility.DisplayDialog("Error", $"Failed to remove component: {ex.Message}", "OK");
             }
         }
     }

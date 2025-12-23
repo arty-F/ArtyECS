@@ -37,6 +37,37 @@ namespace ArtyECS.Editor
                 return;
             }
 
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(world.Name ?? "Unknown", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            
+            bool isGlobal = ReferenceEquals(world, World.GlobalWorld);
+            EditorGUI.BeginDisabledGroup(isGlobal);
+            if (DrawDeleteButton("Delete", 60f))
+            {
+                if (World.Destroy(world))
+                {
+                    EcsHierarchyManager.UnloadWorld(world);
+                    Debug.Log($"World '{world.Name}' deleted");
+                    if (EcsHierarchyManager.Instance != null)
+                    {
+                        EditorApplication.delayCall += () =>
+                        {
+                            if (EcsHierarchyManager.Instance != null)
+                            {
+                                EcsHierarchyManager.Instance.UpdateHierarchy();
+                            }
+                        };
+                    }
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("Error", "Failed to delete world", "OK");
+                }
+            }
+            EditorGUI.EndDisabledGroup();
+            EditorGUILayout.EndHorizontal();
+
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.TextField("World Name", world.Name ?? "Unknown");
             
@@ -87,6 +118,16 @@ namespace ArtyECS.Editor
                 EditorGUILayout.HelpBox("World contents are not loaded. Click 'Load Contents' to display entities and systems in hierarchy.", MessageType.Info);
             }
         }
+
+        private bool DrawDeleteButton(string label, float width = 60f)
+        {
+            Color originalColor = GUI.color;
+            GUI.color = Color.red;
+            bool clicked = GUILayout.Button(label, GUILayout.Width(width), GUILayout.Height(20));
+            GUI.color = originalColor;
+            return clicked;
+        }
+
     }
 }
 #endif
