@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEditor;
@@ -16,6 +17,12 @@ namespace ArtyECS.Editor
         private Dictionary<string, Color> _modifiedFields = new Dictionary<string, Color>();
         private double _lastFlashTime;
         private const double FLASH_DURATION = 0.5;
+
+        private bool _showAddComponent = false;
+        private int _selectedComponentIndex = 0;
+        private string[] _componentTypeNames;
+        private Type[] _componentTypes;
+        private Dictionary<Type, Dictionary<string, object>> _componentFieldValues = new Dictionary<Type, Dictionary<string, object>>();
 
         public override void OnInspectorGUI()
         {
@@ -38,6 +45,9 @@ namespace ArtyECS.Editor
             EditorGUILayout.Space();
 
             DrawComponents(display);
+            EditorGUILayout.Space();
+
+            DrawAddComponent(display);
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -615,6 +625,233 @@ namespace ArtyECS.Editor
             }
 
             EditorGUI.EndDisabledGroup();
+        }
+
+        private void DrawAddComponent(EntityComponentDisplay display)
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            var entity = display.GetEntity();
+            var world = display.GetWorld();
+
+            if (!entity.IsValid || world == null)
+            {
+                return;
+            }
+
+            if (GUILayout.Button(_showAddComponent ? "Hide" : "Add Component", GUILayout.Height(25)))
+            {
+                _showAddComponent = !_showAddComponent;
+                if (_showAddComponent && _componentTypes == null)
+                {
+                    DiscoverComponentTypes();
+                }
+            }
+
+            if (_showAddComponent)
+            {
+                DrawComponentSelection(display, entity, world);
+            }
+        }
+
+        private void DiscoverComponentTypes()
+        {
+            var componentTypes = new List<Type>();
+
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (var assembly in assemblies)
+            {
+                try
+                {
+                    var types = assembly.GetTypes()
+                        .Where(t => t.IsValueType && typeof(IComponent).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface)
+                        .ToArray();
+
+                    componentTypes.AddRange(types);
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    Debug.LogWarning($"Could not load types from assembly {assembly.FullName}: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"Error scanning assembly {assembly.FullName}: {ex.Message}");
+                }
+            }
+
+            _componentTypes = componentTypes.OrderBy(t => t.Name).ToArray();
+            _componentTypeNames = _componentTypes.Select(t => t.Name).ToArray();
+        }
+
+        private void DrawComponentSelection(EntityComponentDisplay display, Entity entity, WorldInstance world)
+        {
+            if (_componentTypeNames == null || _componentTypeNames.Length == 0)
+            {
+                EditorGUILayout.HelpBox("No component types found", MessageType.Warning);
+                return;
+            }
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            _selectedComponentIndex = EditorGUILayout.Popup("Component Type:", _selectedComponentIndex, _componentTypeNames);
+
+            if (_selectedComponentIndex >= 0 && _selectedComponentIndex < _componentTypes.Length)
+            {
+                var selectedType = _componentTypes[_selectedComponentIndex];
+                DrawComponentFields(selectedType);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Add Component"))
+            {
+                AddComponentToEntity(display, entity, world);
+            }
+            if (GUILayout.Button("Cancel"))
+            {
+                _showAddComponent = false;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawComponentFields(Type componentType)
+        {
+            if (!_componentFieldValues.ContainsKey(componentType))
+            {
+                _componentFieldValues[componentType] = new Dictionary<string, object>();
+            }
+
+            var fields = componentType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var field in fields)
+            {
+                string fieldKey = field.Name;
+                Type fieldType = field.FieldType;
+
+                if (!_componentFieldValues[componentType].ContainsKey(fieldKey))
+                {
+                    _componentFieldValues[componentType][fieldKey] = GetDefaultValue(fieldType);
+                }
+
+                object currentValue = _componentFieldValues[componentType][fieldKey];
+                object newValue = DrawComponentFieldValue(field.Name, currentValue, fieldType);
+                _componentFieldValues[componentType][fieldKey] = newValue;
+            }
+        }
+
+        private object GetDefaultValue(Type type)
+        {
+            if (type.IsValueType)
+            {
+                return Activator.CreateInstance(type);
+            }
+            return null;
+        }
+
+        private object DrawComponentFieldValue(string label, object value, Type valueType)
+        {
+            if (valueType == typeof(int))
+            {
+                return EditorGUILayout.IntField(label, (int)value);
+            }
+            else if (valueType == typeof(float))
+            {
+                return EditorGUILayout.FloatField(label, (float)value);
+            }
+            else if (valueType == typeof(double))
+            {
+                return EditorGUILayout.DoubleField(label, (double)value);
+            }
+            else if (valueType == typeof(bool))
+            {
+                return EditorGUILayout.Toggle(label, (bool)value);
+            }
+            else if (valueType == typeof(string))
+            {
+                return EditorGUILayout.TextField(label, (string)value ?? "");
+            }
+            else if (valueType == typeof(Vector2))
+            {
+                return EditorGUILayout.Vector2Field(label, (Vector2)value);
+            }
+            else if (valueType == typeof(Vector3))
+            {
+                return EditorGUILayout.Vector3Field(label, (Vector3)value);
+            }
+            else if (valueType == typeof(Vector4))
+            {
+                return EditorGUILayout.Vector4Field(label, (Vector4)value);
+            }
+            else if (valueType == typeof(Quaternion))
+            {
+                Quaternion quat = (Quaternion)value;
+                Vector4 vec4 = EditorGUILayout.Vector4Field(label, new Vector4(quat.x, quat.y, quat.z, quat.w));
+                return new Quaternion(vec4.x, vec4.y, vec4.z, vec4.w);
+            }
+            else if (valueType == typeof(Color))
+            {
+                return EditorGUILayout.ColorField(label, (Color)value);
+            }
+            else if (valueType == typeof(Color32))
+            {
+                Color color = EditorGUILayout.ColorField(label, (Color32)value);
+                return (Color32)color;
+            }
+            else if (valueType == typeof(Rect))
+            {
+                return EditorGUILayout.RectField(label, (Rect)value);
+            }
+            else if (valueType == typeof(Bounds))
+            {
+                return EditorGUILayout.BoundsField(label, (Bounds)value);
+            }
+            else
+            {
+                EditorGUILayout.LabelField(label, value != null ? value.ToString() : "null");
+                return value;
+            }
+        }
+
+        private void AddComponentToEntity(EntityComponentDisplay display, Entity entity, WorldInstance world)
+        {
+            if (_selectedComponentIndex < 0 || _selectedComponentIndex >= _componentTypes.Length)
+            {
+                EditorUtility.DisplayDialog("Error", "Please select a component type", "OK");
+                return;
+            }
+
+            try
+            {
+                var componentType = _componentTypes[_selectedComponentIndex];
+                object componentInstance = Activator.CreateInstance(componentType);
+
+                if (_componentFieldValues.TryGetValue(componentType, out var fieldValues))
+                {
+                    var fields = componentType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (var field in fields)
+                    {
+                        if (fieldValues.TryGetValue(field.Name, out var fieldValue))
+                        {
+                            field.SetValue(componentInstance, fieldValue);
+                        }
+                    }
+                }
+
+                var addMethod = typeof(WorldInstance).GetMethod("AddComponent").MakeGenericMethod(componentType);
+                addMethod.Invoke(world, new object[] { entity, componentInstance });
+
+                Debug.Log($"Added {componentType.Name} to entity {entity.Id}_Gen{entity.Generation}");
+
+                display.RefreshFromECS();
+                Repaint();
+            }
+            catch (Exception ex)
+            {
+                EditorUtility.DisplayDialog("Error", $"Failed to add component: {ex.Message}", "OK");
+            }
         }
     }
 }

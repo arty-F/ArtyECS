@@ -61,8 +61,24 @@ namespace ArtyECS.Editor
                     
                     if (worldGO != null)
                     {
-                        EditorGUIUtility.PingObject(worldGO);
-                        Selection.activeGameObject = worldGO;
+                        EditorApplication.delayCall += () =>
+                        {
+                            if (_instance != null && worldGO != null)
+                            {
+                                Selection.activeGameObject = worldGO;
+                                
+                                var entitiesContainer = _instance.GetOrCreateEntitiesContainer(world);
+                                var systemsContainer = _instance.GetOrCreateSystemsContainer(world);
+                                if (systemsContainer != null)
+                                {
+                                    EditorGUIUtility.PingObject(systemsContainer);
+                                }
+                                if (entitiesContainer != null)
+                                {
+                                    EditorGUIUtility.PingObject(entitiesContainer);
+                                }
+                            }
+                        };
                     }
                 }
             }
@@ -315,6 +331,12 @@ namespace ArtyECS.Editor
             {
                 _rootGameObject = existing;
                 _rootGameObject.transform.SetParent(null);
+                
+                if (_rootGameObject.GetComponent<RootDisplay>() == null)
+                {
+                    _rootGameObject.AddComponent<RootDisplay>();
+                }
+                
                 return _rootGameObject;
             }
 
@@ -324,6 +346,12 @@ namespace ArtyECS.Editor
             {
                 _rootGameObject.name = "ArtyEcs";
             }
+            
+            if (_rootGameObject.GetComponent<RootDisplay>() == null)
+            {
+                _rootGameObject.AddComponent<RootDisplay>();
+            }
+            
             return _rootGameObject;
         }
 
@@ -368,16 +396,40 @@ namespace ArtyECS.Editor
         #endregion
 
         #region Container GameObject Management
-        private GameObject GetOrCreateEntitiesContainer(WorldInstance world)
+        public GameObject GetOrCreateEntitiesContainer(WorldInstance world)
         {
             var worldGO = GetOrCreateWorldGameObject(world);
-            return GetOrCreateContainer(world, _entitiesContainers, CONTAINER_ENTITIES, worldGO);
+            var container = GetOrCreateContainer(world, _entitiesContainers, CONTAINER_ENTITIES, worldGO);
+            
+            if (container != null)
+            {
+                var display = container.GetComponent<EntitiesContainerDisplay>();
+                if (display == null)
+                {
+                    display = container.AddComponent<EntitiesContainerDisplay>();
+                    display.Initialize(world);
+                }
+            }
+            
+            return container;
         }
 
-        private GameObject GetOrCreateSystemsContainer(WorldInstance world)
+        public GameObject GetOrCreateSystemsContainer(WorldInstance world)
         {
             var worldGO = GetOrCreateWorldGameObject(world);
-            return GetOrCreateContainer(world, _systemsContainers, CONTAINER_SYSTEMS, worldGO);
+            var container = GetOrCreateContainer(world, _systemsContainers, CONTAINER_SYSTEMS, worldGO);
+            
+            if (container != null)
+            {
+                var display = container.GetComponent<SystemsContainerDisplay>();
+                if (display == null)
+                {
+                    display = container.AddComponent<SystemsContainerDisplay>();
+                    display.Initialize(world, "Systems");
+                }
+            }
+            
+            return container;
         }
 
         private GameObject GetOrCreateUpdateContainer(WorldInstance world)
@@ -515,6 +567,14 @@ namespace ArtyECS.Editor
             
             var systemGO = new GameObject(systemName);
             systemGO.transform.SetParent(container.transform);
+            
+            var systemDisplay = systemGO.GetComponent<SystemDisplay>();
+            if (systemDisplay == null)
+            {
+                systemDisplay = systemGO.AddComponent<SystemDisplay>();
+                systemDisplay.Initialize(system, world, queueName);
+            }
+            
             _systemGameObjects[key] = systemGO;
             return systemGO;
         }
@@ -917,10 +977,30 @@ namespace ArtyECS.Editor
                 _systemGameObjects.Remove(key);
             }
 
+            if (_entitiesContainers.TryGetValue(world, out var entitiesContainer) && entitiesContainer != null)
+            {
+                DestroyImmediate(entitiesContainer);
+            }
             _entitiesContainers.Remove(world);
+
+            if (_systemsContainers.TryGetValue(world, out var systemsContainer) && systemsContainer != null)
+            {
+                DestroyImmediate(systemsContainer);
+            }
             _systemsContainers.Remove(world);
+
+            if (_updateContainers.TryGetValue(world, out var updateContainer) && updateContainer != null)
+            {
+                DestroyImmediate(updateContainer);
+            }
             _updateContainers.Remove(world);
+
+            if (_fixedUpdateContainers.TryGetValue(world, out var fixedUpdateContainer) && fixedUpdateContainer != null)
+            {
+                DestroyImmediate(fixedUpdateContainer);
+            }
             _fixedUpdateContainers.Remove(world);
+
             _previousEntitySets.Remove(world);
 
             var queueKeysToRemove = new List<WorldQueueKey>();
