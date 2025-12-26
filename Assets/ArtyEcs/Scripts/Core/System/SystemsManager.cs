@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-#if UNITY_EDITOR
-using System.Diagnostics;
-#endif
 
 namespace ArtyECS.Core
 {
@@ -17,12 +14,6 @@ namespace ArtyECS.Core
 
         private static readonly Dictionary<WorldInstance, SystemStorageInstance> WorldStorages =
             new Dictionary<WorldInstance, SystemStorageInstance>();
-
-#if UNITY_EDITOR
-        private static readonly Dictionary<(SystemHandler system, WorldInstance world), SystemTimingData> SystemTimings =
-            new Dictionary<(SystemHandler system, WorldInstance world), SystemTimingData>();
-        private static int _systemTimingInsertionCounter = 0;
-#endif
 
         private static SystemStorageInstance GetWorldStorage(WorldInstance world)
         {
@@ -101,7 +92,7 @@ namespace ArtyECS.Core
         internal static void ExecuteUpdate(WorldInstance world)
         {
 #if UNITY_EDITOR
-            ResetFrameTimings(world);
+            PerformanceMonitoring.ResetSystemTimings(world);
 #endif
             var storage = GetWorldStorage(world);
             var queue = storage.UpdateQueue;
@@ -112,14 +103,7 @@ namespace ArtyECS.Core
                 try
                 {
 #if UNITY_EDITOR
-                    if (PerformanceMonitoring.IsEnabled)
-                    {
-                        var stopwatch = Stopwatch.StartNew();
-                        system.Execute(world);
-                        stopwatch.Stop();
-                        RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
-                    }
-                    else
+                    using (PerformanceMonitoring.StartSystemTiming(system, world))
                     {
                         system.Execute(world);
                     }
@@ -173,7 +157,7 @@ namespace ArtyECS.Core
         internal static void ExecuteFixedUpdate(WorldInstance world)
         {
 #if UNITY_EDITOR
-            ResetFrameTimings(world);
+            PerformanceMonitoring.ResetSystemTimings(world);
 #endif
             var storage = GetWorldStorage(world);
             var queue = storage.FixedUpdateQueue;
@@ -184,10 +168,10 @@ namespace ArtyECS.Core
                 try
                 {
 #if UNITY_EDITOR
-                    var stopwatch = Stopwatch.StartNew();
-                    system.Execute(world);
-                    stopwatch.Stop();
-                    RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+                    using (PerformanceMonitoring.StartSystemTiming(system, world))
+                    {
+                        system.Execute(world);
+                    }
 #else
                     system.Execute(world);
 #endif
@@ -219,19 +203,7 @@ namespace ArtyECS.Core
             WorldStorages.Remove(world);
             
 #if UNITY_EDITOR
-            var keysToRemove = new List<(SystemHandler system, WorldInstance world)>();
-            foreach (var kvp in SystemTimings)
-            {
-                if (kvp.Key.world == world)
-                {
-                    keysToRemove.Add(kvp.Key);
-                }
-            }
-            
-            foreach (var key in keysToRemove)
-            {
-                SystemTimings.Remove(key);
-            }
+            PerformanceMonitoring.ClearSystemTimings(world);
 #endif
         }
 
@@ -241,7 +213,7 @@ namespace ArtyECS.Core
             {
                 var world = kvp.Key;
 #if UNITY_EDITOR
-                ResetFrameTimings(world);
+                PerformanceMonitoring.ResetSystemTimings(world);
 #endif
                 var queue = kvp.Value.UpdateQueue;
 
@@ -251,14 +223,7 @@ namespace ArtyECS.Core
                     try
                     {
 #if UNITY_EDITOR
-                        if (PerformanceMonitoring.IsEnabled)
-                        {
-                            var stopwatch = Stopwatch.StartNew();
-                            system.Execute(world);
-                            stopwatch.Stop();
-                            RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
-                        }
-                        else
+                        using (PerformanceMonitoring.StartSystemTiming(system, world))
                         {
                             system.Execute(world);
                         }
@@ -280,7 +245,7 @@ namespace ArtyECS.Core
             {
                 var world = kvp.Key;
 #if UNITY_EDITOR
-                ResetFrameTimings(world);
+                PerformanceMonitoring.ResetSystemTimings(world);
 #endif
                 var queue = kvp.Value.FixedUpdateQueue;
 
@@ -290,14 +255,7 @@ namespace ArtyECS.Core
                     try
                     {
 #if UNITY_EDITOR
-                        if (PerformanceMonitoring.IsEnabled)
-                        {
-                            var stopwatch = Stopwatch.StartNew();
-                            system.Execute(world);
-                            stopwatch.Stop();
-                            RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
-                        }
-                        else
+                        using (PerformanceMonitoring.StartSystemTiming(system, world))
                         {
                             system.Execute(world);
                         }
@@ -339,76 +297,19 @@ namespace ArtyECS.Core
         {
             WorldStorages.Clear();
 #if UNITY_EDITOR
-            SystemTimings.Clear();
+            PerformanceMonitoring.ClearAll();
 #endif
         }
 
 #if UNITY_EDITOR
-        private static void ResetFrameTimings(WorldInstance world)
-        {
-            var keysToReset = new List<(SystemHandler system, WorldInstance world)>();
-            foreach (var kvp in SystemTimings)
-            {
-                if (kvp.Key.world == world)
-                {
-                    keysToReset.Add(kvp.Key);
-                }
-            }
-            
-            foreach (var key in keysToReset)
-            {
-                var timing = SystemTimings[key];
-                timing.LastExecutionTime = 0.0;
-                SystemTimings[key] = timing;
-            }
-        }
-
-        private static void RecordTiming(SystemHandler system, WorldInstance world, double milliseconds)
-        {
-            var key = (system, world);
-            if (!SystemTimings.ContainsKey(key))
-            {
-                SystemTimings[key] = new SystemTimingData(system, world)
-                {
-                    LastExecutionTime = milliseconds,
-                    TotalExecutionTime = milliseconds,
-                    ExecutionCount = 1,
-                    MaxExecutionTime = milliseconds,
-                    InsertionOrder = _systemTimingInsertionCounter++
-                };
-            }
-            else
-            {
-                var timing = SystemTimings[key];
-                timing.LastExecutionTime = milliseconds;
-                timing.TotalExecutionTime += milliseconds;
-                timing.ExecutionCount++;
-                timing.MaxExecutionTime = System.Math.Max(timing.MaxExecutionTime, milliseconds);
-                SystemTimings[key] = timing;
-            }
-        }
-
         internal static SystemTimingData? GetSystemTiming(SystemHandler system, WorldInstance world)
         {
-            var key = (system, world);
-            if (SystemTimings.TryGetValue(key, out var timing))
-            {
-                return timing;
-            }
-            return null;
+            return PerformanceMonitoring.GetSystemTiming(system, world);
         }
 
         internal static List<SystemTimingData> GetAllSystemTimings(WorldInstance world)
         {
-            var timings = new List<SystemTimingData>();
-            foreach (var kvp in SystemTimings)
-            {
-                if (kvp.Key.world == world)
-                {
-                    timings.Add(kvp.Value);
-                }
-            }
-            return timings;
+            return PerformanceMonitoring.GetAllSystemTimings(world);
         }
 #endif
     }

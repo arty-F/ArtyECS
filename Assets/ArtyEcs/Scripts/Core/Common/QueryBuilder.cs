@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-#if UNITY_EDITOR
-using System.Diagnostics;
-#endif
 
 namespace ArtyECS.Core
 {
@@ -49,49 +46,27 @@ namespace ArtyECS.Core
         public ReadOnlySpan<Entity> Execute()
         {
 #if UNITY_EDITOR
-            System.Diagnostics.Stopwatch stopwatch = null;
-            string componentTypes = null;
-            if (PerformanceMonitoring.IsEnabled)
-            {
-                stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                componentTypes = BuildComponentTypesString();
-            }
+            using (PerformanceMonitoring.StartQueryTiming(QueryType.QueryBuilderExecute, _world, BuildComponentTypesString()))
 #endif
-            ReadOnlySpan<Entity> result;
-            
-            if (_withTypes == null || _withTypes.Count == 0)
             {
-                if (_withoutTypes == null || _withoutTypes.Count == 0)
+                if (_withTypes == null || _withTypes.Count == 0)
                 {
-#if UNITY_EDITOR
-                    if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                    if (_withoutTypes == null || _withoutTypes.Count == 0)
                     {
-                        stopwatch.Stop();
-                        ComponentsManager.RecordQueryTiming(QueryType.QueryBuilderExecute, _world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                        return ReadOnlySpan<Entity>.Empty;
                     }
-#endif
-                    return ReadOnlySpan<Entity>.Empty;
+
+                    return ExecuteWithoutOnly();
                 }
-
-                result = ExecuteWithoutOnly();
+                else if (_withoutTypes == null || _withoutTypes.Count == 0)
+                {
+                    return ExecuteWithOnly();
+                }
+                else
+                {
+                    return ExecuteWithAndWithout();
+                }
             }
-            else if (_withoutTypes == null || _withoutTypes.Count == 0)
-            {
-                result = ExecuteWithOnly();
-            }
-            else
-            {
-                result = ExecuteWithAndWithout();
-            }
-
-#if UNITY_EDITOR
-            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
-            {
-                stopwatch.Stop();
-                ComponentsManager.RecordQueryTiming(QueryType.QueryBuilderExecute, _world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
-            }
-#endif
-            return result;
         }
 
 #if UNITY_EDITOR
