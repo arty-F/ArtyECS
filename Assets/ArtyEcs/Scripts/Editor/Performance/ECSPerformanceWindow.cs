@@ -245,12 +245,15 @@ namespace ArtyECS.Editor
                 .ThenBy(t => t.InsertionOrder)
                 .ToList();
             
+            double totalSystemTime = sortedTimings.Sum(t => t.TotalExecutionTime);
+            
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("System Name", EditorStyles.boldLabel, GUILayout.Width(200));
             GUILayout.Label("Last (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
             GUILayout.Label("Avg (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
             GUILayout.Label("Max (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
-            GUILayout.Label("Total (ms)", EditorStyles.boldLabel, GUILayout.Width(100));
+            GUILayout.Label("Total (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
+            GUILayout.Label("Total %", EditorStyles.boldLabel, GUILayout.Width(80));
             GUILayout.Label("Count", EditorStyles.boldLabel, GUILayout.Width(60));
             EditorGUILayout.EndHorizontal();
             
@@ -258,13 +261,13 @@ namespace ArtyECS.Editor
             
             foreach (var timing in sortedTimings)
             {
-                DrawSystemTimingRow(timing);
+                DrawSystemTimingRow(timing, totalSystemTime);
             }
             
             EditorGUILayout.EndVertical();
         }
         
-        private void DrawSystemTimingRow(SystemTimingData timing)
+        private void DrawSystemTimingRow(SystemTimingData timing, double totalSystemTime)
         {
             EditorGUILayout.BeginHorizontal();
             
@@ -277,27 +280,13 @@ namespace ArtyECS.Editor
             double totalTime = timing.TotalExecutionTime;
             long count = timing.ExecutionCount;
             
-            Color originalColor = GUI.color;
-            
-            if (lastTime > 10.0)
-            {
-                GUI.color = Color.red;
-            }
-            else if (lastTime > 5.0)
-            {
-                GUI.color = Color.yellow;
-            }
-            else
-            {
-                GUI.color = Color.green;
-            }
+            double totalPercent = totalSystemTime > 0 ? (totalTime / totalSystemTime) * 100.0 : 0.0;
             
             GUILayout.Label($"{lastTime:F3}", GUILayout.Width(80));
-            GUI.color = originalColor;
-            
             GUILayout.Label($"{avgTime:F3}", GUILayout.Width(80));
             GUILayout.Label($"{maxTime:F3}", GUILayout.Width(80));
-            GUILayout.Label($"{totalTime:F2}", GUILayout.Width(100));
+            GUILayout.Label($"{totalTime:F3}", GUILayout.Width(80));
+            GUILayout.Label($"{totalPercent:F1}%", GUILayout.Width(80));
             GUILayout.Label(count.ToString(), GUILayout.Width(60));
             
             EditorGUILayout.EndHorizontal();
@@ -335,12 +324,15 @@ namespace ArtyECS.Editor
                 .ThenBy(t => t.InsertionOrder)
                 .ToList();
             
+            double totalQueryTime = sortedTimings.Sum(t => t.TotalExecutionTime);
+            
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("Query Type", EditorStyles.boldLabel, GUILayout.Width(200));
             GUILayout.Label("Last (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
             GUILayout.Label("Avg (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
             GUILayout.Label("Max (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
-            GUILayout.Label("Total (ms)", EditorStyles.boldLabel, GUILayout.Width(100));
+            GUILayout.Label("Total (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
+            GUILayout.Label("Total %", EditorStyles.boldLabel, GUILayout.Width(80));
             GUILayout.Label("Count", EditorStyles.boldLabel, GUILayout.Width(60));
             EditorGUILayout.EndHorizontal();
             
@@ -348,13 +340,13 @@ namespace ArtyECS.Editor
             
             foreach (var timing in sortedTimings)
             {
-                DrawQueryTimingRow(timing);
+                DrawQueryTimingRow(timing, totalQueryTime);
             }
             
             EditorGUILayout.EndVertical();
         }
         
-        private void DrawQueryTimingRow(QueryTimingData timing)
+        private void DrawQueryTimingRow(QueryTimingData timing, double totalQueryTime)
         {
             EditorGUILayout.BeginHorizontal();
             
@@ -367,27 +359,13 @@ namespace ArtyECS.Editor
             double totalTime = timing.TotalExecutionTime;
             long count = timing.ExecutionCount;
             
-            Color originalColor = GUI.color;
-            
-            if (lastTime > 1.0)
-            {
-                GUI.color = Color.red;
-            }
-            else if (lastTime > 0.5)
-            {
-                GUI.color = Color.yellow;
-            }
-            else
-            {
-                GUI.color = Color.green;
-            }
+            double totalPercent = totalQueryTime > 0 ? (totalTime / totalQueryTime) * 100.0 : 0.0;
             
             GUILayout.Label($"{lastTime:F3}", GUILayout.Width(80));
-            GUI.color = originalColor;
-            
             GUILayout.Label($"{avgTime:F3}", GUILayout.Width(80));
             GUILayout.Label($"{maxTime:F3}", GUILayout.Width(80));
-            GUILayout.Label($"{totalTime:F2}", GUILayout.Width(100));
+            GUILayout.Label($"{totalTime:F3}", GUILayout.Width(80));
+            GUILayout.Label($"{totalPercent:F1}%", GUILayout.Width(80));
             GUILayout.Label(count.ToString(), GUILayout.Width(60));
             
             EditorGUILayout.EndHorizontal();
