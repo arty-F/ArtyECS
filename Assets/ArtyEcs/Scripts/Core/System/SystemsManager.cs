@@ -111,10 +111,17 @@ namespace ArtyECS.Core
                 try
                 {
 #if UNITY_EDITOR
-                    var stopwatch = Stopwatch.StartNew();
-                    system.Execute(world);
-                    stopwatch.Stop();
-                    RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+                    if (PerformanceMonitoring.IsEnabled)
+                    {
+                        var stopwatch = Stopwatch.StartNew();
+                        system.Execute(world);
+                        stopwatch.Stop();
+                        RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+                    }
+                    else
+                    {
+                        system.Execute(world);
+                    }
 #else
                     system.Execute(world);
 #endif
@@ -243,10 +250,17 @@ namespace ArtyECS.Core
                     try
                     {
 #if UNITY_EDITOR
-                        var stopwatch = Stopwatch.StartNew();
-                        system.Execute(world);
-                        stopwatch.Stop();
-                        RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+                        if (PerformanceMonitoring.IsEnabled)
+                        {
+                            var stopwatch = Stopwatch.StartNew();
+                            system.Execute(world);
+                            stopwatch.Stop();
+                            RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+                        }
+                        else
+                        {
+                            system.Execute(world);
+                        }
 #else
                         system.Execute(world);
 #endif
@@ -275,10 +289,17 @@ namespace ArtyECS.Core
                     try
                     {
 #if UNITY_EDITOR
-                        var stopwatch = Stopwatch.StartNew();
-                        system.Execute(world);
-                        stopwatch.Stop();
-                        RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+                        if (PerformanceMonitoring.IsEnabled)
+                        {
+                            var stopwatch = Stopwatch.StartNew();
+                            system.Execute(world);
+                            stopwatch.Stop();
+                            RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+                        }
+                        else
+                        {
+                            system.Execute(world);
+                        }
 #else
                         system.Execute(world);
 #endif

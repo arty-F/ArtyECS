@@ -48,6 +48,12 @@ namespace ArtyECS.Editor
             _refreshInterval = EditorPrefs.GetFloat(PREFS_KEY_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL);
             _selectedWorldName = EditorPrefs.GetString(PREFS_KEY_SELECTED_WORLD, null);
             
+            bool monitoringEnabled = EditorPrefs.GetBool("ArtyECS.PerformanceMonitoring.Enabled", false);
+            PerformanceMonitoring.IsEnabled = monitoringEnabled;
+            
+            bool showWarnings = EditorPrefs.GetBool("ArtyECS.PerformanceMonitoring.ShowWarnings", false);
+            PerformanceMonitoring.ShowWarnings = showWarnings;
+            
             UpdateSelectedWorld();
         }
 
@@ -101,6 +107,13 @@ namespace ArtyECS.Editor
             GUILayout.Label("ECS Performance Monitor", EditorStyles.boldLabel);
             GUILayout.FlexibleSpace();
             
+            bool monitoringEnabled = PerformanceMonitoring.IsEnabled;
+            bool newMonitoringEnabled = GUILayout.Toggle(monitoringEnabled, "Enable Monitoring", EditorStyles.toolbarButton);
+            if (newMonitoringEnabled != monitoringEnabled)
+            {
+                PerformanceMonitoring.IsEnabled = newMonitoringEnabled;
+            }
+            
             _autoRefresh = GUILayout.Toggle(_autoRefresh, "Auto-Refresh", EditorStyles.toolbarButton);
             
             if (GUILayout.Button("Refresh", EditorStyles.toolbarButton))
@@ -114,6 +127,20 @@ namespace ArtyECS.Editor
             GUILayout.Label("Refresh Interval (seconds):", GUILayout.Width(150));
             _refreshInterval = EditorGUILayout.Slider(_refreshInterval, 0.1f, 2.0f);
             EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.BeginHorizontal();
+            bool showWarnings = PerformanceMonitoring.ShowWarnings;
+            bool newShowWarnings = GUILayout.Toggle(showWarnings, "Show Warnings", GUILayout.Width(120));
+            if (newShowWarnings != showWarnings)
+            {
+                PerformanceMonitoring.ShowWarnings = newShowWarnings;
+            }
+            EditorGUILayout.EndHorizontal();
+            
+            if (!PerformanceMonitoring.IsEnabled)
+            {
+                EditorGUILayout.HelpBox("Performance monitoring is disabled. Enable it to see metrics.", MessageType.Info);
+            }
             
             EditorGUILayout.Space(5);
         }
@@ -276,9 +303,84 @@ namespace ArtyECS.Editor
             EditorGUILayout.LabelField("Query Performance", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             
-            EditorGUILayout.HelpBox("No data available. Metrics will be displayed here in subsequent tasks.", MessageType.Info);
+            if (!Application.isPlaying)
+            {
+                EditorGUILayout.HelpBox("Enter Play Mode to see query performance metrics.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            if (_selectedWorld == null)
+            {
+                EditorGUILayout.HelpBox("No world selected.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            var timings = _selectedWorld.GetAllQueryTimings();
+            
+            if (timings.Count == 0)
+            {
+                EditorGUILayout.HelpBox("No query timing data available. Queries need to execute at least once.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            var sortedTimings = timings.OrderByDescending(t => t.LastExecutionTime).ToList();
+            
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("Query Type", EditorStyles.boldLabel, GUILayout.Width(200));
+            GUILayout.Label("Last (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
+            GUILayout.Label("Avg (ms)", EditorStyles.boldLabel, GUILayout.Width(80));
+            GUILayout.Label("Total (ms)", EditorStyles.boldLabel, GUILayout.Width(100));
+            GUILayout.Label("Count", EditorStyles.boldLabel, GUILayout.Width(60));
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(2);
+            
+            foreach (var timing in sortedTimings)
+            {
+                DrawQueryTimingRow(timing);
+            }
             
             EditorGUILayout.EndVertical();
+        }
+        
+        private void DrawQueryTimingRow(QueryTimingData timing)
+        {
+            EditorGUILayout.BeginHorizontal();
+            
+            string queryTypeName = timing.QueryType.ToString();
+            GUILayout.Label(queryTypeName, GUILayout.Width(200));
+            
+            double lastTime = timing.LastExecutionTime;
+            double avgTime = timing.AverageTime;
+            double totalTime = timing.TotalExecutionTime;
+            long count = timing.ExecutionCount;
+            
+            Color originalColor = GUI.color;
+            
+            if (lastTime > 1.0)
+            {
+                GUI.color = Color.red;
+            }
+            else if (lastTime > 0.5)
+            {
+                GUI.color = Color.yellow;
+            }
+            else
+            {
+                GUI.color = Color.green;
+            }
+            
+            GUILayout.Label($"{lastTime:F3}", GUILayout.Width(80));
+            GUI.color = originalColor;
+            
+            GUILayout.Label($"{avgTime:F3}", GUILayout.Width(80));
+            GUILayout.Label($"{totalTime:F2}", GUILayout.Width(100));
+            GUILayout.Label(count.ToString(), GUILayout.Width(60));
+            
+            EditorGUILayout.EndHorizontal();
         }
 
         private void DrawMemoryUsageSection()

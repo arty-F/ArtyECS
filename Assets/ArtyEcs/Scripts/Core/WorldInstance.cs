@@ -296,6 +296,16 @@ namespace ArtyECS.Core
         {
             return SystemsManager.GetAllSystemTimings(this);
         }
+
+        public QueryTimingData? GetQueryTiming(QueryType queryType)
+        {
+            return ComponentsManager.GetQueryTiming(queryType, this);
+        }
+
+        public System.Collections.Generic.List<QueryTimingData> GetAllQueryTimings()
+        {
+            return ComponentsManager.GetAllQueryTimings(this);
+        }
 #endif
 
         public override string ToString()

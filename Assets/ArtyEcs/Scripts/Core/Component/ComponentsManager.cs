@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using System.Diagnostics;
+#endif
 
 namespace ArtyECS.Core
 {
@@ -10,6 +13,11 @@ namespace ArtyECS.Core
 
         private static readonly Dictionary<(WorldInstance world, Type type), IComponentTable> TableCache =
             new Dictionary<(WorldInstance world, Type type), IComponentTable>();
+
+#if UNITY_EDITOR
+        private static readonly Dictionary<(QueryType queryType, WorldInstance world), QueryTimingData> QueryTimings =
+            new Dictionary<(QueryType queryType, WorldInstance world), QueryTimingData>();
+#endif
 
         private static Dictionary<Type, IComponentTable> GetWorldTable(WorldInstance world)
         {
@@ -142,15 +150,38 @@ namespace ArtyECS.Core
 
         internal static T GetComponent<T>(Entity entity, WorldInstance world) where T : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = typeof(T).Name;
+            }
+#endif
             ValidateEntityForRead(entity, world);
 
             var table = GetOrCreateTable<T>(world);
 
             if (table.TryGetComponent(entity, out T component))
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetComponent, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return component;
             }
 
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetComponent, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
             throw new ComponentNotFoundException(entity, typeof(T));
         }
 
@@ -164,35 +195,100 @@ namespace ArtyECS.Core
 
         internal static ref T GetModifiableComponent<T>(Entity entity, WorldInstance world) where T : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = typeof(T).Name;
+            }
+#endif
             ValidateEntityForRead(entity, world);
 
             var table = GetOrCreateTable<T>(world);
             
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetModifiableComponent, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
             return ref table.GetModifiableComponentRef(entity);
         }
 
         internal static ReadOnlySpan<T> GetComponents<T>(WorldInstance world) where T : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = typeof(T).Name;
+            }
+#endif
             var table = GetOrCreateTable<T>(world);
-
-            return table.GetComponents();
+            var result = table.GetComponents();
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetComponents, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
+            return result;
         }
 
         internal static ReadOnlySpan<Entity> GetEntitiesWith<T1>(WorldInstance world) where T1 : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = typeof(T1).Name;
+            }
+#endif
             var table = GetOrCreateTable<T1>(world);
-            return table.GetEntities();
+            var result = table.GetEntities();
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetEntitiesWith1, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
+            return result;
         }
 
         internal static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2>(WorldInstance world) 
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = $"{typeof(T1).Name}, {typeof(T2).Name}";
+            }
+#endif
             var table1 = GetOrCreateTable<T1>(world);
             var table2 = GetOrCreateTable<T2>(world);
 
             if (table1.Count == 0 || table2.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWith2, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -216,6 +312,13 @@ namespace ArtyECS.Core
 
             if (intersection.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWith2, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -229,6 +332,13 @@ namespace ArtyECS.Core
                 }
             }
 
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetEntitiesWith2, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
             return result;
         }
 
@@ -237,12 +347,28 @@ namespace ArtyECS.Core
             where T2 : struct, IComponent
             where T3 : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = $"{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}";
+            }
+#endif
             var table1 = GetOrCreateTable<T1>(world);
             var table2 = GetOrCreateTable<T2>(world);
             var table3 = GetOrCreateTable<T3>(world);
 
             if (table1.Count == 0 || table2.Count == 0 || table3.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWith3, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -274,6 +400,13 @@ namespace ArtyECS.Core
 
             if (intersection.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWith3, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -287,6 +420,13 @@ namespace ArtyECS.Core
                 }
             }
 
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetEntitiesWith3, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
             return result;
         }
 
@@ -316,10 +456,26 @@ namespace ArtyECS.Core
 
         internal static ReadOnlySpan<Entity> GetEntitiesWithout<T1>(WorldInstance world) where T1 : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = $"!{typeof(T1).Name}";
+            }
+#endif
             var allEntities = GetAllEntitiesInWorld(world);
             
             if (allEntities.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWithout1, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -330,6 +486,13 @@ namespace ArtyECS.Core
 
             if (allEntities.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWithout1, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -340,6 +503,13 @@ namespace ArtyECS.Core
                 result[index++] = entity;
             }
 
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetEntitiesWithout1, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
             return result;
         }
 
@@ -347,10 +517,26 @@ namespace ArtyECS.Core
             where T1 : struct, IComponent 
             where T2 : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = $"!{typeof(T1).Name}, !{typeof(T2).Name}";
+            }
+#endif
             var allEntities = GetAllEntitiesInWorld(world);
             
             if (allEntities.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWithout2, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -364,6 +550,13 @@ namespace ArtyECS.Core
 
             if (allEntities.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWithout2, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -374,6 +567,13 @@ namespace ArtyECS.Core
                 result[index++] = entity;
             }
 
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetEntitiesWithout2, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
             return result;
         }
 
@@ -382,10 +582,26 @@ namespace ArtyECS.Core
             where T2 : struct, IComponent
             where T3 : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = $"!{typeof(T1).Name}, !{typeof(T2).Name}, !{typeof(T3).Name}";
+            }
+#endif
             var allEntities = GetAllEntitiesInWorld(world);
             
             if (allEntities.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWithout3, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -401,6 +617,13 @@ namespace ArtyECS.Core
 
             if (allEntities.Count == 0)
             {
+#if UNITY_EDITOR
+                if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+                {
+                    stopwatch.Stop();
+                    RecordQueryTiming(QueryType.GetEntitiesWithout3, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+                }
+#endif
                 return ReadOnlySpan<Entity>.Empty;
             }
 
@@ -411,13 +634,37 @@ namespace ArtyECS.Core
                 result[index++] = entity;
             }
 
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetEntitiesWithout3, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
             return result;
         }
 
         internal static ModifiableComponentCollection<T> GetModifiableComponents<T>(WorldInstance world) where T : struct, IComponent
         {
+#if UNITY_EDITOR
+            System.Diagnostics.Stopwatch stopwatch = null;
+            string componentTypes = null;
+            if (PerformanceMonitoring.IsEnabled)
+            {
+                stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                componentTypes = typeof(T).Name;
+            }
+#endif
             var table = GetOrCreateTable<T>(world);
-            return new ModifiableComponentCollection<T>(table);
+            var result = new ModifiableComponentCollection<T>(table);
+#if UNITY_EDITOR
+            if (PerformanceMonitoring.IsEnabled && stopwatch != null)
+            {
+                stopwatch.Stop();
+                RecordQueryTiming(QueryType.GetModifiableComponents, world, stopwatch.Elapsed.TotalMilliseconds, componentTypes);
+            }
+#endif
+            return result;
         }
 
         internal static int RemoveAllComponents(Entity entity, WorldInstance world)
@@ -465,12 +712,30 @@ namespace ArtyECS.Core
             }
 
             WorldTables.Remove(world);
+#if UNITY_EDITOR
+            var queryKeysToRemove = new List<(QueryType queryType, WorldInstance world)>();
+            foreach (var kvp in QueryTimings)
+            {
+                if (kvp.Key.world == world)
+                {
+                    queryKeysToRemove.Add(kvp.Key);
+                }
+            }
+
+            foreach (var key in queryKeysToRemove)
+            {
+                QueryTimings.Remove(key);
+            }
+#endif
         }
 
         internal static void ClearAll()
         {
             TableCache.Clear();
             WorldTables.Clear();
+#if UNITY_EDITOR
+            QueryTimings.Clear();
+#endif
         }
 
         internal static ComponentInfo[] GetAllComponentInfos(Entity entity, WorldInstance world)
@@ -530,5 +795,121 @@ namespace ArtyECS.Core
             
             return newEntity;
         }
+
+#if UNITY_EDITOR
+        internal static void RecordQueryTiming(QueryType queryType, WorldInstance world, double milliseconds, string componentTypes = null)
+        {
+            if (world == null)
+                return;
+
+            var key = (queryType, world);
+            if (QueryTimings.TryGetValue(key, out var timing))
+            {
+                timing.LastExecutionTime = milliseconds;
+                timing.TotalExecutionTime += milliseconds;
+                timing.ExecutionCount++;
+                QueryTimings[key] = timing;
+            }
+            else
+            {
+                var newTiming = new QueryTimingData(queryType, world)
+                {
+                    LastExecutionTime = milliseconds,
+                    TotalExecutionTime = milliseconds,
+                    ExecutionCount = 1
+                };
+                QueryTimings[key] = newTiming;
+            }
+
+            if (milliseconds > 1.0 && PerformanceMonitoring.ShowWarnings)
+            {
+                var stackTrace = new System.Diagnostics.StackTrace(skipFrames: 1, fNeedFileInfo: false);
+                string systemInfo = GetSystemInfoFromStackTrace(stackTrace);
+                
+                string message = $"[ArtyECS] Slow query detected: {queryType} in world '{world.Name}' took {milliseconds:F3}ms";
+                if (!string.IsNullOrEmpty(componentTypes))
+                {
+                    message += $" | Components: {componentTypes}";
+                }
+                if (!string.IsNullOrEmpty(systemInfo))
+                {
+                    message += $" | System: {systemInfo}";
+                }
+                
+                UnityEngine.Debug.LogWarning(message);
+            }
+        }
+
+        private static string GetSystemInfoFromStackTrace(System.Diagnostics.StackTrace stackTrace)
+        {
+            for (int i = 0; i < stackTrace.FrameCount; i++)
+            {
+                var frame = stackTrace.GetFrame(i);
+                if (frame == null)
+                    continue;
+
+                var method = frame.GetMethod();
+                if (method == null)
+                    continue;
+
+                var declaringType = method.DeclaringType;
+                if (declaringType == null)
+                    continue;
+
+                if (typeof(SystemHandler).IsAssignableFrom(declaringType))
+                {
+                    return declaringType.Name;
+                }
+            }
+            return null;
+        }
+
+        internal static QueryTimingData? GetQueryTiming(QueryType queryType, WorldInstance world)
+        {
+            var key = (queryType, world);
+            if (QueryTimings.TryGetValue(key, out var timing))
+            {
+                return timing;
+            }
+            return null;
+        }
+
+        internal static List<QueryTimingData> GetAllQueryTimings(WorldInstance world)
+        {
+            var timings = new List<QueryTimingData>();
+            foreach (var kvp in QueryTimings)
+            {
+                if (kvp.Key.world == world)
+                {
+                    timings.Add(kvp.Value);
+                }
+            }
+            return timings;
+        }
+
+        internal static void ResetQueryTimings(WorldInstance world)
+        {
+            if (world == null)
+                return;
+
+            var keysToReset = new List<(QueryType queryType, WorldInstance world)>();
+            foreach (var kvp in QueryTimings)
+            {
+                if (kvp.Key.world == world)
+                {
+                    keysToReset.Add(kvp.Key);
+                }
+            }
+
+            foreach (var key in keysToReset)
+            {
+                if (QueryTimings.TryGetValue(key, out var timing))
+                {
+                    timing.LastExecutionTime = 0.0;
+                    QueryTimings[key] = timing;
+                }
+            }
+        }
+#endif
     }
 }
