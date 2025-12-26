@@ -21,6 +21,7 @@ namespace ArtyECS.Core
 #if UNITY_EDITOR
         private static readonly Dictionary<(SystemHandler system, WorldInstance world), SystemTimingData> SystemTimings =
             new Dictionary<(SystemHandler system, WorldInstance world), SystemTimingData>();
+        private static int _systemTimingInsertionCounter = 0;
 #endif
 
         private static SystemStorageInstance GetWorldStorage(WorldInstance world)
@@ -365,22 +366,25 @@ namespace ArtyECS.Core
         private static void RecordTiming(SystemHandler system, WorldInstance world, double milliseconds)
         {
             var key = (system, world);
-            if (SystemTimings.TryGetValue(key, out var timing))
+            if (!SystemTimings.ContainsKey(key))
             {
-                timing.LastExecutionTime = milliseconds;
-                timing.TotalExecutionTime += milliseconds;
-                timing.ExecutionCount++;
-                SystemTimings[key] = timing;
-            }
-            else
-            {
-                var newTiming = new SystemTimingData(system, world)
+                SystemTimings[key] = new SystemTimingData(system, world)
                 {
                     LastExecutionTime = milliseconds,
                     TotalExecutionTime = milliseconds,
-                    ExecutionCount = 1
+                    ExecutionCount = 1,
+                    MaxExecutionTime = milliseconds,
+                    InsertionOrder = _systemTimingInsertionCounter++
                 };
-                SystemTimings[key] = newTiming;
+            }
+            else
+            {
+                var timing = SystemTimings[key];
+                timing.LastExecutionTime = milliseconds;
+                timing.TotalExecutionTime += milliseconds;
+                timing.ExecutionCount++;
+                timing.MaxExecutionTime = System.Math.Max(timing.MaxExecutionTime, milliseconds);
+                SystemTimings[key] = timing;
             }
         }
 

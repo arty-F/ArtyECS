@@ -17,6 +17,7 @@ namespace ArtyECS.Core
 #if UNITY_EDITOR
         private static readonly Dictionary<(QueryType queryType, WorldInstance world), QueryTimingData> QueryTimings =
             new Dictionary<(QueryType queryType, WorldInstance world), QueryTimingData>();
+        private static int _queryTimingInsertionCounter = 0;
 #endif
 
         private static Dictionary<Type, IComponentTable> GetWorldTable(WorldInstance world)
@@ -803,22 +804,25 @@ namespace ArtyECS.Core
                 return;
 
             var key = (queryType, world);
-            if (QueryTimings.TryGetValue(key, out var timing))
+            if (!QueryTimings.ContainsKey(key))
             {
-                timing.LastExecutionTime = milliseconds;
-                timing.TotalExecutionTime += milliseconds;
-                timing.ExecutionCount++;
-                QueryTimings[key] = timing;
-            }
-            else
-            {
-                var newTiming = new QueryTimingData(queryType, world)
+                QueryTimings[key] = new QueryTimingData(queryType, world)
                 {
                     LastExecutionTime = milliseconds,
                     TotalExecutionTime = milliseconds,
-                    ExecutionCount = 1
+                    ExecutionCount = 1,
+                    MaxExecutionTime = milliseconds,
+                    InsertionOrder = _queryTimingInsertionCounter++
                 };
-                QueryTimings[key] = newTiming;
+            }
+            else
+            {
+                var timing = QueryTimings[key];
+                timing.LastExecutionTime = milliseconds;
+                timing.TotalExecutionTime += milliseconds;
+                timing.ExecutionCount++;
+                timing.MaxExecutionTime = System.Math.Max(timing.MaxExecutionTime, milliseconds);
+                QueryTimings[key] = timing;
             }
 
             if (milliseconds > 1.0 && PerformanceMonitoring.ShowWarnings)
