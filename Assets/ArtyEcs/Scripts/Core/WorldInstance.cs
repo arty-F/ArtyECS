@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace ArtyECS.Core
 {
     public class WorldInstance
     {
         public readonly string Name;
+
+        private readonly Dictionary<Entity, GameObject> _entityToGameObject = new();
+        private readonly Dictionary<int, Entity> _gameObjectIdToEntity = new();
 
         internal WorldInstance(string name)
         {
@@ -15,8 +19,17 @@ namespace ArtyECS.Core
         public Entity CreateEntity()
         {
             UpdateProvider.EnsureCreated();
-            
             return EntitiesManager.Allocate(this);
+        }
+
+        public Entity CreateEntity(GameObject gameObject)
+        {
+            if (gameObject == null)
+                throw new ArgumentNullException(nameof(gameObject));
+
+            Entity entity = CreateEntity();
+            LinkEntity(entity, gameObject);
+            return entity;
         }
 
         public bool DestroyEntity(Entity entity)
@@ -26,9 +39,76 @@ namespace ArtyECS.Core
                 return false;
             }
 
+            UnlinkEntity(entity);
+
             ComponentsManager.RemoveAllComponents(entity, this);
 
             return EntitiesManager.Deallocate(entity, this);
+        }
+
+        internal void LinkEntity(Entity entity, GameObject gameObject)
+        {
+            if (gameObject == null)
+                throw new ArgumentNullException(nameof(gameObject));
+
+            var gameObjectId = gameObject.GetInstanceID();
+
+            if (_gameObjectIdToEntity.TryGetValue(gameObjectId, out var existingEntity))
+            {
+                if (existingEntity != entity)
+                {
+                    throw new InvalidOperationException(
+                        $"GameObject {gameObject.name} is already linked to entity {existingEntity}");
+                }
+                return;
+            }
+
+            if (_entityToGameObject.TryGetValue(entity, out var existingGameObject))
+            {
+                var existingGameObjectId = existingGameObject.GetInstanceID();
+                _entityToGameObject.Remove(entity);
+                _gameObjectIdToEntity.Remove(existingGameObjectId);
+            }
+
+            _entityToGameObject[entity] = gameObject;
+            _gameObjectIdToEntity[gameObjectId] = entity;
+        }
+
+        internal void UnlinkEntity(Entity entity)
+        {
+            if (_entityToGameObject.TryGetValue(entity, out var gameObject))
+            {
+                var gameObjectId = gameObject.GetInstanceID();
+                _entityToGameObject.Remove(entity);
+                _gameObjectIdToEntity.Remove(gameObjectId);
+            }
+        }
+
+        public GameObject GetGameObject(Entity entity)
+        {
+            if (_entityToGameObject.TryGetValue(entity, out var gameObject))
+            {
+                if (gameObject == null)
+                {
+                    UnlinkEntity(entity);
+                    return null;
+                }
+                return gameObject;
+            }
+            return null;
+        }
+
+        public Entity? GetEntity(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return null;
+
+            var gameObjectId = gameObject.GetInstanceID();
+            if (_gameObjectIdToEntity.TryGetValue(gameObjectId, out var entity))
+            {
+                return entity;
+            }
+            return null;
         }
 
         public bool IsEntityValid(Entity entity)

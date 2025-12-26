@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using UnityEngine;
 
 namespace ArtyECS.Core
 {
@@ -61,6 +62,14 @@ namespace ArtyECS.Core
             return EntitiesManager.Allocate(GlobalWorld);
         }
 
+        public static Entity CreateEntity(GameObject gameObject)
+        {
+            if (gameObject == null)
+                throw new ArgumentNullException(nameof(gameObject));
+
+            return GlobalWorld.CreateEntity(gameObject);
+        }
+
         public static bool DestroyEntity(Entity entity)
         {
             if (!entity.IsValid)
@@ -75,6 +84,16 @@ namespace ArtyECS.Core
         public static bool IsEntityValid(Entity entity)
         {
             return EntitiesManager.IsAllocated(entity, GlobalWorld);
+        }
+
+        public static GameObject GetGameObject(Entity entity)
+        {
+            return GlobalWorld.GetGameObject(entity);
+        }
+
+        public static Entity? GetEntity(GameObject gameObject)
+        {
+            return GlobalWorld.GetEntity(gameObject);
         }
 
         public static ReadOnlySpan<Entity> GetEntitiesWith<T1>() where T1 : struct, IComponent
