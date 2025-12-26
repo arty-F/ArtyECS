@@ -110,36 +110,6 @@ namespace ArtyECS.Core
             return ComponentsManager.GetEntitiesWith<T1, T2, T3>(GlobalWorld);
         }
 
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4>() 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-            where T3 : struct, IComponent
-            where T4 : struct, IComponent
-        {
-            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4>(GlobalWorld);
-        }
-
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5>() 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-            where T3 : struct, IComponent
-            where T4 : struct, IComponent
-            where T5 : struct, IComponent
-        {
-            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4, T5>(GlobalWorld);
-        }
-
-        public static ReadOnlySpan<Entity> GetEntitiesWith<T1, T2, T3, T4, T5, T6>() 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-            where T3 : struct, IComponent
-            where T4 : struct, IComponent
-            where T5 : struct, IComponent
-            where T6 : struct, IComponent
-        {
-            return ComponentsManager.GetEntitiesWith<T1, T2, T3, T4, T5, T6>(GlobalWorld);
-        }
-
         public static ReadOnlySpan<Entity> GetEntitiesWithout<T1>() where T1 : struct, IComponent
         {
             return ComponentsManager.GetEntitiesWithout<T1>(GlobalWorld);
@@ -158,36 +128,6 @@ namespace ArtyECS.Core
             where T3 : struct, IComponent
         {
             return ComponentsManager.GetEntitiesWithout<T1, T2, T3>(GlobalWorld);
-        }
-
-        public static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2, T3, T4>() 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-            where T3 : struct, IComponent
-            where T4 : struct, IComponent
-        {
-            return ComponentsManager.GetEntitiesWithout<T1, T2, T3, T4>(GlobalWorld);
-        }
-
-        public static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2, T3, T4, T5>() 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-            where T3 : struct, IComponent
-            where T4 : struct, IComponent
-            where T5 : struct, IComponent
-        {
-            return ComponentsManager.GetEntitiesWithout<T1, T2, T3, T4, T5>(GlobalWorld);
-        }
-
-        public static ReadOnlySpan<Entity> GetEntitiesWithout<T1, T2, T3, T4, T5, T6>() 
-            where T1 : struct, IComponent 
-            where T2 : struct, IComponent
-            where T3 : struct, IComponent
-            where T4 : struct, IComponent
-            where T5 : struct, IComponent
-            where T6 : struct, IComponent
-        {
-            return ComponentsManager.GetEntitiesWithout<T1, T2, T3, T4, T5, T6>(GlobalWorld);
         }
 
         public static QueryBuilder Query()
