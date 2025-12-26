@@ -1,5 +1,6 @@
-using ArtyECS.Core;
+﻿using ArtyECS.Core;
 using System;
+using UnityEngine;
 
 // Test systems for tests
 public class TestSystem : SystemHandler
@@ -218,3 +219,25 @@ public class SpawnSystem : SystemHandler
     }
 }
 
+/// <summary>
+/// Example TransformSyncSystem for testing Entity ↔ GameObject linking.
+/// Synchronizes Position component to Transform.position.
+/// </summary>
+public class TransformSyncSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var entities = world.GetEntitiesWith<Position>();
+
+        foreach (var entity in entities)
+        {
+            Position position = world.GetComponent<Position>(entity);
+            GameObject go = world.GetGameObject(entity);
+
+            if (go != null)
+            {
+                go.transform.position = new Vector3(position.X, position.Y, position.Z);
+            }
+        }
+    }
+}

@@ -39,7 +39,14 @@ namespace ArtyECS.Core
                 return false;
             }
 
+            GameObject linkedGameObject = GetGameObject(entity);
+            
             UnlinkEntity(entity);
+
+            if (linkedGameObject != null)
+            {
+                UnityEngine.Object.Destroy(linkedGameObject);
+            }
 
             ComponentsManager.RemoveAllComponents(entity, this);
 
@@ -78,9 +85,12 @@ namespace ArtyECS.Core
         {
             if (_entityToGameObject.TryGetValue(entity, out var gameObject))
             {
-                var gameObjectId = gameObject.GetInstanceID();
                 _entityToGameObject.Remove(entity);
-                _gameObjectIdToEntity.Remove(gameObjectId);
+                if (gameObject != null)
+                {
+                    var gameObjectId = gameObject.GetInstanceID();
+                    _gameObjectIdToEntity.Remove(gameObjectId);
+                }
             }
         }
 

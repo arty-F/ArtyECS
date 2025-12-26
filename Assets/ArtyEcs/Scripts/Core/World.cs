@@ -72,13 +72,7 @@ namespace ArtyECS.Core
 
         public static bool DestroyEntity(Entity entity)
         {
-            if (!entity.IsValid)
-            {
-                return false;
-            }
-
-            ComponentsManager.RemoveAllComponents(entity, GlobalWorld);
-            return EntitiesManager.Deallocate(entity, GlobalWorld);
+            return GlobalWorld.DestroyEntity(entity);
         }
 
         public static bool IsEntityValid(Entity entity)
