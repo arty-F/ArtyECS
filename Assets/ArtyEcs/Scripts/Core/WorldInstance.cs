@@ -344,6 +344,20 @@ namespace ArtyECS.Core
             return SystemsManager.GetFixedUpdateQueue(this);
         }
 
+#if UNITY_EDITOR
+        public SystemTimingData? GetSystemTiming(SystemHandler system)
+        {
+            if (system == null)
+                return null;
+            return SystemsManager.GetSystemTiming(system, this);
+        }
+
+        public System.Collections.Generic.List<SystemTimingData> GetAllSystemTimings()
+        {
+            return SystemsManager.GetAllSystemTimings(this);
+        }
+#endif
+
         public override string ToString()
         {
             return $"WorldInstance({Name})";

@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using System.Diagnostics;
+#endif
 
 namespace ArtyECS.Core
 {
@@ -14,6 +17,11 @@ namespace ArtyECS.Core
 
         private static readonly Dictionary<WorldInstance, SystemStorageInstance> WorldStorages =
             new Dictionary<WorldInstance, SystemStorageInstance>();
+
+#if UNITY_EDITOR
+        private static readonly Dictionary<(SystemHandler system, WorldInstance world), SystemTimingData> SystemTimings =
+            new Dictionary<(SystemHandler system, WorldInstance world), SystemTimingData>();
+#endif
 
         private static SystemStorageInstance GetWorldStorage(WorldInstance world)
         {
@@ -91,6 +99,9 @@ namespace ArtyECS.Core
 
         internal static void ExecuteUpdate(WorldInstance world)
         {
+#if UNITY_EDITOR
+            ResetFrameTimings(world);
+#endif
             var storage = GetWorldStorage(world);
             var queue = storage.UpdateQueue;
 
@@ -99,7 +110,14 @@ namespace ArtyECS.Core
                 var system = queue[i];
                 try
                 {
+#if UNITY_EDITOR
+                    var stopwatch = Stopwatch.StartNew();
                     system.Execute(world);
+                    stopwatch.Stop();
+                    RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+#else
+                    system.Execute(world);
+#endif
                 }
                 catch (Exception ex)
                 {
@@ -146,6 +164,9 @@ namespace ArtyECS.Core
 
         internal static void ExecuteFixedUpdate(WorldInstance world)
         {
+#if UNITY_EDITOR
+            ResetFrameTimings(world);
+#endif
             var storage = GetWorldStorage(world);
             var queue = storage.FixedUpdateQueue;
 
@@ -154,7 +175,14 @@ namespace ArtyECS.Core
                 var system = queue[i];
                 try
                 {
+#if UNITY_EDITOR
+                    var stopwatch = Stopwatch.StartNew();
                     system.Execute(world);
+                    stopwatch.Stop();
+                    RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+#else
+                    system.Execute(world);
+#endif
                 }
                 catch (Exception ex)
                 {
@@ -181,6 +209,22 @@ namespace ArtyECS.Core
             }
 
             WorldStorages.Remove(world);
+            
+#if UNITY_EDITOR
+            var keysToRemove = new List<(SystemHandler system, WorldInstance world)>();
+            foreach (var kvp in SystemTimings)
+            {
+                if (kvp.Key.world == world)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+            
+            foreach (var key in keysToRemove)
+            {
+                SystemTimings.Remove(key);
+            }
+#endif
         }
 
         internal static void ExecuteUpdateAllWorlds()
@@ -188,6 +232,9 @@ namespace ArtyECS.Core
             foreach (var kvp in WorldStorages)
             {
                 var world = kvp.Key;
+#if UNITY_EDITOR
+                ResetFrameTimings(world);
+#endif
                 var queue = kvp.Value.UpdateQueue;
 
                 for (int i = 0; i < queue.Count; i++)
@@ -195,7 +242,14 @@ namespace ArtyECS.Core
                     var system = queue[i];
                     try
                     {
+#if UNITY_EDITOR
+                        var stopwatch = Stopwatch.StartNew();
                         system.Execute(world);
+                        stopwatch.Stop();
+                        RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+#else
+                        system.Execute(world);
+#endif
                     }
                     catch (Exception ex)
                     {
@@ -210,6 +264,9 @@ namespace ArtyECS.Core
             foreach (var kvp in WorldStorages)
             {
                 var world = kvp.Key;
+#if UNITY_EDITOR
+                ResetFrameTimings(world);
+#endif
                 var queue = kvp.Value.FixedUpdateQueue;
 
                 for (int i = 0; i < queue.Count; i++)
@@ -217,7 +274,14 @@ namespace ArtyECS.Core
                     var system = queue[i];
                     try
                     {
+#if UNITY_EDITOR
+                        var stopwatch = Stopwatch.StartNew();
                         system.Execute(world);
+                        stopwatch.Stop();
+                        RecordTiming(system, world, stopwatch.Elapsed.TotalMilliseconds);
+#else
+                        system.Execute(world);
+#endif
                     }
                     catch (Exception ex)
                     {
@@ -252,7 +316,76 @@ namespace ArtyECS.Core
         internal static void ClearAll()
         {
             WorldStorages.Clear();
+#if UNITY_EDITOR
+            SystemTimings.Clear();
+#endif
         }
+
+#if UNITY_EDITOR
+        private static void ResetFrameTimings(WorldInstance world)
+        {
+            var keysToReset = new List<(SystemHandler system, WorldInstance world)>();
+            foreach (var kvp in SystemTimings)
+            {
+                if (kvp.Key.world == world)
+                {
+                    keysToReset.Add(kvp.Key);
+                }
+            }
+            
+            foreach (var key in keysToReset)
+            {
+                var timing = SystemTimings[key];
+                timing.LastExecutionTime = 0.0;
+                SystemTimings[key] = timing;
+            }
+        }
+
+        private static void RecordTiming(SystemHandler system, WorldInstance world, double milliseconds)
+        {
+            var key = (system, world);
+            if (SystemTimings.TryGetValue(key, out var timing))
+            {
+                timing.LastExecutionTime = milliseconds;
+                timing.TotalExecutionTime += milliseconds;
+                timing.ExecutionCount++;
+                SystemTimings[key] = timing;
+            }
+            else
+            {
+                var newTiming = new SystemTimingData(system, world)
+                {
+                    LastExecutionTime = milliseconds,
+                    TotalExecutionTime = milliseconds,
+                    ExecutionCount = 1
+                };
+                SystemTimings[key] = newTiming;
+            }
+        }
+
+        internal static SystemTimingData? GetSystemTiming(SystemHandler system, WorldInstance world)
+        {
+            var key = (system, world);
+            if (SystemTimings.TryGetValue(key, out var timing))
+            {
+                return timing;
+            }
+            return null;
+        }
+
+        internal static List<SystemTimingData> GetAllSystemTimings(WorldInstance world)
+        {
+            var timings = new List<SystemTimingData>();
+            foreach (var kvp in SystemTimings)
+            {
+                if (kvp.Key.world == world)
+                {
+                    timings.Add(kvp.Value);
+                }
+            }
+            return timings;
+        }
+#endif
     }
 }
 
