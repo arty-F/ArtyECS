@@ -144,6 +144,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetComponent, world, typeof(T).Name))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetComponent<{typeof(T).Name}>", world))
 #endif
             {
                 ValidateEntityForRead(entity, world);
@@ -171,6 +172,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetModifiableComponent, world, typeof(T).Name))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetModifiableComponent<{typeof(T).Name}>", world))
 #endif
             {
                 ValidateEntityForRead(entity, world);
@@ -184,6 +186,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetComponents, world, typeof(T).Name))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetComponents<{typeof(T).Name}>", world))
 #endif
             {
                 var table = GetOrCreateTable<T>(world);
@@ -195,6 +198,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetEntitiesWith1, world, typeof(T1).Name))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetEntitiesWith<{typeof(T1).Name}>", world))
 #endif
             {
                 var table = GetOrCreateTable<T1>(world);
@@ -208,6 +212,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetEntitiesWith2, world, $"{typeof(T1).Name}, {typeof(T2).Name}"))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetEntitiesWith<{typeof(T1).Name},{typeof(T2).Name}>", world))
 #endif
             {
                 var table1 = GetOrCreateTable<T1>(world);
@@ -262,6 +267,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetEntitiesWith3, world, $"{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}"))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetEntitiesWith<{typeof(T1).Name},{typeof(T2).Name},{typeof(T3).Name}>", world))
 #endif
             {
                 var table1 = GetOrCreateTable<T1>(world);
@@ -346,6 +352,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetEntitiesWithout1, world, $"!{typeof(T1).Name}"))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetEntitiesWithout<{typeof(T1).Name}>", world))
 #endif
             {
                 var allEntities = GetAllEntitiesInWorld(world);
@@ -382,6 +389,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetEntitiesWithout2, world, $"!{typeof(T1).Name}, !{typeof(T2).Name}"))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetEntitiesWithout<{typeof(T1).Name},{typeof(T2).Name}>", world))
 #endif
             {
                 var allEntities = GetAllEntitiesInWorld(world);
@@ -422,6 +430,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetEntitiesWithout3, world, $"!{typeof(T1).Name}, !{typeof(T2).Name}, !{typeof(T3).Name}"))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetEntitiesWithout<{typeof(T1).Name},{typeof(T2).Name},{typeof(T3).Name}>", world))
 #endif
             {
                 var allEntities = GetAllEntitiesInWorld(world);
@@ -461,6 +470,7 @@ namespace ArtyECS.Core
         {
 #if UNITY_EDITOR
             using (PerformanceMonitoring.StartQueryTiming(QueryType.GetModifiableComponents, world, typeof(T).Name))
+            using (PerformanceMonitoring.StartAllocationTracking($"Query:GetModifiableComponents<{typeof(T).Name}>", world))
 #endif
             {
                 var table = GetOrCreateTable<T>(world);

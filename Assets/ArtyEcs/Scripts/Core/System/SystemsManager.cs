@@ -104,6 +104,7 @@ namespace ArtyECS.Core
                 {
 #if UNITY_EDITOR
                     using (PerformanceMonitoring.StartSystemTiming(system, world))
+                    using (PerformanceMonitoring.StartAllocationTracking($"System:{system.GetType().Name}", world))
                     {
                         system.Execute(world);
                     }
@@ -169,6 +170,7 @@ namespace ArtyECS.Core
                 {
 #if UNITY_EDITOR
                     using (PerformanceMonitoring.StartSystemTiming(system, world))
+                    using (PerformanceMonitoring.StartAllocationTracking($"System:{system.GetType().Name}", world))
                     {
                         system.Execute(world);
                     }
@@ -190,7 +192,14 @@ namespace ArtyECS.Core
                 throw new ArgumentNullException(nameof(system));
             }
 
+#if UNITY_EDITOR
+            using (PerformanceMonitoring.StartAllocationTracking($"System:{system.GetType().Name}", world))
+            {
+                system.Execute(world);
+            }
+#else
             system.Execute(world);
+#endif
         }
 
         internal static void ClearWorld(WorldInstance world)

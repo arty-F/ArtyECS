@@ -390,6 +390,13 @@ namespace ArtyECS.Editor
                 return;
             }
             
+            if (!PerformanceMonitoring.IsEnabled)
+            {
+                EditorGUILayout.HelpBox("Performance monitoring is disabled. Enable it to see memory usage.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
             var memory = PerformanceMonitoring.GetMemoryUsage(_selectedWorld);
             var totalMemory = PerformanceMonitoring.GetTotalMemoryUsage();
             
@@ -447,9 +454,125 @@ namespace ArtyECS.Editor
             EditorGUILayout.LabelField("Allocation Tracking", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             
-            EditorGUILayout.HelpBox("No data available. Metrics will be displayed here in subsequent tasks.", MessageType.Info);
+            if (!Application.isPlaying)
+            {
+                EditorGUILayout.HelpBox("Enter Play Mode to see allocation tracking.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            if (_selectedWorld == null)
+            {
+                EditorGUILayout.HelpBox("No world selected.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            if (!PerformanceMonitoring.IsEnabled)
+            {
+                EditorGUILayout.HelpBox("Performance monitoring is disabled. Enable it to see allocation statistics.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            var stats = PerformanceMonitoring.GetAllocationStats(_selectedWorld);
+            var totalStats = PerformanceMonitoring.GetTotalAllocationStats();
+            
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("Allocation Type", EditorStyles.boldLabel, GUILayout.Width(150));
+            GUILayout.Label("Current World", EditorStyles.boldLabel, GUILayout.Width(120));
+            GUILayout.Label("All Worlds", EditorStyles.boldLabel, GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(2);
+            
+            DrawAllocationRow("Query Allocations", stats.QueryAllocations, totalStats.QueryAllocations);
+            DrawAllocationRow("System Allocations", stats.SystemAllocations, totalStats.SystemAllocations);
+            
+            EditorGUILayout.Space(5);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("Total Allocations", EditorStyles.boldLabel, GUILayout.Width(150));
+            GUILayout.Label(FormatAllocation(stats.TotalAllocations), GetAllocationColor(stats.TotalAllocations), GUILayout.Width(120));
+            GUILayout.Label(FormatAllocation(totalStats.TotalAllocations), GetAllocationColor(totalStats.TotalAllocations), GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("GC Collected", EditorStyles.boldLabel, GUILayout.Width(150));
+            GUILayout.Label(stats.AllocationCount.ToString(), GetAllocationColor(stats.AllocationCount), GUILayout.Width(120));
+            GUILayout.Label(totalStats.AllocationCount.ToString(), GetAllocationColor(totalStats.AllocationCount), GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            if (GUILayout.Button("Clear Allocation Stats"))
+            {
+                PerformanceMonitoring.ClearAllocationStats(_selectedWorld);
+            }
             
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawAllocationRow(string label, long currentWorldAllocations, long allWorldsAllocations)
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(150));
+            GUILayout.Label(FormatAllocation(currentWorldAllocations), GetAllocationColor(currentWorldAllocations), GUILayout.Width(120));
+            GUILayout.Label(FormatAllocation(allWorldsAllocations), GetAllocationColor(allWorldsAllocations), GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private string FormatAllocation(long bytes)
+        {
+            if (bytes < 1024)
+            {
+                return $"{bytes} B";
+            }
+            else if (bytes < 1024 * 1024)
+            {
+                double kb = bytes / 1024.0;
+                return $"{kb:F2} KB";
+            }
+            else
+            {
+                double mb = bytes / (1024.0 * 1024.0);
+                return $"{mb:F2} MB";
+            }
+        }
+
+        private GUIStyle GetAllocationColor(long bytes)
+        {
+            var style = new GUIStyle(GUI.skin.label);
+            if (bytes == 0)
+            {
+                style.normal.textColor = Color.green;
+            }
+            else if (bytes < 1024)
+            {
+                style.normal.textColor = Color.yellow;
+            }
+            else
+            {
+                style.normal.textColor = Color.red;
+            }
+            return style;
+        }
+
+        private GUIStyle GetAllocationColor(int count)
+        {
+            var style = new GUIStyle(GUI.skin.label);
+            if (count == 0)
+            {
+                style.normal.textColor = Color.green;
+            }
+            else if (count < 10)
+            {
+                style.normal.textColor = Color.yellow;
+            }
+            else
+            {
+                style.normal.textColor = Color.red;
+            }
+            return style;
         }
 
         private void RefreshData()

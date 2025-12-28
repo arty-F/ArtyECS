@@ -17,13 +17,19 @@ namespace ArtyECS.Core
             new Dictionary<(SystemHandler system, WorldInstance world), SystemTimingData>();
         private static readonly Dictionary<(QueryType queryType, WorldInstance world), QueryTimingData> QueryTimings =
             new Dictionary<(QueryType queryType, WorldInstance world), QueryTimingData>();
+        private static readonly Dictionary<(string operationType, WorldInstance world), (long bytes, int count)> Allocations =
+            new Dictionary<(string operationType, WorldInstance world), (long bytes, int count)>();
         private static int _systemTimingInsertionCounter = 0;
         private static int _queryTimingInsertionCounter = 0;
+        
+        private const string PREFS_KEY_ALLOCATION_SHOW_WARNINGS = "ArtyECS.AllocationTracker.ShowWarnings";
+        private static bool _showAllocationWarnings = false;
 
         static PerformanceMonitoring()
         {
             _isEnabled = UnityEditor.EditorPrefs.GetBool(PREFS_KEY_MONITORING_ENABLED, false);
             _showWarnings = UnityEditor.EditorPrefs.GetBool(PREFS_KEY_SHOW_WARNINGS, true);
+            _showAllocationWarnings = UnityEditor.EditorPrefs.GetBool(PREFS_KEY_ALLOCATION_SHOW_WARNINGS, true);
         }
 
         public static bool IsEnabled
@@ -60,6 +66,26 @@ namespace ArtyECS.Core
         public static QueryTimingScope StartQueryTiming(QueryType queryType, WorldInstance world, string componentTypes = null)
         {
             return new QueryTimingScope(queryType, world, componentTypes);
+        }
+
+        public static AllocationScope StartAllocationTracking(string operationType, WorldInstance world)
+        {
+            return new AllocationScope(operationType, world);
+        }
+
+        public static bool IsAllocationTrackingEnabled => IsEnabled;
+
+        public static bool ShowAllocationWarnings
+        {
+            get => _showAllocationWarnings;
+            set
+            {
+                if (_showAllocationWarnings != value)
+                {
+                    _showAllocationWarnings = value;
+                    UnityEditor.EditorPrefs.SetBool(PREFS_KEY_ALLOCATION_SHOW_WARNINGS, value);
+                }
+            }
         }
 
         public static void ResetSystemTimings(WorldInstance world)
@@ -215,6 +241,7 @@ namespace ArtyECS.Core
 
             SystemTimings.Clear();
             QueryTimings.Clear();
+            Allocations.Clear();
         }
 
         internal static void RecordSystemTiming(SystemHandler system, WorldInstance world, double milliseconds)
@@ -317,7 +344,7 @@ namespace ArtyECS.Core
 
         public static MemoryUsageData GetMemoryUsage(WorldInstance world)
         {
-            if (world == null || !IsEnabled)
+            if (!IsEnabled || world == null)
                 return new MemoryUsageData(0, 0, 0);
 
             long componentMemory = CalculateComponentMemory(world);
@@ -496,6 +523,100 @@ namespace ArtyECS.Core
             {
                 return 0;
             }
+        }
+
+        internal static void RecordAllocation(string operationType, WorldInstance world, long bytes, int allocations)
+        {
+            if (!IsEnabled || world == null)
+                return;
+
+            var key = (operationType, world);
+            if (Allocations.TryGetValue(key, out var existing))
+            {
+                Allocations[key] = (existing.bytes + bytes, existing.count + allocations);
+            }
+            else
+            {
+                Allocations[key] = (bytes, allocations);
+            }
+
+            if (ShowAllocationWarnings && bytes > 1024)
+            {
+                UnityEngine.Debug.LogWarning($"[ArtyECS] Allocation detected in {operationType} (World: {world.Name}): {bytes} bytes, {allocations} GC collections");
+            }
+        }
+
+        public static AllocationStats GetAllocationStats(WorldInstance world)
+        {
+            if (!IsEnabled || world == null)
+                return new AllocationStats(0, 0, 0);
+
+            long queryAllocations = 0;
+            long systemAllocations = 0;
+            int totalCount = 0;
+
+            foreach (var kvp in Allocations)
+            {
+                if (kvp.Key.world == world)
+                {
+                    var (bytes, count) = kvp.Value;
+                    if (kvp.Key.operationType.StartsWith("Query:"))
+                    {
+                        queryAllocations += bytes;
+                    }
+                    else if (kvp.Key.operationType.StartsWith("System:"))
+                    {
+                        systemAllocations += bytes;
+                    }
+                    totalCount += count;
+                }
+            }
+
+            return new AllocationStats(queryAllocations, systemAllocations, totalCount);
+        }
+
+        public static AllocationStats GetTotalAllocationStats()
+        {
+            if (!IsEnabled)
+                return new AllocationStats(0, 0, 0);
+
+            AllocationStats total = new AllocationStats(0, 0, 0);
+
+            var allWorlds = World.GetAllWorlds();
+            foreach (var world in allWorlds)
+            {
+                total = total + GetAllocationStats(world);
+            }
+
+            return total;
+        }
+
+        public static void ClearAllocationStats(WorldInstance world)
+        {
+            if (!IsEnabled || world == null)
+                return;
+
+            var keysToRemove = new List<(string operationType, WorldInstance world)>();
+            foreach (var kvp in Allocations)
+            {
+                if (kvp.Key.world == world)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+
+            foreach (var key in keysToRemove)
+            {
+                Allocations.Remove(key);
+            }
+        }
+
+        public static void ClearAllAllocationStats()
+        {
+            if (!IsEnabled)
+                return;
+
+            Allocations.Clear();
         }
     }
 }
