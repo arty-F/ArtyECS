@@ -376,9 +376,70 @@ namespace ArtyECS.Editor
             EditorGUILayout.LabelField("Memory Usage", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             
-            EditorGUILayout.HelpBox("No data available. Metrics will be displayed here in subsequent tasks.", MessageType.Info);
+            if (!Application.isPlaying)
+            {
+                EditorGUILayout.HelpBox("Enter Play Mode to see memory usage.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            if (_selectedWorld == null)
+            {
+                EditorGUILayout.HelpBox("No world selected.", MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+            
+            var memory = PerformanceMonitoring.GetMemoryUsage(_selectedWorld);
+            var totalMemory = PerformanceMonitoring.GetTotalMemoryUsage();
+            
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("Memory Type", EditorStyles.boldLabel, GUILayout.Width(150));
+            GUILayout.Label("Current World", EditorStyles.boldLabel, GUILayout.Width(120));
+            GUILayout.Label("All Worlds", EditorStyles.boldLabel, GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(2);
+            
+            DrawMemoryRow("Component Memory", memory.ComponentMemory, totalMemory.ComponentMemory);
+            DrawMemoryRow("Entity Memory", memory.EntityMemory, totalMemory.EntityMemory);
+            DrawMemoryRow("Framework Memory", memory.FrameworkMemory, totalMemory.FrameworkMemory);
+            
+            EditorGUILayout.Space(5);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("Total Memory", EditorStyles.boldLabel, GUILayout.Width(150));
+            GUILayout.Label(FormatMemory(memory.TotalMemory), EditorStyles.boldLabel, GUILayout.Width(120));
+            GUILayout.Label(FormatMemory(totalMemory.TotalMemory), EditorStyles.boldLabel, GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawMemoryRow(string label, long currentWorldMemory, long allWorldsMemory)
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(150));
+            GUILayout.Label(FormatMemory(currentWorldMemory), GUILayout.Width(120));
+            GUILayout.Label(FormatMemory(allWorldsMemory), GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private string FormatMemory(long bytes)
+        {
+            if (bytes < 1024)
+            {
+                return $"{bytes} B";
+            }
+            else if (bytes < 1024 * 1024)
+            {
+                double kb = bytes / 1024.0;
+                return $"{kb:F2} KB";
+            }
+            else
+            {
+                double mb = bytes / (1024.0 * 1024.0);
+                return $"{mb:F2} MB";
+            }
         }
 
         private void DrawAllocationTrackingSection()

@@ -91,6 +91,16 @@ namespace ArtyECS.Core
         {
             WorldPools.Clear();
         }
+
+#if UNITY_EDITOR
+        internal static (int AvailableCount, int GenerationCount)? GetPoolDataForMonitoring(WorldInstance world)
+        {
+            if (world == null || !WorldPools.TryGetValue(world, out var pool))
+                return null;
+
+            return pool.GetPoolData();
+        }
+#endif
     }
 }
 

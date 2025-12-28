@@ -601,5 +601,53 @@ namespace ArtyECS.Core
             PerformanceMonitoring.ResetQueryTimings(world);
         }
 #endif
+
+#if UNITY_EDITOR
+        internal static Dictionary<Type, IComponentTable> GetWorldTablesForMonitoring(WorldInstance world)
+        {
+            if (world == null || !WorldTables.TryGetValue(world, out var worldTable))
+                return null;
+            return worldTable;
+        }
+
+        internal static Dictionary<WorldInstance, Dictionary<Type, IComponentTable>> GetAllWorldTablesForMonitoring()
+        {
+            return WorldTables;
+        }
+
+        internal static Dictionary<(WorldInstance world, Type type), IComponentTable> GetTableCacheForMonitoring()
+        {
+            return TableCache;
+        }
+
+        internal static (Type componentType, Array componentsArray, Array entitiesArray, int dictionaryCount)? GetTableDataForMonitoring(IComponentTable table)
+        {
+            if (table == null)
+                return null;
+
+            foreach (var worldTable in WorldTables.Values)
+            {
+                foreach (var kvp in worldTable)
+                {
+                    if (ReferenceEquals(kvp.Value, table))
+                    {
+                        var componentType = kvp.Key;
+                        var internalData = GetTableInternalDataForType(table, componentType);
+                        if (internalData.HasValue)
+                        {
+                            var (componentsArray, entitiesArray, dictionary) = internalData.Value;
+                            return (componentType, componentsArray, entitiesArray, dictionary.Count);
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static (Array componentsArray, Array entitiesArray, Dictionary<Entity, int> dictionary)? GetTableInternalDataForType(IComponentTable table, Type componentType)
+        {
+            return PerformanceMonitoringHelper.GetTableInternalData(table, componentType);
+        }
+#endif
     }
 }

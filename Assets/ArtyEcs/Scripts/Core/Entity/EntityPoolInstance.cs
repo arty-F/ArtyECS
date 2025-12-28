@@ -130,6 +130,13 @@ namespace ArtyECS.Core
             _preAllocated = false;
             _unusedPreAllocatedCount = 0;
         }
+
+#if UNITY_EDITOR
+        internal (int AvailableCount, int GenerationCount) GetPoolData()
+        {
+            return (_availableIds.Count, _generations.Count);
+        }
+#endif
     }
 }
 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace ArtyECS.Core
 {
@@ -312,6 +313,189 @@ namespace ArtyECS.Core
                 }
             }
             return null;
+        }
+
+        public static MemoryUsageData GetMemoryUsage(WorldInstance world)
+        {
+            if (world == null || !IsEnabled)
+                return new MemoryUsageData(0, 0, 0);
+
+            long componentMemory = CalculateComponentMemory(world);
+            long entityMemory = CalculateEntityMemory(world);
+            long frameworkMemory = CalculateFrameworkMemory(world);
+
+            return new MemoryUsageData(componentMemory, entityMemory, frameworkMemory);
+        }
+
+        public static MemoryUsageData GetTotalMemoryUsage()
+        {
+            if (!IsEnabled)
+                return new MemoryUsageData(0, 0, 0);
+
+            MemoryUsageData total = new MemoryUsageData(0, 0, 0);
+
+            var allWorlds = World.GetAllWorlds();
+            foreach (var world in allWorlds)
+            {
+                total = total + GetMemoryUsage(world);
+            }
+
+            return total;
+        }
+
+        private static long CalculateComponentMemory(WorldInstance world)
+        {
+            if (!ComponentsManager.IsWorldInitialized(world))
+                return 0;
+
+            long totalMemory = 0;
+
+            var worldTables = GetWorldTables(world);
+            if (worldTables == null)
+                return 0;
+
+            foreach (var kvp in worldTables)
+            {
+                var table = kvp.Value;
+                var tableData = GetTableData(table);
+                if (tableData.HasValue)
+                {
+                    var (componentType, componentsArray, entitiesArray, dictionaryCount) = tableData.Value;
+                    int componentSize = GetComponentSize(componentType);
+                    long componentArrayMemory = (long)componentSize * componentsArray.Length;
+                    long entityArrayMemory = (long)Marshal.SizeOf<Entity>() * entitiesArray.Length;
+                    long dictionaryOverhead = EstimateDictionaryOverhead(dictionaryCount, Marshal.SizeOf<Entity>(), sizeof(int));
+                    totalMemory += componentArrayMemory + entityArrayMemory + dictionaryOverhead;
+                }
+            }
+
+            return totalMemory;
+        }
+
+        private static long CalculateEntityMemory(WorldInstance world)
+        {
+            int allocatedCount = EntitiesManager.GetAllocatedCount(world);
+            return (long)Marshal.SizeOf<Entity>() * allocatedCount;
+        }
+
+        private static long CalculateFrameworkMemory(WorldInstance world)
+        {
+            long frameworkMemory = 0;
+
+            frameworkMemory += CalculateComponentStorageOverhead(world);
+            frameworkMemory += CalculateEntityPoolOverhead(world);
+            frameworkMemory += CalculateWorldOverhead(world);
+
+            return frameworkMemory;
+        }
+
+        private static long CalculateComponentStorageOverhead(WorldInstance world)
+        {
+            var worldTables = GetWorldTables(world);
+            if (worldTables == null)
+                return 0;
+
+            long overhead = 0;
+            int pointerSize = IntPtr.Size;
+
+            var allWorldTables = GetAllWorldTables();
+            overhead += EstimateDictionaryOverhead(allWorldTables.Count, pointerSize * 2, pointerSize);
+            overhead += EstimateDictionaryOverhead(worldTables.Count, pointerSize, pointerSize);
+
+            var tableCache = GetTableCache();
+            overhead += EstimateDictionaryOverhead(tableCache.Count, pointerSize * 2 + pointerSize, pointerSize);
+
+            return overhead;
+        }
+
+        private static long CalculateEntityPoolOverhead(WorldInstance world)
+        {
+            var poolData = GetEntityPoolData(world);
+            if (!poolData.HasValue)
+                return 0;
+
+            var (availableCount, generationCount) = poolData.Value;
+            long stackOverhead = EstimateStackOverhead(availableCount);
+            long dictionaryOverhead = EstimateDictionaryOverhead(generationCount, sizeof(int), sizeof(int));
+
+            return stackOverhead + dictionaryOverhead;
+        }
+
+        private static long CalculateWorldOverhead(WorldInstance world)
+        {
+            var worldLinks = GetWorldLinks(world);
+            if (!worldLinks.HasValue)
+                return 0;
+
+            var (entityToGameObjectCount, gameObjectIdToEntityCount) = worldLinks.Value;
+            int pointerSize = IntPtr.Size;
+            long entityToGameObjectOverhead = EstimateDictionaryOverhead(entityToGameObjectCount, pointerSize, pointerSize);
+            long gameObjectIdToEntityOverhead = EstimateDictionaryOverhead(gameObjectIdToEntityCount, sizeof(int), pointerSize);
+
+            return entityToGameObjectOverhead + gameObjectIdToEntityOverhead;
+        }
+
+        private static Dictionary<Type, IComponentTable> GetWorldTables(WorldInstance world)
+        {
+            return ComponentsManager.GetWorldTablesForMonitoring(world);
+        }
+
+        private static Dictionary<WorldInstance, Dictionary<Type, IComponentTable>> GetAllWorldTables()
+        {
+            return ComponentsManager.GetAllWorldTablesForMonitoring();
+        }
+
+        private static Dictionary<(WorldInstance world, Type type), IComponentTable> GetTableCache()
+        {
+            return ComponentsManager.GetTableCacheForMonitoring();
+        }
+
+        private static (Type componentType, Array componentsArray, Array entitiesArray, int dictionaryCount)? GetTableData(IComponentTable table)
+        {
+            return ComponentsManager.GetTableDataForMonitoring(table);
+        }
+
+        private static (int AvailableCount, int GenerationCount)? GetEntityPoolData(WorldInstance world)
+        {
+            return EntitiesManager.GetPoolDataForMonitoring(world);
+        }
+
+        private static (int EntityToGameObjectCount, int GameObjectIdToEntityCount)? GetWorldLinks(WorldInstance world)
+        {
+            return WorldInstance.GetLinksForMonitoring(world);
+        }
+
+        private static long EstimateDictionaryOverhead(int count, int keySize, int valueSize)
+        {
+            if (count == 0)
+                return 0;
+
+            int estimatedCapacity = (int)(count / 0.72) + 1;
+            long bucketArrayMemory = (long)sizeof(int) * estimatedCapacity;
+            long entryArrayMemory = (long)(keySize + valueSize + sizeof(int)) * count;
+
+            return bucketArrayMemory + entryArrayMemory;
+        }
+
+        private static long EstimateStackOverhead(int count)
+        {
+            if (count == 0)
+                return 0;
+
+            int estimatedCapacity = Math.Max(count, 256);
+            return (long)sizeof(int) * estimatedCapacity;
+        }
+
+        private static int GetComponentSize(Type componentType)
+        {
+            try
+            {
+                return Marshal.SizeOf(componentType);
+            }
+            catch
+            {
+                return 0;
+            }
         }
     }
 }

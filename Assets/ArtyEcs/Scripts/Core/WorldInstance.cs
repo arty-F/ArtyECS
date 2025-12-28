@@ -306,6 +306,17 @@ namespace ArtyECS.Core
         {
             return ComponentsManager.GetAllQueryTimings(this);
         }
+
+#endif
+
+#if UNITY_EDITOR
+        internal static (int EntityToGameObjectCount, int GameObjectIdToEntityCount)? GetLinksForMonitoring(WorldInstance world)
+        {
+            if (world == null)
+                return null;
+
+            return (world._entityToGameObject.Count, world._gameObjectIdToEntity.Count);
+        }
 #endif
 
         public override string ToString()

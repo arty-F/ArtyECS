@@ -119,6 +119,18 @@ namespace ArtyECS.Core
             return (_components, _entities, _entityToIndex);
         }
 
+#if UNITY_EDITOR
+        internal (Array componentsArray, Array entitiesArray, Dictionary<Entity, int> dictionary) GetInternalData()
+        {
+            return (_components, _entities, _entityToIndex);
+        }
+
+        internal Type GetComponentType()
+        {
+            return typeof(T);
+        }
+#endif
+
         public bool TryRemoveComponentForEntity(Entity entity)
         {
             if (!HasComponent(entity))
