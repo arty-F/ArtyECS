@@ -35,7 +35,7 @@ A lightweight, beginner-friendly Entity Component System (ECS) framework for Uni
 
 ## Installation
 
-Requires a version of unity that supports path query parameter for git packages (Unity 2021.3 or later). You can add a reference https://github.com/arty-F/ArtyECS.git?path=Assets/ArtyECS to Package Manager.
+Requires a version of unity that supports path query parameter for git packages (Unity 2021.3 or later). You can add a reference `https://github.com/arty-F/ArtyECS.git?path=Assets/ArtyECS` to Package Manager.
 
 ## Quick Start
 
