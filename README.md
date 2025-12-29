@@ -170,11 +170,7 @@ var entity = World.CreateEntity();
 // Create entity in specific world
 var entity = localWorld.CreateEntity();
 
-// Create entity linked to GameObject
-var entity = World.CreateEntity(gameObject);
-var entity = localWorld.CreateEntity(gameObject);
-
-// Destroy entity (automatically removes all components, unlinks and destroys linked GameObject if exists)
+// Destroy entity (automatically removes all components)
 World.DestroyEntity(entity);
 localWorld.DestroyEntity(entity);
 ```
@@ -204,6 +200,10 @@ var go = World.GetGameObject(entity);
 
 // Get entity from GameObject
 var entity = World.GetEntity(gameObject);
+
+// Destroy linked entity will automatically unlinks and destroys linked GameObject if exists
+World.DestroyEntity(entity);
+localWorld.DestroyEntity(entity);
 ```
 
 **Entity Methods:**
