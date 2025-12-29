@@ -57,7 +57,7 @@ public struct Health : IComponent
 ### 2. Create Entities and Add Components
 
 ```csharp
-// Create an entity (in global world by default)
+// Create an entity
 var entity = World.CreateEntity();
 
 // Add a component
