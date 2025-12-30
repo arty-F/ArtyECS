@@ -223,40 +223,34 @@ namespace ArtyECS.Core
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                HashSet<Entity> intersection;
-                ReadOnlySpan<Entity> baseEntities;
+                using var intersection = table1.Count <= table2.Count 
+                    ? table1.GetEntitiesSetPooled() 
+                    : table2.GetEntitiesSetPooled();
+                using var set2 = table1.Count <= table2.Count 
+                    ? table2.GetEntitiesSetPooled() 
+                    : table1.GetEntitiesSetPooled();
+                ReadOnlySpan<Entity> baseEntities = table1.Count <= table2.Count 
+                    ? table1.GetEntities() 
+                    : table2.GetEntities();
                 
-                if (table1.Count <= table2.Count)
-                {
-                    intersection = table1.GetEntitiesSet();
-                    baseEntities = table1.GetEntities();
-                    var set2 = table2.GetEntitiesSet();
-                    intersection.IntersectWith(set2);
-                }
-                else
-                {
-                    intersection = table2.GetEntitiesSet();
-                    baseEntities = table2.GetEntities();
-                    var set1 = table1.GetEntitiesSet();
-                    intersection.IntersectWith(set1);
-                }
+                intersection.Set.IntersectWith(set2.Set);
 
-                if (intersection.Count == 0)
+                if (intersection.Set.Count == 0)
                 {
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                var result = new Entity[intersection.Count];
+                var resultArray = QueryContext.Get(world).RentArray(intersection.Set.Count);
                 int index = 0;
                 foreach (var entity in baseEntities)
                 {
-                    if (intersection.Contains(entity))
+                    if (intersection.Set.Contains(entity))
                     {
-                        result[index++] = entity;
+                        resultArray[index++] = entity;
                     }
                 }
 
-                return result;
+                return new ReadOnlySpan<Entity>(resultArray, 0, intersection.Set.Count);
             }
         }
 
@@ -280,47 +274,56 @@ namespace ArtyECS.Core
                 }
 
                 int minCount = Math.Min(Math.Min(table1.Count, table2.Count), table3.Count);
-                HashSet<Entity> intersection;
+                PooledHashSet<Entity> intersection;
                 ReadOnlySpan<Entity> baseEntities;
 
                 if (table1.Count == minCount)
                 {
-                    intersection = table1.GetEntitiesSet();
+                    intersection = table1.GetEntitiesSetPooled();
                     baseEntities = table1.GetEntities();
-                    intersection.IntersectWith(table2.GetEntitiesSet());
-                    intersection.IntersectWith(table3.GetEntitiesSet());
+                    using var set2 = table2.GetEntitiesSetPooled();
+                    using var set3 = table3.GetEntitiesSetPooled();
+                    intersection.Set.IntersectWith(set2.Set);
+                    intersection.Set.IntersectWith(set3.Set);
                 }
                 else if (table2.Count == minCount)
                 {
-                    intersection = table2.GetEntitiesSet();
+                    intersection = table2.GetEntitiesSetPooled();
                     baseEntities = table2.GetEntities();
-                    intersection.IntersectWith(table1.GetEntitiesSet());
-                    intersection.IntersectWith(table3.GetEntitiesSet());
+                    using var set1 = table1.GetEntitiesSetPooled();
+                    using var set3 = table3.GetEntitiesSetPooled();
+                    intersection.Set.IntersectWith(set1.Set);
+                    intersection.Set.IntersectWith(set3.Set);
                 }
                 else
                 {
-                    intersection = table3.GetEntitiesSet();
+                    intersection = table3.GetEntitiesSetPooled();
                     baseEntities = table3.GetEntities();
-                    intersection.IntersectWith(table1.GetEntitiesSet());
-                    intersection.IntersectWith(table2.GetEntitiesSet());
+                    using var set1 = table1.GetEntitiesSetPooled();
+                    using var set2 = table2.GetEntitiesSetPooled();
+                    intersection.Set.IntersectWith(set1.Set);
+                    intersection.Set.IntersectWith(set2.Set);
                 }
 
-                if (intersection.Count == 0)
+                if (intersection.Set.Count == 0)
                 {
+                    intersection.Dispose();
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                var result = new Entity[intersection.Count];
+                int resultCount = intersection.Set.Count;
+                var resultArray = QueryContext.Get(world).RentArray(resultCount);
                 int index = 0;
                 foreach (var entity in baseEntities)
                 {
-                    if (intersection.Contains(entity))
+                    if (intersection.Set.Contains(entity))
                     {
-                        result[index++] = entity;
+                        resultArray[index++] = entity;
                     }
                 }
 
-                return result;
+                intersection.Dispose();
+                return new ReadOnlySpan<Entity>(resultArray, 0, resultCount);
             }
         }
 
@@ -329,7 +332,7 @@ namespace ArtyECS.Core
             if (world == null)
                 throw new ArgumentNullException(nameof(world));
 
-            var allEntities = new HashSet<Entity>();
+            var allEntities = QueryContext.Get(world).RentHashSet();
 
             if (!WorldTables.TryGetValue(world, out var worldTable))
             {
@@ -363,23 +366,23 @@ namespace ArtyECS.Core
                 }
 
                 var table1 = GetOrCreateTable<T1>(world);
-                var exclusionSet = table1.GetEntitiesSet();
+                using var exclusionSet = table1.GetEntitiesSetPooled();
                 
-                allEntities.ExceptWith(exclusionSet);
+                allEntities.ExceptWith(exclusionSet.Set);
 
                 if (allEntities.Count == 0)
                 {
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                var result = new Entity[allEntities.Count];
+                var resultArray = QueryContext.Get(world).RentArray(allEntities.Count);
                 int index = 0;
                 foreach (var entity in allEntities)
                 {
-                    result[index++] = entity;
+                    resultArray[index++] = entity;
                 }
 
-                return result;
+                return new ReadOnlySpan<Entity>(resultArray, 0, allEntities.Count);
             }
         }
 
@@ -402,24 +405,35 @@ namespace ArtyECS.Core
                 var table1 = GetOrCreateTable<T1>(world);
                 var table2 = GetOrCreateTable<T2>(world);
                 
-                var exclusionSet = table1.GetEntitiesSet();
-                exclusionSet.UnionWith(table2.GetEntitiesSet());
+                using var exclusionSet = EntityHashSetPool.RentPooled(table1.Count + table2.Count);
                 
-                allEntities.ExceptWith(exclusionSet);
+                var entities1 = table1.GetEntities();
+                foreach (var entity in entities1)
+                {
+                    exclusionSet.Set.Add(entity);
+                }
+                
+                var entities2 = table2.GetEntities();
+                foreach (var entity in entities2)
+                {
+                    exclusionSet.Set.Add(entity);
+                }
+                
+                allEntities.ExceptWith(exclusionSet.Set);
 
                 if (allEntities.Count == 0)
                 {
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                var result = new Entity[allEntities.Count];
+                var resultArray = QueryContext.Get(world).RentArray(allEntities.Count);
                 int index = 0;
                 foreach (var entity in allEntities)
                 {
-                    result[index++] = entity;
+                    resultArray[index++] = entity;
                 }
 
-                return result;
+                return new ReadOnlySpan<Entity>(resultArray, 0, allEntities.Count);
             }
         }
 
@@ -444,25 +458,41 @@ namespace ArtyECS.Core
                 var table2 = GetOrCreateTable<T2>(world);
                 var table3 = GetOrCreateTable<T3>(world);
                 
-                var exclusionSet = table1.GetEntitiesSet();
-                exclusionSet.UnionWith(table2.GetEntitiesSet());
-                exclusionSet.UnionWith(table3.GetEntitiesSet());
+                using var exclusionSet = EntityHashSetPool.RentPooled(table1.Count + table2.Count + table3.Count);
                 
-                allEntities.ExceptWith(exclusionSet);
+                var entities1 = table1.GetEntities();
+                foreach (var entity in entities1)
+                {
+                    exclusionSet.Set.Add(entity);
+                }
+                
+                var entities2 = table2.GetEntities();
+                foreach (var entity in entities2)
+                {
+                    exclusionSet.Set.Add(entity);
+                }
+                
+                var entities3 = table3.GetEntities();
+                foreach (var entity in entities3)
+                {
+                    exclusionSet.Set.Add(entity);
+                }
+                
+                allEntities.ExceptWith(exclusionSet.Set);
 
                 if (allEntities.Count == 0)
                 {
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                var result = new Entity[allEntities.Count];
+                var resultArray = QueryContext.Get(world).RentArray(allEntities.Count);
                 int index = 0;
                 foreach (var entity in allEntities)
                 {
-                    result[index++] = entity;
+                    resultArray[index++] = entity;
                 }
 
-                return result;
+                return new ReadOnlySpan<Entity>(resultArray, 0, allEntities.Count);
             }
         }
 

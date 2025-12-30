@@ -15,7 +15,7 @@ namespace ArtyECS.Core
 
         private int _count;
 
-        private readonly Dictionary<Entity, int> _entityToIndex;
+        private Dictionary<Entity, int> _entityToIndex;
 
         internal ComponentTable() : this(DefaultInitialCapacity)
         {
@@ -51,6 +51,16 @@ namespace ArtyECS.Core
                 entitiesSet.Add(_entities[i]);
             }
             return entitiesSet;
+        }
+
+        internal PooledHashSet<Entity> GetEntitiesSetPooled()
+        {
+            var set = EntityHashSetPool.RentPooled(_count);
+            for (int i = 0; i < _count; i++)
+            {
+                set.Set.Add(_entities[i]);
+            }
+            return set;
         }
 
         internal ReadOnlySpan<Entity> GetEntities()
@@ -103,7 +113,19 @@ namespace ArtyECS.Core
             if (_components.Length >= minCapacity)
                 return;
 
-            int newCapacity = Math.Max(_components.Length * 2, minCapacity);
+            int newCapacity;
+            if (_components.Length < 256)
+            {
+                newCapacity = Math.Max(_components.Length * 2, minCapacity);
+            }
+            else if (_components.Length < 4096)
+            {
+                newCapacity = Math.Max((int)(_components.Length * 1.5f), minCapacity);
+            }
+            else
+            {
+                newCapacity = Math.Max((int)(_components.Length * 1.25f), minCapacity);
+            }
 
             var newComponents = new T[newCapacity];
             Array.Copy(_components, 0, newComponents, 0, _count);
@@ -112,6 +134,17 @@ namespace ArtyECS.Core
             var newEntities = new Entity[newCapacity];
             Array.Copy(_entities, 0, newEntities, 0, _count);
             _entities = newEntities;
+            
+            int newDictionaryCapacity = (int)Math.Ceiling(newCapacity / DictionaryLoadFactor);
+            if (newDictionaryCapacity > _entityToIndex.Count)
+            {
+                var newDictionary = new Dictionary<Entity, int>(newDictionaryCapacity);
+                foreach (var kvp in _entityToIndex)
+                {
+                    newDictionary[kvp.Key] = kvp.Value;
+                }
+                _entityToIndex = newDictionary;
+            }
         }
 
         internal (T[] components, Entity[] entities, Dictionary<Entity, int> entityToIndex) GetInternalTable()

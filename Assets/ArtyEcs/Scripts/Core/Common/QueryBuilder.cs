@@ -96,8 +96,9 @@ namespace ArtyECS.Core
 
         private ReadOnlySpan<Entity> ExecuteWithOnly()
         {
-            HashSet<Entity> resultSet = null;
+            PooledHashSet<Entity> resultSet = default;
             ReadOnlySpan<Entity> baseEntities = ReadOnlySpan<Entity>.Empty;
+            bool firstSet = true;
 
             foreach (var type in _withTypes)
             {
@@ -105,50 +106,58 @@ namespace ArtyECS.Core
                 
                 if (entities.Length == 0)
                 {
+                    if (resultSet.Set != null)
+                        resultSet.Dispose();
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                if (resultSet == null)
+                if (firstSet)
                 {
-                    resultSet = new HashSet<Entity>(entities.Length);
+                    resultSet = EntityHashSetPool.RentPooled(entities.Length);
                     foreach (var entity in entities)
                     {
-                        resultSet.Add(entity);
+                        resultSet.Set.Add(entity);
                     }
                     baseEntities = entities;
+                    firstSet = false;
                 }
                 else
                 {
-                    var newSet = new HashSet<Entity>(entities.Length);
+                    using var newSet = EntityHashSetPool.RentPooled(entities.Length);
                     foreach (var entity in entities)
                     {
-                        newSet.Add(entity);
+                        newSet.Set.Add(entity);
                     }
-                    resultSet.IntersectWith(newSet);
+                    resultSet.Set.IntersectWith(newSet.Set);
                     
-                    if (resultSet.Count == 0)
+                    if (resultSet.Set.Count == 0)
                     {
+                        resultSet.Dispose();
                         return ReadOnlySpan<Entity>.Empty;
                     }
                 }
             }
 
-            if (resultSet == null || resultSet.Count == 0)
+            if (resultSet.Set == null || resultSet.Set.Count == 0)
             {
+                if (resultSet.Set != null)
+                    resultSet.Dispose();
                 return ReadOnlySpan<Entity>.Empty;
             }
 
-            var result = new Entity[resultSet.Count];
+            int resultCount = resultSet.Set.Count;
+            var resultArray = QueryContext.Get(_world).RentArray(resultCount);
             int index = 0;
             foreach (var entity in baseEntities)
             {
-                if (resultSet.Contains(entity))
+                if (resultSet.Set.Contains(entity))
                 {
-                    result[index++] = entity;
+                    resultArray[index++] = entity;
                 }
             }
 
-            return result;
+            resultSet.Dispose();
+            return new ReadOnlySpan<Entity>(resultArray, 0, resultCount);
         }
 
         private ReadOnlySpan<Entity> ExecuteWithoutOnly()
@@ -162,8 +171,8 @@ namespace ArtyECS.Core
 
             foreach (var type in _withoutTypes)
             {
-                var exclusionSet = GetEntitiesWithTypeAsSet(type);
-                allEntities.ExceptWith(exclusionSet);
+                using var exclusionSet = GetEntitiesWithTypeAsSetPooled(type);
+                allEntities.ExceptWith(exclusionSet.Set);
                 
                 if (allEntities.Count == 0)
                 {
@@ -171,20 +180,21 @@ namespace ArtyECS.Core
                 }
             }
 
-            var result = new Entity[allEntities.Count];
+            var resultArray = QueryContext.Get(_world).RentArray(allEntities.Count);
             int index = 0;
             foreach (var entity in allEntities)
             {
-                result[index++] = entity;
+                resultArray[index++] = entity;
             }
 
-            return result;
+            return new ReadOnlySpan<Entity>(resultArray, 0, allEntities.Count);
         }
 
         private ReadOnlySpan<Entity> ExecuteWithAndWithout()
         {
-            HashSet<Entity> resultSet = null;
+            PooledHashSet<Entity> resultSet = default;
             ReadOnlySpan<Entity> baseEntities = ReadOnlySpan<Entity>.Empty;
+            bool firstSet = true;
 
             foreach (var type in _withTypes)
             {
@@ -192,61 +202,70 @@ namespace ArtyECS.Core
                 
                 if (entities.Length == 0)
                 {
+                    if (resultSet.Set != null)
+                        resultSet.Dispose();
                     return ReadOnlySpan<Entity>.Empty;
                 }
 
-                if (resultSet == null)
+                if (firstSet)
                 {
-                    resultSet = new HashSet<Entity>(entities.Length);
+                    resultSet = EntityHashSetPool.RentPooled(entities.Length);
                     foreach (var entity in entities)
                     {
-                        resultSet.Add(entity);
+                        resultSet.Set.Add(entity);
                     }
                     baseEntities = entities;
+                    firstSet = false;
                 }
                 else
                 {
-                    var newSet = new HashSet<Entity>(entities.Length);
+                    using var newSet = EntityHashSetPool.RentPooled(entities.Length);
                     foreach (var entity in entities)
                     {
-                        newSet.Add(entity);
+                        newSet.Set.Add(entity);
                     }
-                    resultSet.IntersectWith(newSet);
+                    resultSet.Set.IntersectWith(newSet.Set);
                     
-                    if (resultSet.Count == 0)
+                    if (resultSet.Set.Count == 0)
                     {
+                        resultSet.Dispose();
                         return ReadOnlySpan<Entity>.Empty;
                     }
                 }
             }
 
-            if (resultSet == null || resultSet.Count == 0)
+            if (resultSet.Set == null || resultSet.Set.Count == 0)
             {
+                if (resultSet.Set != null)
+                    resultSet.Dispose();
                 return ReadOnlySpan<Entity>.Empty;
             }
 
             foreach (var type in _withoutTypes)
             {
-                var exclusionSet = GetEntitiesWithTypeAsSet(type);
-                resultSet.ExceptWith(exclusionSet);
+                using var exclusionSet = GetEntitiesWithTypeAsSetPooled(type);
+                resultSet.Set.ExceptWith(exclusionSet.Set);
                 
-                if (resultSet.Count == 0)
+                if (resultSet.Set.Count == 0)
                 {
+                    resultSet.Dispose();
                     return ReadOnlySpan<Entity>.Empty;
                 }
             }
 
-            var result = new Entity[resultSet.Count];
+            int resultCount = resultSet.Set.Count;
+            var resultArray = QueryContext.Get(_world).RentArray(resultCount);
             int index = 0;
             foreach (var entity in baseEntities)
             {
-                if (resultSet.Contains(entity))
+                if (resultSet.Set.Contains(entity))
                 {
-                    result[index++] = entity;
+                    resultArray[index++] = entity;
                 }
             }
 
-            return result;
+            resultSet.Dispose();
+            return new ReadOnlySpan<Entity>(resultArray, 0, resultCount);
         }
 
         private ReadOnlySpan<Entity> GetEntitiesWithType(Type componentType)
@@ -273,6 +292,23 @@ namespace ArtyECS.Core
             foreach (var entity in entities)
             {
                 set.Add(entity);
+            }
+            return set;
+        }
+
+        private PooledHashSet<Entity> GetEntitiesWithTypeAsSetPooled(Type componentType)
+        {
+            var table = ComponentsManager.GetTableByType(componentType, _world);
+            if (table == null)
+            {
+                return EntityHashSetPool.RentPooled();
+            }
+
+            var entities = table.GetEntities();
+            var set = EntityHashSetPool.RentPooled(entities.Length);
+            foreach (var entity in entities)
+            {
+                set.Set.Add(entity);
             }
             return set;
         }

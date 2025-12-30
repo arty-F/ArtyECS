@@ -51,11 +51,13 @@ namespace ArtyECS.Core
         private void Update()
         {
             ExecuteUpdateSystems();
+            QueryContext.ReturnResourcesForAllContexts();
         }
 
         private void FixedUpdate()
         {
             ExecuteFixedUpdateSystems();
+            QueryContext.ReturnResourcesForAllContexts();
         }
 
         private void ExecuteUpdateSystems()
