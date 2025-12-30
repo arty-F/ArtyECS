@@ -1798,7 +1798,7 @@ public class CoreTests : TestBase
         });
     }
     
-    [ContextMenu("Run Test: Entity GetModifiable Extension Method - Non-Existent Component")]
+    [ContextMenu("Run Test: Entity GetModifiable Extension Method - Multiple Components")]
     public void Test_EntityExt_008()
     {
         string testName = "Test_EntityExt_008";
@@ -1807,19 +1807,32 @@ public class CoreTests : TestBase
             // 1. Create Entity
             Entity entity = World.CreateEntity();
             
-            // 2. Attempt to get modifiable component that doesn't exist
-            bool exceptionThrown = false;
-            try
-            {
-                ref var health = ref entity.GetModifiable<Health>();
-            }
-            catch (ComponentNotFoundException)
-            {
-                exceptionThrown = true;
-            }
+            // 2. Add multiple components
+            World.AddComponent(entity, new Health { Amount = 100f });
+            World.AddComponent(entity, new Position { X = 10f, Y = 20f, Z = 30f });
+            World.AddComponent(entity, new Velocity { X = 1f, Y = 2f, Z = 3f });
             
-            // ComponentNotFoundException should be thrown
-            Assert(exceptionThrown, "ComponentNotFoundException should be thrown for non-existent component");
+            // 3. Get modifiable references for all components
+            ref var health = ref entity.GetModifiable<Health>();
+            ref var position = ref entity.GetModifiable<Position>();
+            ref var velocity = ref entity.GetModifiable<Velocity>();
+            
+            // 4. Modify all components
+            health.Amount = 50f;
+            position.X = 100f;
+            position.Y = 200f;
+            velocity.Z = 999f;
+            
+            // 5. Verify all modifications persisted
+            Health healthAfter = World.GetComponent<Health>(entity);
+            Position positionAfter = World.GetComponent<Position>(entity);
+            Velocity velocityAfter = World.GetComponent<Velocity>(entity);
+            
+            AssertEquals(50f, healthAfter.Amount, "Health should be modified to 50");
+            AssertEquals(100f, positionAfter.X, "Position.X should be modified to 100");
+            AssertEquals(200f, positionAfter.Y, "Position.Y should be modified to 200");
+            AssertEquals(30f, positionAfter.Z, "Position.Z should remain 30");
+            AssertEquals(999f, velocityAfter.Z, "Velocity.Z should be modified to 999");
         });
     }
 }
