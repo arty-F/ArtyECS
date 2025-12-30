@@ -449,6 +449,11 @@ namespace ArtyECS.Editor
             }
         }
 
+        private string FormatAllocation(long bytes)
+        {
+            return FormatMemory(bytes);
+        }
+
         private void DrawAllocationTrackingSection()
         {
             EditorGUILayout.LabelField("Allocation Tracking", EditorStyles.boldLabel);
@@ -521,23 +526,6 @@ namespace ArtyECS.Editor
             EditorGUILayout.EndHorizontal();
         }
 
-        private string FormatAllocation(long bytes)
-        {
-            if (bytes < 1024)
-            {
-                return $"{bytes} B";
-            }
-            else if (bytes < 1024 * 1024)
-            {
-                double kb = bytes / 1024.0;
-                return $"{kb:F2} KB";
-            }
-            else
-            {
-                double mb = bytes / (1024.0 * 1024.0);
-                return $"{mb:F2} MB";
-            }
-        }
 
         private GUIStyle GetAllocationColor(long bytes)
         {

@@ -21,15 +21,11 @@ namespace ArtyECS.Core
             new Dictionary<(string operationType, WorldInstance world), (long bytes, int count)>();
         private static int _systemTimingInsertionCounter = 0;
         private static int _queryTimingInsertionCounter = 0;
-        
-        private const string PREFS_KEY_ALLOCATION_SHOW_WARNINGS = "ArtyECS.AllocationTracker.ShowWarnings";
-        private static bool _showAllocationWarnings = false;
 
         static PerformanceMonitoring()
         {
             _isEnabled = UnityEditor.EditorPrefs.GetBool(PREFS_KEY_MONITORING_ENABLED, false);
             _showWarnings = UnityEditor.EditorPrefs.GetBool(PREFS_KEY_SHOW_WARNINGS, true);
-            _showAllocationWarnings = UnityEditor.EditorPrefs.GetBool(PREFS_KEY_ALLOCATION_SHOW_WARNINGS, true);
         }
 
         public static bool IsEnabled
@@ -74,19 +70,6 @@ namespace ArtyECS.Core
         }
 
         public static bool IsAllocationTrackingEnabled => IsEnabled;
-
-        public static bool ShowAllocationWarnings
-        {
-            get => _showAllocationWarnings;
-            set
-            {
-                if (_showAllocationWarnings != value)
-                {
-                    _showAllocationWarnings = value;
-                    UnityEditor.EditorPrefs.SetBool(PREFS_KEY_ALLOCATION_SHOW_WARNINGS, value);
-                }
-            }
-        }
 
         public static void ResetSystemTimings(WorldInstance world)
         {
@@ -540,7 +523,7 @@ namespace ArtyECS.Core
                 Allocations[key] = (bytes, allocations);
             }
 
-            if (ShowAllocationWarnings && bytes > 1024)
+            if (ShowWarnings && bytes > 1024)
             {
                 UnityEngine.Debug.LogWarning($"[ArtyECS] Allocation detected in {operationType} (World: {world.Name}): {bytes} bytes, {allocations} GC collections");
             }
