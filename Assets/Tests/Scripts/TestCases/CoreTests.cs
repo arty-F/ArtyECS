@@ -1710,5 +1710,117 @@ public class CoreTests : TestBase
             Assert(exceptionThrown, "Component should be removed");
         });
     }
+    
+    [ContextMenu("Run Test: Entity GetModifiable Extension Method")]
+    public void Test_EntityExt_005()
+    {
+        string testName = "Test_EntityExt_005";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity
+            Entity entity = World.CreateEntity();
+            
+            // 2. Add component using World API
+            World.AddComponent(entity, new Health { Amount = 100f });
+            
+            // 3. Get modifiable component using extension method
+            ref var health = ref entity.GetModifiable<Health>();
+            
+            // 4. Modify component value directly
+            health.Amount = 50f;
+            
+            // 5. Verify modification persisted
+            Health healthAfter = World.GetComponent<Health>(entity);
+            AssertEquals(50f, healthAfter.Amount, "Component value should be modified to 50");
+        });
+    }
+    
+    [ContextMenu("Run Test: Entity GetModifiable Extension Method - Multiple Modifications")]
+    public void Test_EntityExt_006()
+    {
+        string testName = "Test_EntityExt_006";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity
+            Entity entity = World.CreateEntity();
+            
+            // 2. Add component
+            World.AddComponent(entity, new Health { Amount = 100f });
+            
+            // 3. Get modifiable component and modify multiple times
+            ref var health = ref entity.GetModifiable<Health>();
+            health.Amount = 80f;
+            health.Amount = 60f;
+            health.Amount = 40f;
+            
+            // 4. Verify final value
+            Health healthAfter = World.GetComponent<Health>(entity);
+            AssertEquals(40f, healthAfter.Amount, "Component value should be 40 after multiple modifications");
+        });
+    }
+    
+    [ContextMenu("Run Test: Entity GetModifiable Extension Method - With World Parameter")]
+    public void Test_EntityExt_007()
+    {
+        string testName = "Test_EntityExt_007";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create World("Test")
+            WorldInstance testWorld = World.GetOrCreate("Test");
+            
+            // 2. Create Entity
+            Entity entity = testWorld.CreateEntity();
+            
+            // 3. Add component to specified world
+            testWorld.AddComponent(entity, new Health { Amount = 100f });
+            
+            // 4. Get modifiable component from specified world
+            ref var health = ref entity.GetModifiable<Health>(testWorld);
+            
+            // 5. Modify component
+            health.Amount = 50f;
+            
+            // 6. Verify modification in specified world
+            Health healthAfter = testWorld.GetComponent<Health>(entity);
+            AssertEquals(50f, healthAfter.Amount, "Component value should be 50 in testWorld");
+            
+            // 7. Verify component doesn't exist in global world
+            bool exceptionThrown = false;
+            try
+            {
+                World.GetComponent<Health>(entity);
+            }
+            catch (ComponentNotFoundException)
+            {
+                exceptionThrown = true;
+            }
+            Assert(exceptionThrown, "ComponentNotFoundException should be thrown when getting from global world");
+        });
+    }
+    
+    [ContextMenu("Run Test: Entity GetModifiable Extension Method - Non-Existent Component")]
+    public void Test_EntityExt_008()
+    {
+        string testName = "Test_EntityExt_008";
+        ExecuteTest(testName, () =>
+        {
+            // 1. Create Entity
+            Entity entity = World.CreateEntity();
+            
+            // 2. Attempt to get modifiable component that doesn't exist
+            bool exceptionThrown = false;
+            try
+            {
+                ref var health = ref entity.GetModifiable<Health>();
+            }
+            catch (ComponentNotFoundException)
+            {
+                exceptionThrown = true;
+            }
+            
+            // ComponentNotFoundException should be thrown
+            Assert(exceptionThrown, "ComponentNotFoundException should be thrown for non-existent component");
+        });
+    }
 }
 

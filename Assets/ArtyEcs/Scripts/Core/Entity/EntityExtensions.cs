@@ -35,6 +35,12 @@ namespace ArtyECS.Core
             world ??= World.GetOrCreate();
             return world.RemoveComponent<T>(entity);
         }
+
+        public static ref T GetModifiable<T>(this Entity entity, WorldInstance world = null) where T : struct, IComponent
+        {
+            world ??= World.GetOrCreate();
+            return ref world.GetModifiableComponent<T>(entity);
+        }
     }
 }
 
