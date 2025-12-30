@@ -248,7 +248,7 @@ var health = entity.Get<Health>(); // Extension method
 // Get modifiable component (for direct modification)
 ref var health = ref World.GetModifiableComponent<Health>(entity);
 ref var health = ref localWorld.GetModifiableComponent<Health>(entity);
-//todo ref var health = ref entity.GetModifiable<Health>();
+ref var health = ref entity.GetModifiable<Health>(); // Extension method
 
 // Check if entity has component
 if (entity.Has<Health>())
