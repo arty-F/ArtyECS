@@ -32,10 +32,7 @@ namespace ArtyECS.Core
         {
             unchecked
             {
-                int hash = 17;
-                hash = hash * 31 + Id.GetHashCode();
-                hash = hash * 31 + Generation.GetHashCode();
-                return hash;
+                return Id * 397 + Generation;
             }
         }
 

@@ -7,7 +7,7 @@ namespace ArtyECS.Core
     {
         private const int DefaultInitialCapacity = 32;
 
-        private const double DictionaryLoadFactor = 0.72;
+        private const double DictionaryLoadFactor = 0.75;
 
         private T[] _components;
 
@@ -30,7 +30,7 @@ namespace ArtyECS.Core
             _entities = new Entity[initialCapacity];
             _count = 0;
             
-            int dictionaryCapacity = (int)Math.Ceiling(initialCapacity / DictionaryLoadFactor);
+            int dictionaryCapacity = (int)(initialCapacity / DictionaryLoadFactor) + 1;
             _entityToIndex = new Dictionary<Entity, int>(dictionaryCapacity);
         }
 
@@ -135,7 +135,7 @@ namespace ArtyECS.Core
             Array.Copy(_entities, 0, newEntities, 0, _count);
             _entities = newEntities;
             
-            int newDictionaryCapacity = (int)Math.Ceiling(newCapacity / DictionaryLoadFactor);
+            int newDictionaryCapacity = (int)(newCapacity / DictionaryLoadFactor) + 1;
             if (newDictionaryCapacity > _entityToIndex.Count)
             {
                 var newDictionary = new Dictionary<Entity, int>(newDictionaryCapacity);
