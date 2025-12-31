@@ -57,3 +57,87 @@ public struct Acceleration : IComponent
     public float Z;
 }
 
+// Game components for performance scenarios
+public struct Enemy : IComponent { }
+
+public struct Armor : IComponent
+{
+    public float Value;
+}
+
+public struct Damage : IComponent
+{
+    public float Value;
+}
+
+public struct EnemyType : IComponent
+{
+    public int TypeId;
+}
+
+public struct Powerup : IComponent { }
+
+public struct PowerupType : IComponent
+{
+    public int TypeId;
+}
+
+public struct ExpirationTime : IComponent
+{
+    public float RemainingTime;
+}
+
+public struct GameState : IComponent
+{
+    public int State;
+}
+
+public struct PlayerStats : IComponent
+{
+    public int Level;
+    public float Experience;
+    public int Score;
+}
+
+public struct WaveManager : IComponent
+{
+    public int CurrentWave;
+    public float WaveTimer;
+}
+
+public struct SpawnTimer : IComponent
+{
+    public float TimeUntilNextSpawn;
+}
+
+public struct ScoreManager : IComponent
+{
+    public int TotalScore;
+    public int HighScore;
+}
+
+public struct TimeManager : IComponent
+{
+    public float GameTime;
+    public float DeltaTime;
+}
+
+public struct InputState : IComponent
+{
+    public float MoveX;
+    public float MoveY;
+}
+
+public struct CameraState : IComponent
+{
+    public float X;
+    public float Y;
+    public float Zoom;
+}
+
+public struct UIControls : IComponent
+{
+    public bool PausePressed;
+    public bool MenuPressed;
+}
+

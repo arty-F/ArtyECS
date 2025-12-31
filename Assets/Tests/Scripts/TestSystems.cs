@@ -241,3 +241,308 @@ public class TransformSyncSystem : SystemHandler
         }
     }
 }
+
+// Performance test systems for scenarios
+public class EnemyQueryWith1System : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var enemies = world.GetEntitiesWith<Enemy>();
+        
+        foreach (var enemy in enemies)
+        {
+            if (enemy.Has<Health>(world))
+            {
+                ref var health = ref world.GetModifiableComponent<Health>(enemy);
+                health.Amount -= 0.1f;
+            }
+        }
+    }
+}
+
+public class EnemyMovementWith2System : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var entities = world.GetEntitiesWith<Position, Velocity>();
+        
+        foreach (var entity in entities)
+        {
+            Velocity velocity = world.GetComponent<Velocity>(entity);
+            ref var position = ref world.GetModifiableComponent<Position>(entity);
+            position.X += velocity.X;
+            position.Y += velocity.Y;
+            position.Z += velocity.Z;
+        }
+    }
+}
+
+public class EnemyCombatWith3System : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var entities = world.GetEntitiesWith<Enemy, Position, Damage>();
+        
+        foreach (var entity in entities)
+        {
+            Position pos = world.GetComponent<Position>(entity);
+            Damage damage = world.GetComponent<Damage>(entity);
+        }
+    }
+}
+
+public class AliveEnemyWithout1System : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var aliveEntities = world.GetEntitiesWithout<Dead>();
+        
+        foreach (var entity in aliveEntities)
+        {
+            if (entity.Has<Enemy>(world))
+            {
+                if (entity.Has<Health>(world))
+                {
+                    ref var health = ref world.GetModifiableComponent<Health>(entity);
+                    health.Amount -= 0.1f;
+                }
+            }
+        }
+    }
+}
+
+public class ActiveEntitiesWithout2System : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var activeEntities = world.GetEntitiesWithout<Dead, Destroyed>();
+        
+        foreach (var entity in activeEntities)
+        {
+            if (entity.Has<Enemy>(world) || entity.Has<Powerup>(world))
+            {
+            }
+        }
+    }
+}
+
+public class CleanEntitiesWithout3System : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var cleanEntities = world.GetEntitiesWithout<Dead, Destroyed, ExpirationTime>();
+        
+        foreach (var entity in cleanEntities)
+        {
+            if (entity.Has<Enemy>(world))
+            {
+            }
+        }
+    }
+}
+
+public class EnemyHealthModifiableSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var healths = world.GetModifiableComponents<Health>();
+        for (int i = 0; i < healths.Count; i++)
+        {
+            healths[i].Amount -= 0.5f;
+        }
+    }
+}
+
+public class ActiveEnemyMovementQueryBuilderMixedSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var entities = world.Query()
+            .With<Position>()
+            .With<Velocity>()
+            .Without<Dead>()
+            .Execute();
+        
+        foreach (var entity in entities)
+        {
+            Velocity velocity = world.GetComponent<Velocity>(entity);
+            ref var position = ref world.GetModifiableComponent<Position>(entity);
+            position.X += velocity.X;
+            position.Y += velocity.Y;
+            position.Z += velocity.Z;
+        }
+    }
+}
+
+// Comparative systems - Direct API vs QueryBuilder
+public class EnemyQueryWith1DirectSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var enemies = world.GetEntitiesWith<Enemy>();
+        
+        foreach (var enemy in enemies)
+        {
+            if (enemy.Has<Health>(world))
+            {
+                ref var health = ref world.GetModifiableComponent<Health>(enemy);
+                health.Amount -= 0.1f;
+            }
+        }
+    }
+}
+
+public class EnemyQueryWith1QueryBuilderSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var enemies = world.Query().With<Enemy>().Execute();
+        
+        foreach (var enemy in enemies)
+        {
+            if (enemy.Has<Health>(world))
+            {
+                ref var health = ref world.GetModifiableComponent<Health>(enemy);
+                health.Amount -= 0.1f;
+            }
+        }
+    }
+}
+
+public class EnemyMovementWith2DirectSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var entities = world.GetEntitiesWith<Position, Velocity>();
+        
+        foreach (var entity in entities)
+        {
+            Velocity velocity = world.GetComponent<Velocity>(entity);
+            ref var position = ref world.GetModifiableComponent<Position>(entity);
+            position.X += velocity.X;
+            position.Y += velocity.Y;
+            position.Z += velocity.Z;
+        }
+    }
+}
+
+public class EnemyMovementWith2QueryBuilderSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var entities = world.Query().With<Position>().With<Velocity>().Execute();
+        
+        foreach (var entity in entities)
+        {
+            Velocity velocity = world.GetComponent<Velocity>(entity);
+            ref var position = ref world.GetModifiableComponent<Position>(entity);
+            position.X += velocity.X;
+            position.Y += velocity.Y;
+            position.Z += velocity.Z;
+        }
+    }
+}
+
+public class AliveEnemyWithout1DirectSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var aliveEntities = world.GetEntitiesWithout<Dead>();
+        
+        foreach (var entity in aliveEntities)
+        {
+            if (entity.Has<Enemy>(world))
+            {
+                if (entity.Has<Health>(world))
+                {
+                    ref var health = ref world.GetModifiableComponent<Health>(entity);
+                    health.Amount -= 0.1f;
+                }
+            }
+        }
+    }
+}
+
+public class AliveEnemyWithout1QueryBuilderSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var aliveEntities = world.Query().Without<Dead>().Execute();
+        
+        foreach (var entity in aliveEntities)
+        {
+            if (entity.Has<Enemy>(world))
+            {
+                if (entity.Has<Health>(world))
+                {
+                    ref var health = ref world.GetModifiableComponent<Health>(entity);
+                    health.Amount -= 0.1f;
+                }
+            }
+        }
+    }
+}
+
+public class ActiveEntitiesWithout2DirectSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var activeEntities = world.GetEntitiesWithout<Dead, Destroyed>();
+        
+        foreach (var entity in activeEntities)
+        {
+            if (entity.Has<Enemy>(world) || entity.Has<Powerup>(world))
+            {
+            }
+        }
+    }
+}
+
+public class ActiveEntitiesWithout2QueryBuilderSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var activeEntities = world.Query().Without<Dead>().Without<Destroyed>().Execute();
+        
+        foreach (var entity in activeEntities)
+        {
+            if (entity.Has<Enemy>(world) || entity.Has<Powerup>(world))
+            {
+            }
+        }
+    }
+}
+
+public class CleanEntitiesWithout3DirectSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var cleanEntities = world.GetEntitiesWithout<Dead, Destroyed, ExpirationTime>();
+        
+        foreach (var entity in cleanEntities)
+        {
+            if (entity.Has<Enemy>(world))
+            {
+            }
+        }
+    }
+}
+
+public class CleanEntitiesWithout3QueryBuilderSystem : SystemHandler
+{
+    public override void Execute(WorldInstance world)
+    {
+        var cleanEntities = world.Query()
+            .Without<Dead>()
+            .Without<Destroyed>()
+            .Without<ExpirationTime>()
+            .Execute();
+        
+        foreach (var entity in cleanEntities)
+        {
+            if (entity.Has<Enemy>(world))
+            {
+            }
+        }
+    }
+}
