@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEditor;
 using ArtyECS.Core;
@@ -112,6 +114,11 @@ namespace ArtyECS.Editor
             if (newMonitoringEnabled != monitoringEnabled)
             {
                 PerformanceMonitoring.IsEnabled = newMonitoringEnabled;
+            }
+            
+            if (GUILayout.Button("Export", EditorStyles.toolbarButton))
+            {
+                ExportPerformanceData();
             }
             
             _autoRefresh = GUILayout.Toggle(_autoRefresh, "Auto-Refresh", EditorStyles.toolbarButton);
@@ -497,15 +504,15 @@ namespace ArtyECS.Editor
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("Total Allocations", EditorStyles.boldLabel, GUILayout.Width(150));
-            GUILayout.Label(FormatAllocation(stats.TotalAllocations), GetAllocationColor(stats.TotalAllocations), GUILayout.Width(120));
-            GUILayout.Label(FormatAllocation(totalStats.TotalAllocations), GetAllocationColor(totalStats.TotalAllocations), GUILayout.Width(120));
+            GUILayout.Label(FormatAllocation(stats.TotalAllocations), GUILayout.Width(120));
+            GUILayout.Label(FormatAllocation(totalStats.TotalAllocations), GUILayout.Width(120));
             EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("GC Collected", EditorStyles.boldLabel, GUILayout.Width(150));
-            GUILayout.Label(stats.AllocationCount.ToString(), GetAllocationColor(stats.AllocationCount), GUILayout.Width(120));
-            GUILayout.Label(totalStats.AllocationCount.ToString(), GetAllocationColor(totalStats.AllocationCount), GUILayout.Width(120));
+            GUILayout.Label(stats.AllocationCount.ToString(), GUILayout.Width(120));
+            GUILayout.Label(totalStats.AllocationCount.ToString(), GUILayout.Width(120));
             EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.Space(5);
@@ -521,52 +528,243 @@ namespace ArtyECS.Editor
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label(label, GUILayout.Width(150));
-            GUILayout.Label(FormatAllocation(currentWorldAllocations), GetAllocationColor(currentWorldAllocations), GUILayout.Width(120));
-            GUILayout.Label(FormatAllocation(allWorldsAllocations), GetAllocationColor(allWorldsAllocations), GUILayout.Width(120));
+            GUILayout.Label(FormatAllocation(currentWorldAllocations), GUILayout.Width(120));
+            GUILayout.Label(FormatAllocation(allWorldsAllocations), GUILayout.Width(120));
             EditorGUILayout.EndHorizontal();
-        }
-
-
-        private GUIStyle GetAllocationColor(long bytes)
-        {
-            var style = new GUIStyle(GUI.skin.label);
-            if (bytes == 0)
-            {
-                style.normal.textColor = Color.green;
-            }
-            else if (bytes < 1024)
-            {
-                style.normal.textColor = Color.yellow;
-            }
-            else
-            {
-                style.normal.textColor = Color.red;
-            }
-            return style;
-        }
-
-        private GUIStyle GetAllocationColor(int count)
-        {
-            var style = new GUIStyle(GUI.skin.label);
-            if (count == 0)
-            {
-                style.normal.textColor = Color.green;
-            }
-            else if (count < 10)
-            {
-                style.normal.textColor = Color.yellow;
-            }
-            else
-            {
-                style.normal.textColor = Color.red;
-            }
-            return style;
         }
 
         private void RefreshData()
         {
             UpdateSelectedWorld();
             Repaint();
+        }
+
+        private void ExportPerformanceData()
+        {
+            if (_selectedWorld == null)
+            {
+                EditorUtility.DisplayDialog("Export Failed", "No world selected. Please select a world to export performance data.", "OK");
+                return;
+            }
+
+            if (!Application.isPlaying)
+            {
+                EditorUtility.DisplayDialog("Export Failed", "Performance data is only available in Play Mode. Please enter Play Mode first.", "OK");
+                return;
+            }
+
+            try
+            {
+                string logDirectory = Path.Combine(Application.dataPath, "Logs");
+                if (!Directory.Exists(logDirectory))
+                {
+                    Directory.CreateDirectory(logDirectory);
+                }
+
+                string filePath = Path.Combine(logDirectory, "PerformanceLog.txt");
+                string content = BuildExportContent();
+
+                File.WriteAllText(filePath, content, Encoding.UTF8);
+                AssetDatabase.Refresh();
+
+                EditorUtility.DisplayDialog("Export Successful", $"Performance data has been exported to:\n{filePath}", "OK");
+            }
+            catch (Exception ex)
+            {
+                EditorUtility.DisplayDialog("Export Failed", $"Failed to export performance data:\n{ex.Message}", "OK");
+                Debug.LogError($"Failed to export performance data: {ex}");
+            }
+        }
+
+        private string BuildExportContent()
+        {
+            var sb = new StringBuilder();
+            string separator = new string('=', 80);
+            string lineSeparator = new string('-', 80);
+
+            sb.AppendLine(separator);
+            sb.AppendLine("ArtyECS Performance Monitor Export");
+            sb.AppendLine(separator);
+            sb.AppendLine($"Export Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"World: {_selectedWorld.Name}");
+            sb.AppendLine($"Monitoring Enabled: {(PerformanceMonitoring.IsEnabled ? "Yes" : "No")}");
+            sb.AppendLine();
+
+            AppendSystemExecutionTimes(sb, separator, lineSeparator);
+            sb.AppendLine();
+            AppendQueryPerformance(sb, separator, lineSeparator);
+            sb.AppendLine();
+            AppendMemoryUsage(sb, separator, lineSeparator);
+            sb.AppendLine();
+            AppendAllocationTracking(sb, separator, lineSeparator);
+
+            return sb.ToString();
+        }
+
+        private void AppendSystemExecutionTimes(StringBuilder sb, string separator, string lineSeparator)
+        {
+            sb.AppendLine(separator);
+            sb.AppendLine("1. SYSTEM EXECUTION TIMES");
+            sb.AppendLine(separator);
+
+            var timings = _selectedWorld.GetAllSystemTimings();
+            if (timings.Count == 0)
+            {
+                sb.AppendLine("No system timing data available.");
+                return;
+            }
+
+            var sortedTimings = timings.OrderBy(t => t.System?.GetType().Name ?? "Unknown")
+                .ThenBy(t => t.InsertionOrder)
+                .ToList();
+
+            double totalSystemTime = sortedTimings.Sum(t => t.TotalExecutionTime);
+
+            sb.AppendLine("| System Name                                      | Last (ms) | Avg (ms) | Max (ms) | Total (ms) | Total % | Count |");
+            sb.AppendLine("|--------------------------------------------------|-----------|----------|----------|------------|---------|-------|");
+
+            foreach (var timing in sortedTimings)
+            {
+                string systemName = timing.System?.GetType().Name ?? "Unknown";
+                double lastTime = timing.LastExecutionTime;
+                double avgTime = timing.AverageTime;
+                double maxTime = timing.MaxExecutionTime;
+                double totalTime = timing.TotalExecutionTime;
+                long count = timing.ExecutionCount;
+                double totalPercent = totalSystemTime > 0 ? (totalTime / totalSystemTime) * 100.0 : 0.0;
+
+                sb.AppendLine($"| {systemName,-48} | {lastTime,9:F3} | {avgTime,8:F3} | {maxTime,8:F3} | {totalTime,10:F3} | {totalPercent,5:F1}% | {count,5} |");
+            }
+
+            sb.AppendLine("|--------------------------------------------------|-----------|----------|----------|------------|---------|-------|");
+            long totalCount = sortedTimings.Sum(t => t.ExecutionCount);
+            sb.AppendLine($"| TOTAL{' ',43} | {' ',9} | {' ',8} | {' ',8} | {totalSystemTime,10:F3} | 100.0% | {totalCount,5} |");
+        }
+
+        private void AppendQueryPerformance(StringBuilder sb, string separator, string lineSeparator)
+        {
+            sb.AppendLine(separator);
+            sb.AppendLine("2. QUERY PERFORMANCE");
+            sb.AppendLine(separator);
+
+            var timings = _selectedWorld.GetAllQueryTimings();
+            if (timings.Count == 0)
+            {
+                sb.AppendLine("No query timing data available.");
+                return;
+            }
+
+            var sortedTimings = timings.OrderBy(t => t.QueryType.ToString())
+                .ThenBy(t => t.InsertionOrder)
+                .ToList();
+
+            double totalQueryTime = sortedTimings.Sum(t => t.TotalExecutionTime);
+
+            sb.AppendLine("| Query Type                   | Last (ms) | Avg (ms) | Max (ms) | Total (ms) | Total % | Count |");
+            sb.AppendLine("|------------------------------|-----------|----------|----------|------------|---------|-------|");
+
+            foreach (var timing in sortedTimings)
+            {
+                string queryTypeName = timing.QueryType.ToString();
+                double lastTime = timing.LastExecutionTime;
+                double avgTime = timing.AverageTime;
+                double maxTime = timing.MaxExecutionTime;
+                double totalTime = timing.TotalExecutionTime;
+                long count = timing.ExecutionCount;
+                double totalPercent = totalQueryTime > 0 ? (totalTime / totalQueryTime) * 100.0 : 0.0;
+
+                sb.AppendLine($"| {queryTypeName,-28} | {lastTime,9:F3} | {avgTime,8:F3} | {maxTime,8:F3} | {totalTime,10:F3} | {totalPercent,5:F1}% | {count,5} |");
+            }
+
+            sb.AppendLine("|------------------------------|-----------|----------|----------|------------|---------|-------|");
+            long totalCount = sortedTimings.Sum(t => t.ExecutionCount);
+            sb.AppendLine($"| TOTAL{' ',23} | {' ',9} | {' ',8} | {' ',8} | {totalQueryTime,10:F3} | 100.0% | {totalCount,5} |");
+        }
+
+        private void AppendMemoryUsage(StringBuilder sb, string separator, string lineSeparator)
+        {
+            sb.AppendLine(separator);
+            sb.AppendLine("3. MEMORY USAGE");
+            sb.AppendLine(separator);
+
+            if (!PerformanceMonitoring.IsEnabled)
+            {
+                sb.AppendLine("Performance monitoring is disabled. Enable it to see memory usage.");
+                return;
+            }
+
+            var memory = PerformanceMonitoring.GetMemoryUsage(_selectedWorld);
+            var totalMemory = PerformanceMonitoring.GetTotalMemoryUsage();
+
+            sb.AppendLine("| Memory Type           | Current World | All Worlds |");
+            sb.AppendLine("|-----------------------|---------------|------------|");
+
+            AppendMemoryRow(sb, "Component Memory", memory.ComponentMemory, totalMemory.ComponentMemory);
+            AppendMemoryRow(sb, "Entity Memory", memory.EntityMemory, totalMemory.EntityMemory);
+            AppendMemoryRow(sb, "Framework Memory", memory.FrameworkMemory, totalMemory.FrameworkMemory);
+
+            sb.AppendLine("|-----------------------|---------------|------------|");
+            AppendMemoryRow(sb, "Total Memory", memory.TotalMemory, totalMemory.TotalMemory);
+        }
+
+        private void AppendMemoryRow(StringBuilder sb, string label, long currentWorldMemory, long allWorldsMemory)
+        {
+            string currentFormatted = FormatMemoryForExport(currentWorldMemory);
+            string allFormatted = FormatMemoryForExport(allWorldsMemory);
+            
+            sb.AppendLine($"| {label,-21} | {currentFormatted,13} | {allFormatted,10} |");
+        }
+
+        private string FormatMemoryForExport(long bytes)
+        {
+            if (bytes < 1024)
+            {
+                return $"{bytes} B";
+            }
+            else if (bytes < 1024 * 1024)
+            {
+                double kb = bytes / 1024.0;
+                return $"{kb:F2} KB";
+            }
+            else
+            {
+                double mb = bytes / (1024.0 * 1024.0);
+                return $"{mb:F2} MB";
+            }
+        }
+
+        private void AppendAllocationTracking(StringBuilder sb, string separator, string lineSeparator)
+        {
+            sb.AppendLine(separator);
+            sb.AppendLine("4. ALLOCATION TRACKING");
+            sb.AppendLine(separator);
+
+            if (!PerformanceMonitoring.IsEnabled)
+            {
+                sb.AppendLine("Performance monitoring is disabled. Enable it to see allocation statistics.");
+                return;
+            }
+
+            var stats = PerformanceMonitoring.GetAllocationStats(_selectedWorld);
+            var totalStats = PerformanceMonitoring.GetTotalAllocationStats();
+
+            sb.AppendLine("| Allocation Type        | Current World | All Worlds |");
+            sb.AppendLine("|------------------------|---------------|------------|");
+
+            AppendAllocationRow(sb, "Query Allocations", stats.QueryAllocations, totalStats.QueryAllocations);
+            AppendAllocationRow(sb, "System Allocations", stats.SystemAllocations, totalStats.SystemAllocations);
+
+            sb.AppendLine("|------------------------|---------------|------------|");
+            AppendAllocationRow(sb, "Total Allocations", stats.TotalAllocations, totalStats.TotalAllocations);
+            sb.AppendLine($"| GC Collected Count     | {stats.AllocationCount,13} | {totalStats.AllocationCount,10} |");
+        }
+
+        private void AppendAllocationRow(StringBuilder sb, string label, long currentWorldAllocations, long allWorldsAllocations)
+        {
+            string currentFormatted = FormatMemoryForExport(currentWorldAllocations);
+            string allFormatted = FormatMemoryForExport(allWorldsAllocations);
+            
+            sb.AppendLine($"| {label,-22} | {currentFormatted,13} | {allFormatted,10} |");
         }
     }
 }
