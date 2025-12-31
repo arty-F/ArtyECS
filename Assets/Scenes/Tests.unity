@@ -463,7 +463,7 @@ MonoBehaviour:
   enemyCount: 5000
   powerupCount: 300
   distributionPattern: 1
-  testType: 7
+  testType: 13
 --- !u!4 &1713103239
 Transform:
   m_ObjectHideFlags: 0
