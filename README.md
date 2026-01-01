@@ -10,12 +10,6 @@ A lightweight, beginner-friendly Entity Component System (ECS) framework for Uni
 - **Straightforward component management** - add, get, remove with simple calls
 - **Beginner-friendly** - designed to be approachable for developers new to ECS
 
-### ⚡ Zero-Allocation Performance
-- **Zero allocations in hot-path queries** - all query methods use pooled collections
-- **Efficient memory management** - Entity arrays and HashSet<Entity> are pooled and reused
-- **Optimized for performance** - designed to minimize GC pressure and maximize cache efficiency
-- **Production-ready** - tested and verified for zero allocations in runtime scenarios
-
 ### 🔧 Code-First Approach
 - **Maximum functionality through code** - minimal Unity Inspector dependency
 - **No ScriptableObject configuration** - everything happens in code
