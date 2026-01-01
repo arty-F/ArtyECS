@@ -102,3 +102,4 @@ InitTestScene*.unity*
 /Assets/Docs
 /Assets/.vscode
 /Assets/Logs/PerformanceLog.txt
+/Assets/Logs/PerformanceLog.txt.meta
