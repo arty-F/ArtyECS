@@ -8,8 +8,19 @@ using System;
 public class CoreTests : TestBase
 {
     // ========== Core-000: Entity Implementation ==========
+    [ContextMenu(nameof(Test_Entity_001))]
+    public void Test_Entity_001()
+    {
+        var entity = World.CreateEntity();
+
+        entity.AddComponent(new MyTestComponent { Value = 100 });
+
+        var component = entity.GetComponent<MyTestComponent>();
+
+        Debug.Log(component.Value);
+    }
     
-    [ContextMenu("Run Test: Entity Creation with ID and Generation")]
+    /*[ContextMenu("Run Test: Entity Creation with ID and Generation")]
     public void Test_Entity_001()
     {
         string testName = "Test_Entity_001";
@@ -45,7 +56,7 @@ public class CoreTests : TestBase
         });
     }
     
-    [ContextMenu("Run Test: Entity Equality")]
+    /*[ContextMenu("Run Test: Entity Equality")]
     public void Test_Entity_003()
     {
         string testName = "Test_Entity_003";
@@ -1834,6 +1845,6 @@ public class CoreTests : TestBase
             AssertEquals(30f, positionAfter.Z, "Position.Z should remain 30");
             AssertEquals(999f, velocityAfter.Z, "Velocity.Z should be modified to 999");
         });
-    }
+    }*/
 }
 

@@ -1,54 +1,47 @@
 using System;
+using System.Collections.Generic;
 
 namespace ArtyECS.Core
 {
-    public struct Entity : IEquatable<Entity>
+    public class Entity
     {
-        public readonly int Id;
+        public int Id { get; private set; }
 
-        public readonly int Generation;
+        private Dictionary<int, ComponentWrapper> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
 
-        public static readonly Entity Invalid = new Entity(-1, 0);
-
-        public Entity(int id, int generation = 0)
+        internal Entity(int id)
         {
             Id = id;
-            Generation = generation;
         }
 
-        public bool IsValid => Id >= 0;
-
-        public bool Equals(Entity other)
+        public void AddComponent(IComponent component)
         {
-            return Id == other.Id && Generation == other.Generation;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is Entity other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
+            var wrapper = ComponentsManager.WrapComponent(component);
+#if UNITY_EDITOR
+            if (_components.ContainsKey(wrapper.Id))
             {
-                return Id * 397 + Generation;
+                throw new ArgumentException($"Entity already has same component");
             }
+#endif
+            _components.Add(wrapper.Id, wrapper);
         }
 
-        public static bool operator ==(Entity left, Entity right)
+        public void RemoveComponent(IComponent component)
         {
-            return left.Equals(right);
+            var wrapperId = ComponentsManager.GetWrapperId(component);
+            _components.Remove(wrapperId);
         }
 
-        public static bool operator !=(Entity left, Entity right)
+        public T GetComponent<T>() where T : IComponent
         {
-            return !left.Equals(right);
+            var componentType = typeof(T);
+            var wrapperId = ComponentsManager.GetWrapperId(componentType);
+            return (T)_components[wrapperId].Component;
         }
 
-        public override string ToString()
+        internal void Clear()
         {
-            return $"Entity({Id}, Gen:{Generation})";
+            _components.Clear();
         }
     }
 }

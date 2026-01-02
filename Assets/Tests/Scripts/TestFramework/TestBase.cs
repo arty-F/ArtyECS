@@ -61,7 +61,7 @@ public abstract class TestBase : MonoBehaviour
             Debug.Log($"[TEST] Starting: {testName}");
             
             // Clear ECS state before each test to ensure isolation
-            World.ClearAllECSState();
+            World.Clear();
             
             testAction();
             Debug.Log($"[TEST] PASSED: {testName}");
@@ -91,7 +91,7 @@ public abstract class TestBase : MonoBehaviour
         Debug.Log($"[TEST] ========== Running All Tests in {GetType().Name} ==========");
         
         // Clear ECS state before running all tests to ensure clean start
-        World.ClearAllECSState();
+        World.Clear();
         
         // Get all test methods through reflection
         MethodInfo[] testMethods = GetType()

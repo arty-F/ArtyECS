@@ -1,5 +1,11 @@
 using ArtyECS.Core;
 
+
+public class MyTestComponent : IComponent
+{
+    public int Value;
+}
+
 // Test components for tests
 public struct TestComponent : IComponent
 {
