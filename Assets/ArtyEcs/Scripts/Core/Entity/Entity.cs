@@ -23,7 +23,7 @@ namespace ArtyECS.Core
                 throw new ArgumentException($"Entity already has same component");
             }
 #endif
-            _components.Add(wrapper.Id, wrapper);
+            _components[wrapper.Id] = wrapper;
         }
 
         public void RemoveComponent(IComponent component)
