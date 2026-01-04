@@ -48,6 +48,16 @@ namespace ArtyECS.Core
             Global.DestroyEntity(entity);
         }
 
+        public static IEnumerable<Entity> GetAllEntities()
+        {
+            return Global.GetAllEntities();
+        }
+
+        public static QueryBuilder Query()
+        {
+            return Global.Query();
+        }
+
         public static void Clear()
         {
             Global.Clear();

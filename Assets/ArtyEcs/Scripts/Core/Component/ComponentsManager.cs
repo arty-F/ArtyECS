@@ -5,45 +5,51 @@ namespace ArtyECS.Core
 {
     internal static class ComponentsManager
     {
-        private static int _componentTypeWrapIdMapKey;
-        private static Dictionary<Type, int> _componentTypeWrapIdMap = new();
+        private static int _componentTypeIdMapKey;
+        private static Dictionary<Type, int> _componentTypeIdMap = new();
 
-        internal static ComponentWrapper WrapComponent(IComponent component)
+        internal static int GetComponentTypeId(IComponent component)
         {
-            var componentType = component.GetType();
-            if (!_componentTypeWrapIdMap.ContainsKey(componentType))
-            {
-                _componentTypeWrapIdMap.Add(componentType, _componentTypeWrapIdMapKey++);
-            }
-
-            var wrapId = _componentTypeWrapIdMap[componentType];
-            return new ComponentWrapper(wrapId, component);
+            return GetComponentTypeId(component.GetType());
         }
 
-        internal static int GetWrapperId(IComponent component)
+        internal static int GetComponentTypeId(Type componentType)
         {
-            if (_componentTypeWrapIdMap.TryGetValue(component.GetType(), out var id))
+            if (!_componentTypeIdMap.ContainsKey(componentType))
             {
-                return id;
+                _componentTypeIdMap.Add(componentType, _componentTypeIdMapKey++);
             }
 
-            return -1;
+            return _componentTypeIdMap[componentType];
         }
 
-        internal static int GetWrapperId(Type componentType)
+        internal static Archetype GetArchetype(IComponent component)
         {
-            if (_componentTypeWrapIdMap.TryGetValue(componentType, out var id))
-            {
-                return id;
-            }
+            return GetArchetype(component.GetType());
+        }
 
-            return -1;
+        internal static Archetype GetArchetype(Type componentType)
+        {
+            var typeId = GetComponentTypeId(componentType);
+            var archetype = new Archetype();
+            archetype.SetBit(typeId);
+            return archetype;
+        }
+
+        internal static Archetype GetArchetype(List<int> typeIds)
+        {
+            var archetype = new Archetype();
+            for (int i = 0; i < typeIds.Count; i++)
+            {
+                archetype.SetBit(typeIds[i]);
+            }
+            return archetype;
         }
 
         internal static void Clear()
         {
-            _componentTypeWrapIdMapKey = 0;
-            _componentTypeWrapIdMap.Clear();
+            _componentTypeIdMapKey = 0;
+            _componentTypeIdMap.Clear();
         }
     }
 }

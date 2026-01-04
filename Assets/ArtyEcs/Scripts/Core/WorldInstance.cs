@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,9 +10,12 @@ namespace ArtyECS.Core
 
         public Dictionary<int, Entity> _entities = new();
 
+        private QueryBuilder _query;
+
         internal WorldInstance(string name)
         {
             Name = name;
+            _query = new(this);
         }
 
         public Entity CreateEntity()
@@ -25,6 +29,31 @@ namespace ArtyECS.Core
         {
             EntitiesPool.Release(entity);
             _entities.Remove(entity.Id);
+        }
+
+        public IEnumerable<Entity> GetAllEntities()
+        {
+            foreach (var entity in _entities.Values)
+            {
+                yield return entity;
+            }
+        }
+
+        internal IEnumerable<Entity> GetAllEntities(Archetype archetype)
+        {
+            foreach (var entity in _entities.Values)
+            {
+                if (entity.Archetype.Contains(archetype))
+                {
+                    yield return entity;
+                }
+            }
+        }
+
+        public QueryBuilder Query()
+        {
+            _query.StartQuery();
+            return _query;
         }
 
         public void Clear()
