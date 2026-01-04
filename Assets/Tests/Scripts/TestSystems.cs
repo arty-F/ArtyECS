@@ -62,7 +62,7 @@ public class IncrementFixedUpdateCounterSystem : SystemHandler
     }
 }
 
-public class MovementSystem : SystemHandler
+public class MovementTestSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {

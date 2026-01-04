@@ -50,7 +50,7 @@ public class SystemTests : TestBase
         string testName = "Test_System_ModifiesComponent";
         ExecuteTest(testName, () =>
         {
-            var system = new MovementSystem();
+            var system = new MovementTestSystem();
             World.RegisterSystem(system, UpdateType.Update);
 
             var entity = World.CreateEntity();
@@ -313,7 +313,7 @@ public class SystemTests : TestBase
         string testName = "Test_System_ComplexMovement";
         ExecuteTest(testName, () =>
         {
-            var system = new MovementSystem();
+            var system = new MovementTestSystem();
             World.RegisterSystem(system, UpdateType.Update);
 
             var entity = World.CreateEntity();
