@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace ArtyECS.Core
 {
@@ -7,6 +8,7 @@ namespace ArtyECS.Core
     {
         public int Id { get; private set; }
         public Archetype Archetype { get; private set; }
+        public GameObject GameObject { get; private set; }
 
         private Dictionary<int, IComponent> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
 
@@ -14,6 +16,11 @@ namespace ArtyECS.Core
         {
             Id = id;
             Archetype = new Archetype();
+        }
+
+        internal void LinkWithGameObject(GameObject gameObject)
+        {
+            GameObject = gameObject;
         }
 
         public void AddComponent(IComponent component)
@@ -46,7 +53,12 @@ namespace ArtyECS.Core
         internal void Clear()
         {
             _components.Clear();
-            Archetype = new Archetype();
+            Archetype.Clear();
+            if (GameObject != null)
+            {
+                UnityEngine.Object.Destroy(GameObject);
+                GameObject = null;
+            }
         }
     }
 }

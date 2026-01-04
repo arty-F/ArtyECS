@@ -81,6 +81,15 @@ namespace ArtyECS.Core
             _extendedBits[arrayIndex] &= ~(1UL << localBitIndex);
         }
 
+        public void Clear()
+        {
+            _bits0 = 0;
+            if (_extendedBits != null)
+            {
+                Array.Clear(_extendedBits, 0, _extendedBits.Length);
+            }
+        }
+
         public bool IsEmpty()
         {
             if (_bits0 != 0)

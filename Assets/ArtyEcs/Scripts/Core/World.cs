@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace ArtyECS.Core
 {
@@ -38,9 +39,9 @@ namespace ArtyECS.Core
             return _localWorlds[name];
         }
 
-        public static Entity CreateEntity()
+        public static Entity CreateEntity(GameObject gameObject = null)
         {
-            return Global.CreateEntity();
+            return Global.CreateEntity(gameObject);
         }
 
         public static void DestroyEntity(Entity entity)

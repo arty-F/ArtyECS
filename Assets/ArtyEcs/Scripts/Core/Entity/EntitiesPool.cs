@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace ArtyECS.Core
 {
@@ -8,7 +9,7 @@ namespace ArtyECS.Core
 
         private static Queue<Entity> _pool = new(Constants.ENTITY_POOL_CAPACITY);
 
-        internal static Entity GetEntity()
+        internal static Entity GetEntity(GameObject gameObject = null)
         {
             if (_pool.Count == 0)
             {
@@ -18,7 +19,12 @@ namespace ArtyECS.Core
                 }
             }
 
-            return _pool.Dequeue();
+            var entity = _pool.Dequeue();
+            if (gameObject != null)
+            {
+                entity.LinkWithGameObject(gameObject);
+            }
+            return entity;
         }
 
         internal static void Release(Entity entity)

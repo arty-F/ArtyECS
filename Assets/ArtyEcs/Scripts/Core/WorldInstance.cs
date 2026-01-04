@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace ArtyECS.Core
 {
@@ -18,9 +19,9 @@ namespace ArtyECS.Core
             _query = new(this);
         }
 
-        public Entity CreateEntity()
+        public Entity CreateEntity(GameObject gameObject = null)
         {
-            var entity = EntitiesPool.GetEntity();
+            var entity = EntitiesPool.GetEntity(gameObject);
             _entities.Add(entity.Id, entity);
             return entity;
         }
