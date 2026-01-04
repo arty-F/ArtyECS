@@ -59,6 +59,16 @@ namespace ArtyECS.Core
             return Global.Query();
         }
 
+        public static void RegisterSystem(SystemHandler system, UpdateType type = UpdateType.Update)
+        {
+            Global.RegisterSystem(system, type);
+        }
+
+        public static void ExecuteSystems(UpdateType type)
+        {
+            Global.ExecuteSystems(type);
+        }
+
         public static void Clear()
         {
             Global.Clear();
@@ -70,6 +80,7 @@ namespace ArtyECS.Core
 
             ComponentsManager.Clear();
             EntitiesPool.Clear();
+            UpdateProvider.Clear();
         }
     }
 }

@@ -9,8 +9,8 @@ namespace ArtyECS.Core
     {
         public string Name { get; private set; }
 
-        public Dictionary<int, Entity> _entities = new();
-
+        public Dictionary<int, Entity> _entities = new(Constants.WORLD_ENTITIES_CAPACITY);
+        public Dictionary<Archetype, Entity> _archetypesMap = new(Constants.WORLD_ARCHETYPES_CAPACITY);
         private QueryBuilder _query;
 
         internal WorldInstance(string name)
@@ -55,6 +55,16 @@ namespace ArtyECS.Core
         {
             _query.StartQuery();
             return _query;
+        }
+
+        public void RegisterSystem(SystemHandler system, UpdateType type = UpdateType.Update)
+        {
+            UpdateProvider.GetOrCreate().RegisterSystem(system, this, type);
+        }
+
+        public void ExecuteSystems(UpdateType type)
+        {
+            UpdateProvider.GetOrCreate().ExecuteSystems(this, type);
         }
 
         public void Clear()
