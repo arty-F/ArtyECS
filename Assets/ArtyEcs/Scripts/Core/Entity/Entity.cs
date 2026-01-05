@@ -50,6 +50,13 @@ namespace ArtyECS.Core
             return (T)_components[typeId];
         }
 
+        public bool HasComponent<T>() where T : IComponent
+        {
+            var componentType = typeof(T);
+            var typeId = ComponentsManager.GetComponentTypeId(componentType);
+            return _components.ContainsKey(typeId);
+        }
+
         internal void Clear()
         {
             _components.Clear();

@@ -10,7 +10,7 @@ public class CameraFollowSystem : SystemHandler
             return;
         }
 
-        var playerEntities = world.Query().With<Player>().With<Position>().Execute();
+        var playerEntities = world.Query().With<Player>().Execute();
         foreach (var player in playerEntities)
         {
             var playerPosition = player.GetComponent<Position>();

@@ -152,14 +152,16 @@ MonoBehaviour:
   powerupPrefab: {fileID: 3010075401652380296, guid: f823ce35adfb8f34ba260e47c4d8005b, type: 3}
   enemyPrefab: {fileID: 885330306672799471, guid: 7cafacd41aadf8b49b48a9e9f6ef62a4, type: 3}
   playerBaseSpeed: 4
-  enemySpeed: 1
-  enemySpawnPeriod: 1
-  enemiesPerSpawn: 200
-  maxEnemies: 1000
+  enemySpeed: 0.5
+  enemySpawnPeriod: 0.5
+  enemiesPerSpawn: 500
+  maxEnemies: 5000
+  _enemySpawnMinDistance: 20
+  _enemySpawnMaxDistance: 40
   enemyExplosionTime: 1
   enemyExplosionRadius: 2
   enemyProximityDistance: 1.5
-  powerupCollectionRadius: 1.5
+  powerupCollectionRadius: 1
   speedBonusValue: 1
   speedBonusDuration: 5
 --- !u!4 &392054756

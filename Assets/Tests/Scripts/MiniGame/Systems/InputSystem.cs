@@ -25,21 +25,16 @@ public class InputSystem : SystemHandler
             moveX = 1f;
         }
 
-        Vector3 direction = new Vector3(moveX, 0f, moveZ);
-        if (direction.magnitude > 1f)
-        {
-            direction.Normalize();
-        }
+        var direction = new Vector3(moveX, 0f, moveZ);
+        direction.Normalize();
 
-        var players = world.Query().With<Player>().With<MovementDirection>().Execute();
+        var players = world.Query().With<Player>().With<MoveDirection>().Execute();
         foreach (var player in players)
         {
-            var movementDirection = player.GetComponent<MovementDirection>();
+            var movementDirection = player.GetComponent<MoveDirection>();
             movementDirection.X = direction.x;
             movementDirection.Y = direction.y;
             movementDirection.Z = direction.z;
-            player.RemoveComponent(movementDirection);
-            player.AddComponent(movementDirection);
         }
     }
 }
