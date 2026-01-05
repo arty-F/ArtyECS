@@ -16,11 +16,16 @@ public class MovementSystem : SystemHandler
         {
             var position = entity.GetComponent<Position>();
             var movementDirection = entity.GetComponent<MoveDirection>();
-            var speed = entity.GetComponent<Speed>();
+            var speed = entity.GetComponent<Speed>().Value;
 
-            position.X += movementDirection.X * speed.Value * deltaTime;
-            position.Y += movementDirection.Y * speed.Value * deltaTime;
-            position.Z += movementDirection.Z * speed.Value * deltaTime;
+            if (entity.HasComponent<SpeedBonus>())
+            {
+                speed += entity.GetComponent<SpeedBonus>().Value;
+            }
+
+            position.X += movementDirection.X * speed * deltaTime;
+            position.Y += movementDirection.Y * speed * deltaTime;
+            position.Z += movementDirection.Z * speed * deltaTime;
         }
     }
 }

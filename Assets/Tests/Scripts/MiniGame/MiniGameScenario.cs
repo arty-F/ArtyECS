@@ -1,5 +1,4 @@
 using ArtyECS.Core;
-using Codice.CM.Client.Differences;
 using UnityEngine;
 
 public class MiniGameScenario : MonoBehaviour
@@ -19,6 +18,8 @@ public class MiniGameScenario : MonoBehaviour
     [SerializeField] private float enemyExplosionRadius = 2f;
     [SerializeField] private float enemyProximityDistance = 1.5f;
     [SerializeField] private float powerupCollectionRadius = 1f;
+    [SerializeField] private int _maxPowerups = 100;
+    [SerializeField] private float _powerupRespawnInterval = 0.2f;
     [SerializeField] private float speedBonusValue = 1f;
     [SerializeField] private float speedBonusDuration = 5f;
 
@@ -31,18 +32,23 @@ public class MiniGameScenario : MonoBehaviour
         player.AddComponent(new MoveDirection());
         player.AddComponent(new Speed { Value = playerBaseSpeed });
         player.AddComponent(new Health { Amount = 100 });
+        player.AddComponent(new CollectablePickuper() { PickupRange = powerupCollectionRadius });
 
         //entity.AddTag<>
         //world.GetTagged<>
 
         World.RegisterSystem(new EnemySpawnSystem(enemySpeed, enemyPrefab, enemySpawnPeriod, enemiesPerSpawn, maxEnemies, 
             _enemySpawnMinDistance, _enemySpawnMaxDistance, enemyProximityDistance));
+        World.RegisterSystem(new CollectableSpawnSystem(powerupPrefab, _maxPowerups, _powerupRespawnInterval, _enemySpawnMinDistance,
+            _enemySpawnMaxDistance, speedBonusValue, speedBonusDuration));
         World.RegisterSystem(new InputSystem());
         World.RegisterSystem(new EnemyNavigateSystem());
         World.RegisterSystem(new MovementSystem());
+        World.RegisterSystem(new CollectablePickupSystem());
         World.RegisterSystem(new ProximitySystem(enemyExplosionTime, enemyExplosionRadius));
         World.RegisterSystem(new ExplosionSystem());
         World.RegisterSystem(new DestroyingSystem());
+        World.RegisterSystem(new SpeedBonusExpireSystem());
 
         World.RegisterSystem(new TransformSyncSystem());
         World.RegisterSystem(new CameraFollowSystem());

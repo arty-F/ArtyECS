@@ -162,6 +162,8 @@ MonoBehaviour:
   enemyExplosionRadius: 2
   enemyProximityDistance: 1.5
   powerupCollectionRadius: 1
+  _maxPowerups: 100
+  _powerupRespawnInterval: 0.2
   speedBonusValue: 1
   speedBonusDuration: 5
 --- !u!4 &392054756

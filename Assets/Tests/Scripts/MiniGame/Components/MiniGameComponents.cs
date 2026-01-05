@@ -27,3 +27,19 @@ public class Explosion : IComponent
 
 public class Destroying : IComponent { } 
 
+public class Collectable : IComponent 
+{
+    public float SpeedBonus;
+    public float BonusDuration;
+}
+
+public class CollectablePickuper : IComponent 
+{
+    public float PickupRange;
+}
+
+public class SpeedBonus : IComponent
+{
+    public float Value;
+    public float TimeRamaining;
+}
