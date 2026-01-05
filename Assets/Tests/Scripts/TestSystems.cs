@@ -91,7 +91,7 @@ public class DamageSystem : SystemHandler
 
             health.Amount -= damage.Value;
 
-            entity.RemoveComponent(new Damage());
+            entity.RemoveComponent(typeof(Damage));
         }
     }
 }

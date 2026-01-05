@@ -36,11 +36,17 @@ namespace ArtyECS.Core
             Archetype.SetBit(typeId);
         }
 
-        public void RemoveComponent(IComponent component)
+        public void RemoveComponent(Type componentType)
         {
-            var typeId = ComponentsManager.GetComponentTypeId(component);
+            var typeId = ComponentsManager.GetComponentTypeId(componentType);
             _components.Remove(typeId);
             Archetype.ClearBit(typeId);
+        }
+
+        public void RemoveComponent<T>() where T : IComponent
+        {
+            var componentType = typeof(T);
+            RemoveComponent(componentType);
         }
 
         public T GetComponent<T>() where T : IComponent

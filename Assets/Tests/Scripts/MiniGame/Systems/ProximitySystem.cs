@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class ProximitySystem : SystemHandler
 {
+    private const string ANIMATION_NAME = "EnemyExplode";
     private readonly float _explodeTime;
     private readonly float _explodeRadius;
 
@@ -40,13 +41,12 @@ public class ProximitySystem : SystemHandler
 
             if (distance <= triggerDistance)
             {
+                enemy.RemoveComponent<MoveDirection>();
                 enemy.AddComponent(new Explosion() { TimeRemaining = _explodeTime, ExplosionRadius = _explodeRadius });
-                var enemyMove = enemy.GetComponent<MoveDirection>();
-                enemy.RemoveComponent(enemyMove);
                 var animator = enemy.GameObject.GetComponent<Animator>();
                 if (animator != null)
                 {
-                    animator.Play("EnemyExplode");
+                    animator.Play(ANIMATION_NAME);
                 }
             }
         }

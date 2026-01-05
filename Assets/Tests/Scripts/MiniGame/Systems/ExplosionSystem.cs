@@ -22,12 +22,6 @@ public class ExplosionSystem : SystemHandler
             break;
         }
 
-        var allEnemies = world
-            .Query()
-            .With<Enemy>()
-            .With<Position>()
-            .Execute()
-            .ToArray();
         var explodingEnemies = world
             .Query()
             .With<Explosion>()
@@ -42,7 +36,6 @@ public class ExplosionSystem : SystemHandler
             {
                 continue;
             }
-
             var enemyPosition = enemy.GetComponent<Position>();
             if (enemyPosition == null)
             {
@@ -56,6 +49,17 @@ public class ExplosionSystem : SystemHandler
                 Debug.Log($"Player HP: {playerHealth.Amount}");
             }
 
+            if (!enemy.HasComponent<Destroying>())
+            {
+                enemy.AddComponent(new Destroying());
+            }
+
+            var allEnemies = world
+            .Query()
+            .With<Enemy>()
+            .With<Position>()
+            .Without<Destroying>()
+            .Execute();
             foreach (var otherEnemy in allEnemies)
             {
                 if (otherEnemy.Id == enemy.Id)
@@ -67,16 +71,8 @@ public class ExplosionSystem : SystemHandler
                 float enemyDistance = Vector3.Distance(explosionPos, new Vector3(otherEnemyPosition.X, otherEnemyPosition.Y, otherEnemyPosition.Z));
                 if (enemyDistance <= explosion.ExplosionRadius)
                 {
-                    if (!otherEnemy.HasComponent<Destroying>())
-                    {
-                        otherEnemy.AddComponent(new Destroying());
-                    }
+                    otherEnemy.AddComponent(new Destroying());
                 }
-            }
-
-            if (!enemy.HasComponent<Destroying>())
-            {
-                enemy.AddComponent(new Destroying());
             }
         }
     }
