@@ -8,8 +8,7 @@ public class CollectablePickupSystem : SystemHandler
     {
         var collectablePickupers = World.Query()
             .With<CollectablePickuper>()
-            .Execute()
-            .ToArray();
+            .Execute();
 
         var collectables = World.Query()
             .With<Collectable>()

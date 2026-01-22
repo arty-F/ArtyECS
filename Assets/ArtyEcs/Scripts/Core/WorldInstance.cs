@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -11,12 +10,16 @@ namespace ArtyECS.Core
 
         public Dictionary<int, Entity> _entities = new(Constants.WORLD_ENTITIES_CAPACITY);
         public Dictionary<Archetype, Entity> _archetypesMap = new(Constants.WORLD_ARCHETYPES_CAPACITY);
-        private QueryBuilder _query;
+        private QueryBuilder[] _queryBuilders = new QueryBuilder[Constants.QUERY_BUILDERS_CAPACITY];
+        private int _currentQueryBuilder;
 
         internal WorldInstance(string name)
         {
             Name = name;
-            _query = new(this);
+            for (int i = 0; i < _queryBuilders.Length; i++)
+            {
+                _queryBuilders[i] = new QueryBuilder(this);
+            }
         }
 
         public Entity CreateEntity(GameObject gameObject = null)
@@ -53,8 +56,13 @@ namespace ArtyECS.Core
 
         public QueryBuilder Query()
         {
-            _query.StartQuery();
-            return _query;
+            var queryBuilder = _queryBuilders[_currentQueryBuilder++];
+            if (_currentQueryBuilder == Constants.QUERY_BUILDERS_CAPACITY)
+            {
+                _currentQueryBuilder = 0;
+            }
+            queryBuilder.StartQuery();
+            return queryBuilder;
         }
 
         public void RegisterSystem(SystemHandler system, UpdateType type = UpdateType.Update)

@@ -7,6 +7,7 @@
         internal static int WORLD_ENTITIES_CAPACITY = 64;
         internal static int WORLD_ARCHETYPES_CAPACITY = 32;
         internal static int SYSTEMS_CAPACITY = 32;
+        internal static int QUERY_BUILDERS_CAPACITY = 8;
         internal const string GAMEOBJECT_NAME = "ArtyEcsUpdateProvider";
         internal const int DEFAULT_ORDER = 100;
     }

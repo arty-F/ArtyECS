@@ -7,7 +7,7 @@ namespace ArtyECS.Core
     public class Entity
     {
         public int Id { get; private set; }
-        public Archetype Archetype { get; private set; }
+        internal Archetype Archetype { get; private set; }
         public GameObject GameObject { get; private set; }
 
         private Dictionary<int, IComponent> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);

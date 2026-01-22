@@ -1,5 +1,4 @@
 ﻿using ArtyECS.Core;
-using System.Linq;
 
 public class DestroyingSystem : SystemHandler
 {
@@ -8,8 +7,7 @@ public class DestroyingSystem : SystemHandler
         var entitesToDestroy = World
             .Query()
             .With<Destroying>()
-            .Execute()
-            .ToArray();
+            .Execute();
         foreach (var entity in entitesToDestroy)
         {
             World.DestroyEntity(entity);
