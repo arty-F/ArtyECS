@@ -25,15 +25,6 @@ public class MiniGameScenario : MonoBehaviour
 
     private void Start()
     {
-        var playerGameObject = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-        var player = World.CreateEntity(playerGameObject);
-        player.AddComponent(new Player());
-        player.AddComponent(new Position());
-        player.AddComponent(new MoveDirection());
-        player.AddComponent(new Speed { Value = playerBaseSpeed });
-        player.AddComponent(new Health { Amount = 100 });
-        player.AddComponent(new CollectablePickuper() { PickupRange = powerupCollectionRadius });
-
         //entity.AddTag<>
         //world.GetTagged<>
 
@@ -52,6 +43,11 @@ public class MiniGameScenario : MonoBehaviour
 
         World.RegisterSystem(new TransformSyncSystem());
         World.RegisterSystem(new CameraFollowSystem());
+
+
+
+        var playerRespawnSystem = new PlayerSpawnSystem(playerPrefab, playerBaseSpeed, powerupCollectionRadius);
+        playerRespawnSystem.Execute(World.Global);
     }
 }
 

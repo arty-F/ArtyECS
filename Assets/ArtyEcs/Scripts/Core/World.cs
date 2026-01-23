@@ -5,7 +5,7 @@ namespace ArtyECS.Core
 {
     public class World
     {
-        private static string GLOBAL_WORLD_NAME = "Global";
+        private static readonly string GLOBAL_WORLD_NAME = "Global";
 
         private static WorldInstance _global;
         public static WorldInstance Global

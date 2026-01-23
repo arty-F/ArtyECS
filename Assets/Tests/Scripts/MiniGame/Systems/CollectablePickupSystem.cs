@@ -1,5 +1,4 @@
 ﻿using ArtyECS.Core;
-using System.Linq;
 using UnityEngine;
 
 public class CollectablePickupSystem : SystemHandler

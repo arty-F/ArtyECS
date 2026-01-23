@@ -43,17 +43,6 @@ namespace ArtyECS.Core
             }
         }
 
-        /*internal IEnumerable<Entity> GetAllEntities(Archetype archetype)
-        {
-            foreach (var entity in _entities.Values)
-            {
-                if (entity.Archetype.Contains(archetype))
-                {
-                    yield return entity;
-                }
-            }
-        }*/
-
         public QueryBuilder Query()
         {
             var queryBuilder = _queryBuilders[_currentQueryBuilder++];
