@@ -8,8 +8,8 @@ namespace ArtyECS.Core
     {
         public string Name { get; private set; }
 
-        public Dictionary<int, Entity> _entities = new(Constants.WORLD_ENTITIES_CAPACITY);
-        public Dictionary<Archetype, Entity> _archetypesMap = new(Constants.WORLD_ARCHETYPES_CAPACITY);
+        internal Dictionary<int, Entity> _entities = new(Constants.WORLD_ENTITIES_CAPACITY);
+        internal Dictionary<Archetype, Entity> _archetypesMap = new(Constants.WORLD_ARCHETYPES_CAPACITY);
         private QueryBuilder[] _queryBuilders = new QueryBuilder[Constants.QUERY_BUILDERS_CAPACITY];
         private int _currentQueryBuilder;
 
@@ -43,7 +43,7 @@ namespace ArtyECS.Core
             }
         }
 
-        internal IEnumerable<Entity> GetAllEntities(Archetype archetype)
+        /*internal IEnumerable<Entity> GetAllEntities(Archetype archetype)
         {
             foreach (var entity in _entities.Values)
             {
@@ -52,7 +52,7 @@ namespace ArtyECS.Core
                     yield return entity;
                 }
             }
-        }
+        }*/
 
         public QueryBuilder Query()
         {

@@ -25,6 +25,7 @@ namespace ArtyECS.Core
 
         public void AddComponent(IComponent component)
         {
+            //TODO Component - class, internal int ComponentTypeId
             var typeId = ComponentsManager.GetComponentTypeId(component);
 #if UNITY_EDITOR
             if (_components.ContainsKey(typeId))
@@ -33,14 +34,14 @@ namespace ArtyECS.Core
             }
 #endif
             _components[typeId] = component;
-            Archetype.SetBit(typeId);
+            Archetype.SetFlag(typeId);
         }
 
         public void RemoveComponent(Type componentType)
         {
             var typeId = ComponentsManager.GetComponentTypeId(componentType);
             _components.Remove(typeId);
-            Archetype.ClearBit(typeId);
+            Archetype.RemoveFlag(typeId);
         }
 
         public void RemoveComponent<T>() where T : IComponent

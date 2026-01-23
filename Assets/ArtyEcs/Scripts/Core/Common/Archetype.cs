@@ -4,9 +4,11 @@ namespace ArtyECS.Core
     {
         private sbyte[] _flags;
 
-        internal Archetype(int maxIndex)
+        internal Archetype()
         {
-            _flags = new sbyte[maxIndex + 1];
+            _flags = new sbyte[ComponentsManager.ComponentTypesCount < Constants.DEFAULT_ARCHETYPE_CAPACITY 
+                ? Constants.DEFAULT_ARCHETYPE_CAPACITY 
+                : ComponentsManager.ComponentTypesCount];
         }
 
         public override int GetHashCode()
@@ -19,23 +21,24 @@ namespace ArtyECS.Core
             return hash;
         }
 
-        internal void Set(int index, sbyte value = 1)
+        internal void SetFlag(int index)
         {
-            var minLength = index + 1;
-            if (_flags.Length < minLength)
+            SetFlag(index, 1);
+        }
+
+        internal bool HasFlag(int index)
+        {
+            if (index >= _flags.Length)
             {
-                var newFlags = new sbyte[minLength];
-                for (int i = 0; i < _flags.Length; i++)
-                {
-                    if (_flags[i] != 0)
-                    {
-                        newFlags[i] = _flags[i];
-                    }
-                }
-                _flags = newFlags;
+                return false;
             }
 
-            _flags[index] = value;
+            return _flags[index] == 1;
+        }
+
+        internal void RemoveFlag(int index)
+        {
+            SetFlag(index, 0);
         }
 
         /*public bool Equals(Archetype other)
@@ -49,6 +52,24 @@ namespace ArtyECS.Core
             {
                 _flags[i] = 0;
             }
+        }
+
+        private void SetFlag(int index, sbyte value)
+        {
+            if (_flags.Length < index + 1)
+            {
+                var newFlags = new sbyte[ComponentsManager.ComponentTypesCount];
+                for (int i = 0; i < _flags.Length; i++)
+                {
+                    if (_flags[i] != 0)
+                    {
+                        newFlags[i] = _flags[i];
+                    }
+                }
+                _flags = newFlags;
+            }
+
+            _flags[index] = value;
         }
     }
 }

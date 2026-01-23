@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using ArtyEcs.Core;
+using System.Collections.Generic;
 
 namespace ArtyECS.Core
 {
     public class QueryBuilder
     {
-        private List<int> _withTypeIds = new();
-        private List<int> _withoutTypeIds = new();
+        private List<ArchetypeMask> _masks = new();
+        private int _masksUsed;
         private WorldInstance _world;
 
         public QueryBuilder(WorldInstance world)
@@ -15,34 +16,33 @@ namespace ArtyECS.Core
 
         public QueryBuilder With<T>()
         {
-            AddTypeId<T>(_withTypeIds);
+            AddMask<T>(1);
             return this;
         }
 
         public QueryBuilder Without<T>()
         {
-            AddTypeId<T>(_withoutTypeIds);
+            AddMask<T>(-1);
             return this;
         }
 
         public IEnumerable<Entity> Execute()
         {
-            var withArchetype = ComponentsManager.GetArchetype(_withTypeIds);
-            
-            foreach (var entity in _world.GetAllEntities(withArchetype))
+            foreach (var entity in _world.GetAllEntities())
             {
-                bool hasExcludedComponent = false;
-                
-                for (int i = 0; i < _withoutTypeIds.Count; i++)
+                var compared = true;
+                foreach (var mask in _masks)
                 {
-                    if (entity.Archetype.HasBit(_withoutTypeIds[i]))
+                    var hasFlag = entity.Archetype.HasFlag(mask.Id);
+                    if ((!hasFlag && mask.Value == 1) 
+                        || (hasFlag && mask.Value == -1))
                     {
-                        hasExcludedComponent = true;
+                        compared = false;
                         break;
                     }
                 }
-                
-                if (!hasExcludedComponent)
+
+                if (compared)
                 {
                     yield return entity;
                 }
@@ -51,14 +51,23 @@ namespace ArtyECS.Core
 
         internal void StartQuery()
         {
-            _withTypeIds.Clear();
-            _withoutTypeIds.Clear();
+            _masksUsed = 0;
         }
 
-        private void AddTypeId<T>(List<int> collection)
+        private void AddMask<T>(sbyte value)
         {
             var componentTypeId = ComponentsManager.GetComponentTypeId(typeof(T));
-            collection.Add(componentTypeId);
+            if (_masks.Count <= _masksUsed)
+            {
+                _masks.Add(new ArchetypeMask { Id = componentTypeId, Value = value });
+            }
+            else
+            {
+                var mask = _masks[_masksUsed];
+                mask.Id = componentTypeId;
+                mask.Value = value;
+            }
+            _masksUsed++;
         }
     }
 }
