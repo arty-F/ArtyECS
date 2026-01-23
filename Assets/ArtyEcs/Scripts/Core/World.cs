@@ -1,3 +1,4 @@
+using ArtyEcs.Core;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -71,16 +72,17 @@ namespace ArtyECS.Core
 
         public static void Clear()
         {
-            Global.Clear();
+            /*Global.Clear();
             foreach (var key in _localWorlds.Keys)
             {
                 _localWorlds[key].Clear();
-            }
+            }*/
+            _global = null;
             _localWorlds.Clear();
 
-            ComponentsManager.Clear();
             EntitiesPool.Clear();
             UpdateProvider.Clear();
+            ComponentsManager.Clear();
         }
     }
 }

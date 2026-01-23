@@ -25,6 +25,7 @@ namespace ArtyECS.Core
         public Entity CreateEntity(GameObject gameObject = null)
         {
             var entity = EntitiesPool.GetEntity(gameObject);
+            entity.SetWorld(this);
             _entities.Add(entity.Id, entity);
             return entity;
         }

@@ -9,6 +9,7 @@ namespace ArtyECS.Core
         public int Id { get; private set; }
         internal Archetype Archetype { get; private set; }
         public GameObject GameObject { get; private set; }
+        public WorldInstance World { get; private set; }
 
         private Dictionary<int, IComponent> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
 
@@ -23,10 +24,12 @@ namespace ArtyECS.Core
             GameObject = gameObject;
         }
 
-        public void AddComponent(IComponent component)
+        public T Add<T>() where T : IComponent, new()
         {
+            var component = ComponentsManager.GetComponent<T>();
             //TODO Component - class, internal int ComponentTypeId
-            var typeId = ComponentsManager.GetComponentTypeId(component);
+            //TODO из компонента
+            var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
 #if UNITY_EDITOR
             if (_components.ContainsKey(typeId))
             {
@@ -35,44 +38,51 @@ namespace ArtyECS.Core
 #endif
             _components[typeId] = component;
             Archetype.SetFlag(typeId);
+            return component;
         }
 
-        public void RemoveComponent(Type componentType)
-        {
-            var typeId = ComponentsManager.GetComponentTypeId(componentType);
-            _components.Remove(typeId);
-            Archetype.RemoveFlag(typeId);
-        }
-
-        public void RemoveComponent<T>() where T : IComponent
+        public void Remove<T>() where T : IComponent
         {
             var componentType = typeof(T);
-            RemoveComponent(componentType);
+            var typeId = ComponentsManager.GetComponentTypeId(componentType);
+            Archetype.RemoveFlag(typeId);
+            ComponentsManager.Release(_components[typeId]);
+            _components.Remove(typeId);
         }
 
-        public T GetComponent<T>() where T : IComponent
+        public T Get<T>() where T : IComponent
         {
             var componentType = typeof(T);
             var typeId = ComponentsManager.GetComponentTypeId(componentType);
             return (T)_components[typeId];
         }
 
-        public bool HasComponent<T>() where T : IComponent
+        public bool Have<T>() where T : IComponent
         {
             var componentType = typeof(T);
             var typeId = ComponentsManager.GetComponentTypeId(componentType);
             return _components.ContainsKey(typeId);
         }
 
+        internal void SetWorld(WorldInstance world)
+        {
+            World = world;
+        }
+
         internal void Clear()
         {
-            _components.Clear();
             Archetype.Clear();
+            World = null;
             if (GameObject != null)
             {
                 UnityEngine.Object.Destroy(GameObject);
                 GameObject = null;
             }
+            foreach (var component in _components.Values)
+            {
+                ComponentsManager.Release(component);
+            }
+            _components.Clear();
         }
     }
 }

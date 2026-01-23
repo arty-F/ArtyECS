@@ -58,7 +58,7 @@ public class EnemySpawnSystem : SystemHandler
         foreach (var player in playerEntities)
         {
             playerEntity = player;
-            playerPosition = player.GetComponent<Position>();
+            playerPosition = player.Get<Position>();
             break;
         }
 
@@ -70,11 +70,19 @@ public class EnemySpawnSystem : SystemHandler
             var spawnPosition = new Vector3( playerPosition.X + Mathf.Cos(angle) * distance, 0f, playerPosition.Z + Mathf.Sin(angle) * distance);
             var enemyGameObject = Object.Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
             var enemy = world.CreateEntity(enemyGameObject);
-            enemy.AddComponent(new Enemy());
-            enemy.AddComponent(new Position { X = spawnPosition.x, Y = spawnPosition.y, Z = spawnPosition.z });
-            enemy.AddComponent(new MoveDirection { X = 0f, Y = 0f, Z = 0f });
-            enemy.AddComponent(new Speed { Value = _enemySpeed });
-            enemy.AddComponent(new ProximityBomb { TriggerDistance = _explosionTriggerDistane });
+            enemy.Add<Enemy>();
+            var position = enemy.Add<Position>();
+            position.X = spawnPosition.x;
+            position.Y = spawnPosition.y;
+            position.Z = spawnPosition.z;
+            var moveDirection = enemy.Add<MoveDirection>();
+            moveDirection.X = 0f;
+            moveDirection.Y = 0f;
+            moveDirection.Z = 0f;
+            var speed = enemy.Add<Speed>();
+            speed.Value = _enemySpeed;
+            var bomb = enemy.Add<ProximityBomb>();
+            bomb.TriggerDistance = _explosionTriggerDistane;
         }
     }
 }

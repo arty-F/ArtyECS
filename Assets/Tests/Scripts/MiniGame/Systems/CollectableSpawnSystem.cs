@@ -54,7 +54,7 @@ public class CollectableSpawnSystem : SystemHandler
         foreach (var player in playerEntities)
         {
             playerEntity = player;
-            playerPosition = player.GetComponent<Position>();
+            playerPosition = player.Get<Position>();
             break;
         }
 
@@ -63,7 +63,9 @@ public class CollectableSpawnSystem : SystemHandler
         var spawnPosition = new Vector3(playerPosition.X + Mathf.Cos(angle) * distance, 0.25f, playerPosition.Z + Mathf.Sin(angle) * distance);
         var collectableGameObject = Object.Instantiate(_prefab, spawnPosition, Quaternion.identity);
         var collectable = world.CreateEntity(collectableGameObject);
-        collectable.AddComponent(new Collectable { SpeedBonus = _speedBonus, BonusDuration = _bonusDuration });
+        var component = collectable.Add<Collectable>();
+        component.SpeedBonus = _speedBonus;
+        component.BonusDuration = _bonusDuration;
     }
 }
 

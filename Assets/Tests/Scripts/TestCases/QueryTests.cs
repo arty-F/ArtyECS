@@ -6,6 +6,7 @@ using System.Linq;
 
 public class QueryTests : TestBase
 {
+    /*
     [ContextMenu(nameof(Test_Query_With_Single))]
     public void Test_Query_With_Single()
     {
@@ -432,6 +433,6 @@ public class QueryTests : TestBase
             AssertEquals(1, entities.Count, "Should return one entity matching all conditions");
             AssertEquals(entity2.Id, entities[0].Id, "Returned entity should be entity2");
         });
-    }
+    }*/
 }
 

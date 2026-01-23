@@ -13,7 +13,7 @@ public class CameraFollowSystem : SystemHandler
         var playerEntities = world.Query().With<Player>().Execute();
         foreach (var player in playerEntities)
         {
-            var playerPosition = player.GetComponent<Position>();
+            var playerPosition = player.Get<Position>();
             Camera.main.transform.position = new Vector3(
                 playerPosition.X,
                 Camera.main.transform.position.y,

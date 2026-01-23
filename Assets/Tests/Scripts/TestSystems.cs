@@ -30,7 +30,7 @@ public class IncrementCounterSystem : SystemHandler
         var entities = world.Query().With<CounterComponent>().Execute();
         foreach (var entity in entities)
         {
-            var counter = entity.GetComponent<CounterComponent>();
+            var counter = entity.Get<CounterComponent>();
             counter.Value++;
         }
     }
@@ -43,7 +43,7 @@ public class IncrementUpdateCounterSystem : SystemHandler
         var entities = world.Query().With<UpdateCounter>().Execute();
         foreach (var entity in entities)
         {
-            var counter = entity.GetComponent<UpdateCounter>();
+            var counter = entity.Get<UpdateCounter>();
             counter.Value++;
         }
     }
@@ -56,7 +56,7 @@ public class IncrementFixedUpdateCounterSystem : SystemHandler
         var entities = world.Query().With<FixedUpdateCounter>().Execute();
         foreach (var entity in entities)
         {
-            var counter = entity.GetComponent<FixedUpdateCounter>();
+            var counter = entity.Get<FixedUpdateCounter>();
             counter.Value++;
         }
     }
@@ -69,8 +69,8 @@ public class MovementTestSystem : SystemHandler
         var entities = world.Query().With<Position>().With<Velocity>().Execute();
         foreach (var entity in entities)
         {
-            var position = entity.GetComponent<Position>();
-            var velocity = entity.GetComponent<Velocity>();
+            var position = entity.Get<Position>();
+            var velocity = entity.Get<Velocity>();
 
             position.X += velocity.X;
             position.Y += velocity.Y;
@@ -86,12 +86,12 @@ public class DamageSystem : SystemHandler
         var entities = world.Query().With<Health>().With<Damage>().Execute();
         foreach (var entity in entities)
         {
-            var health = entity.GetComponent<Health>();
-            var damage = entity.GetComponent<Damage>();
+            var health = entity.Get<Health>();
+            var damage = entity.Get<Damage>();
 
             health.Amount -= damage.Value;
 
-            entity.RemoveComponent(typeof(Damage));
+            //entity.RemoveComponent(typeof(Damage));
         }
     }
 }

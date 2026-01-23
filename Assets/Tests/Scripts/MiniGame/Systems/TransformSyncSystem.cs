@@ -10,7 +10,7 @@ public class TransformSyncSystem : SystemHandler
         {
             if (entity.GameObject != null)
             {
-                var position = entity.GetComponent<Position>();
+                var position = entity.Get<Position>();
                 entity.GameObject.transform.position = new Vector3(position.X, position.Y, position.Z);
             }
         }

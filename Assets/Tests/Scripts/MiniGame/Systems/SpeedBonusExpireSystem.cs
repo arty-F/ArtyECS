@@ -11,11 +11,11 @@ public class SpeedBonusExpireSystem : SystemHandler
 
         foreach (var entity in entities)
         {
-            var speedBonus = entity.GetComponent<SpeedBonus>();
+            var speedBonus = entity.Get<SpeedBonus>();
             speedBonus.TimeRamaining -= Time.deltaTime;
             if (speedBonus.TimeRamaining <= 0f)
             {
-                entity.RemoveComponent<SpeedBonus>();
+                entity.Remove<SpeedBonus>();
             }
         }
     }

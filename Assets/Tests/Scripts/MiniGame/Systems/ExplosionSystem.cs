@@ -16,8 +16,8 @@ public class ExplosionSystem : SystemHandler
         foreach (var player in playerEntities)
         {
             playerEntity = player;
-            playerPosition = player.GetComponent<Position>();
-            playerHealth = player.GetComponent<Health>();
+            playerPosition = player.Get<Position>();
+            playerHealth = player.Get<Health>();
             break;
         }
 
@@ -28,14 +28,14 @@ public class ExplosionSystem : SystemHandler
 
         foreach (var enemy in explodingEnemies)
         {
-            var explosion = enemy.GetComponent<Explosion>();
+            var explosion = enemy.Get<Explosion>();
             explosion.TimeRemaining -= Time.deltaTime;
 
             if (explosion.TimeRemaining > 0f)
             {
                 continue;
             }
-            var enemyPosition = enemy.GetComponent<Position>();
+            var enemyPosition = enemy.Get<Position>();
             if (enemyPosition == null)
             {
                 continue;
@@ -48,9 +48,9 @@ public class ExplosionSystem : SystemHandler
                 Debug.Log($"Player HP: {playerHealth.Amount}");
             }
 
-            if (!enemy.HasComponent<Destroying>())
+            if (!enemy.Have<Destroying>())
             {
-                enemy.AddComponent(new Destroying());
+                enemy.Add<Destroying>();
             }
 
             var allEnemies = world
@@ -66,11 +66,11 @@ public class ExplosionSystem : SystemHandler
                     continue;
                 }
 
-                var otherEnemyPosition = otherEnemy.GetComponent<Position>();
+                var otherEnemyPosition = otherEnemy.Get<Position>();
                 float enemyDistance = Vector3.Distance(explosionPos, new Vector3(otherEnemyPosition.X, otherEnemyPosition.Y, otherEnemyPosition.Z));
                 if (enemyDistance <= explosion.ExplosionRadius)
                 {
-                    otherEnemy.AddComponent(new Destroying());
+                    otherEnemy.Add<Destroying>();
                 }
             }
         }

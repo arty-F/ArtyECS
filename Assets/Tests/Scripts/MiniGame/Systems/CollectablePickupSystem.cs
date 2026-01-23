@@ -28,19 +28,21 @@ public class CollectablePickupSystem : SystemHandler
                     continue;
                 }
 
-                var pickupComponent = pickuper.GetComponent<CollectablePickuper>();
+                var pickupComponent = pickuper.Get<CollectablePickuper>();
 
                 if (Vector3.Distance(collectable.GameObject.transform.position, pickuper.GameObject.transform.position) < pickupComponent.PickupRange)
                 {
-                    collectable.AddComponent(new Destroying());
-                    var collectableComponent = collectable.GetComponent<Collectable>();
-                    if (!pickuper.HasComponent<SpeedBonus>())
+                    collectable.Add<Destroying>();
+                    var collectableComponent = collectable.Get<Collectable>();
+                    if (!pickuper.Have<SpeedBonus>())
                     {
-                        pickuper.AddComponent(new SpeedBonus { Value = collectableComponent.SpeedBonus, TimeRamaining = collectableComponent.BonusDuration });
+                        var speedBonus = pickuper.Add<SpeedBonus>();
+                        speedBonus.Value = collectableComponent.SpeedBonus;
+                        speedBonus.TimeRamaining = collectableComponent.BonusDuration;
                     }
                     else
                     {
-                        var speedBonus = pickuper.GetComponent<SpeedBonus>();
+                        var speedBonus = pickuper.Get<SpeedBonus>();
                         speedBonus.Value += collectableComponent.SpeedBonus;
                         speedBonus.TimeRamaining = collectableComponent.BonusDuration;
                     }

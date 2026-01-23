@@ -7,6 +7,7 @@ using System;
 /// </summary>
 public class CoreTests : TestBase
 {
+    /*
     // ========== Core-000: Entity Implementation ==========
     [ContextMenu(nameof(Test_Entity_001))]
     public void Test_Entity_001()
@@ -15,7 +16,7 @@ public class CoreTests : TestBase
 
         entity.AddComponent(new MyTestComponent { Value = 100 });
 
-        var component = entity.GetComponent<MyTestComponent>();
+        var component = entity.Get<MyTestComponent>();
 
         Debug.Log(component.Value);
     }

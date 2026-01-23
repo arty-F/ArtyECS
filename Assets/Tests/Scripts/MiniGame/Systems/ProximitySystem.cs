@@ -22,7 +22,7 @@ public class ProximitySystem : SystemHandler
             .Execute();
         foreach (var player in playerEntities)
         {
-            playerPosition = player.GetComponent<Position>();
+            playerPosition = player.Get<Position>();
             break;
         }
 
@@ -34,15 +34,17 @@ public class ProximitySystem : SystemHandler
             .Execute();
         foreach (var enemy in enemies)
         {
-            var enemyPosition = enemy.GetComponent<Position>();
+            var enemyPosition = enemy.Get<Position>();
             var distance = Vector3.Distance(new Vector3(playerPosition.X, playerPosition.Y, playerPosition.Z),
                 new Vector3(enemyPosition.X, enemyPosition.Y, enemyPosition.Z));
-            var triggerDistance = enemy.GetComponent<ProximityBomb>().TriggerDistance;
+            var triggerDistance = enemy.Get<ProximityBomb>().TriggerDistance;
 
             if (distance <= triggerDistance)
             {
-                enemy.RemoveComponent<MoveDirection>();
-                enemy.AddComponent(new Explosion() { TimeRemaining = _explodeTime, ExplosionRadius = _explodeRadius });
+                enemy.Remove<MoveDirection>();
+                var explosion = enemy.Add<Explosion>();
+                explosion.TimeRemaining = _explodeTime;
+                explosion.ExplosionRadius = _explodeRadius;
                 var animator = enemy.GameObject.GetComponent<Animator>();
                 if (animator != null)
                 {

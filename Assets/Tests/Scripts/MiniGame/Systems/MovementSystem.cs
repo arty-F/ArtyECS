@@ -14,13 +14,13 @@ public class MovementSystem : SystemHandler
         float deltaTime = Time.deltaTime;
         foreach (var entity in entities)
         {
-            var position = entity.GetComponent<Position>();
-            var movementDirection = entity.GetComponent<MoveDirection>();
-            var speed = entity.GetComponent<Speed>().Value;
+            var position = entity.Get<Position>();
+            var movementDirection = entity.Get<MoveDirection>();
+            var speed = entity.Get<Speed>().Value;
 
-            if (entity.HasComponent<SpeedBonus>())
+            if (entity.Have<SpeedBonus>())
             {
-                speed += entity.GetComponent<SpeedBonus>().Value;
+                speed += entity.Get<SpeedBonus>().Value;
             }
 
             position.X += movementDirection.X * speed * deltaTime;

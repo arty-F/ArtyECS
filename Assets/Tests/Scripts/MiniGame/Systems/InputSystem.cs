@@ -31,7 +31,7 @@ public class InputSystem : SystemHandler
         var players = world.Query().With<Player>().With<MoveDirection>().Execute();
         foreach (var player in players)
         {
-            var movementDirection = player.GetComponent<MoveDirection>();
+            var movementDirection = player.Get<MoveDirection>();
             movementDirection.X = direction.x;
             movementDirection.Y = direction.y;
             movementDirection.Z = direction.z;
