@@ -1,54 +1,88 @@
 using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace ArtyECS.Core
 {
-    public struct Entity : IEquatable<Entity>
+    public class Entity
     {
-        public readonly int Id;
+        public int Id { get; private set; }
+        internal Archetype Archetype { get; private set; }
+        public GameObject GameObject { get; private set; }
+        public WorldInstance World { get; private set; }
 
-        public readonly int Generation;
+        private Dictionary<int, IComponent> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
 
-        public static readonly Entity Invalid = new Entity(-1, 0);
-
-        public Entity(int id, int generation = 0)
+        internal Entity(int id)
         {
             Id = id;
-            Generation = generation;
+            Archetype = new Archetype();
         }
 
-        public bool IsValid => Id >= 0;
-
-        public bool Equals(Entity other)
+        internal void LinkWithGameObject(GameObject gameObject)
         {
-            return Id == other.Id && Generation == other.Generation;
+            GameObject = gameObject;
         }
 
-        public override bool Equals(object obj)
+        public T Add<T>() where T : IComponent, new()
         {
-            return obj is Entity other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
+            var component = ComponentsManager.GetComponent<T>();
+            //TODO Component - class, internal int ComponentTypeId
+            //TODO из компонента
+            var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
+#if UNITY_EDITOR
+            if (_components.ContainsKey(typeId))
             {
-                return Id * 397 + Generation;
+                throw new ArgumentException($"Entity already has same component");
             }
+#endif
+            _components[typeId] = component;
+            Archetype.SetFlag(typeId);
+            return component;
         }
 
-        public static bool operator ==(Entity left, Entity right)
+        public void Remove<T>() where T : IComponent
         {
-            return left.Equals(right);
+            var componentType = typeof(T);
+            var typeId = ComponentsManager.GetComponentTypeId(componentType);
+            Archetype.RemoveFlag(typeId);
+            ComponentsManager.Release(_components[typeId]);
+            _components.Remove(typeId);
         }
 
-        public static bool operator !=(Entity left, Entity right)
+        public T Get<T>() where T : IComponent
         {
-            return !left.Equals(right);
+            var componentType = typeof(T);
+            var typeId = ComponentsManager.GetComponentTypeId(componentType);
+            return (T)_components[typeId];
         }
 
-        public override string ToString()
+        public bool Have<T>() where T : IComponent
         {
-            return $"Entity({Id}, Gen:{Generation})";
+            var componentType = typeof(T);
+            var typeId = ComponentsManager.GetComponentTypeId(componentType);
+            return _components.ContainsKey(typeId);
+        }
+
+        internal void SetWorld(WorldInstance world)
+        {
+            World = world;
+        }
+
+        internal void Clear()
+        {
+            Archetype.Clear();
+            World = null;
+            if (GameObject != null)
+            {
+                UnityEngine.Object.Destroy(GameObject);
+                GameObject = null;
+            }
+            foreach (var component in _components.Values)
+            {
+                ComponentsManager.Release(component);
+            }
+            _components.Clear();
         }
     }
 }

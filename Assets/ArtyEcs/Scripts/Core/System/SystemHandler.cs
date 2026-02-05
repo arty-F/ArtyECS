@@ -5,11 +5,6 @@ namespace ArtyECS.Core
         public virtual void Execute(WorldInstance world)
         {
         }
-
-        public override string ToString()
-        {
-            return $"SystemHandler({GetType().Name})";
-        }
     }
 }
 

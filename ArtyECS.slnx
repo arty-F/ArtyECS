@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="ArtyEcs.csproj" />
+  <Project Path="Tests.csproj" />
+</Solution>

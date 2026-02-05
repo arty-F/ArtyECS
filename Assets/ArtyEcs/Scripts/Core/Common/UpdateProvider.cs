@@ -1,82 +1,87 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ArtyECS.Core
 {
-    [DefaultExecutionOrder(-100)]
-    public class UpdateProvider : MonoBehaviour
+    internal class UpdateProvider : MonoBehaviour
     {
-
-        private static bool _initialized = false;
-
         private static UpdateProvider _instance;
 
-        public static UpdateProvider Instance => _instance;
+        internal List<SystemEntry> UpdateQueue = new List<SystemEntry>(Constants.SYSTEMS_CAPACITY);
+        internal List<SystemEntry> FixedUpdateQueue = new List<SystemEntry>(Constants.SYSTEMS_CAPACITY);
 
-        internal static bool EnsureCreated()
+        internal static UpdateProvider GetOrCreate()
         {
-            if (_instance != null && _instance.gameObject != null)
+            if (_instance == null)
             {
-                return true;
+                var go = new GameObject(Constants.GAMEOBJECT_NAME);
+                _instance = go.AddComponent<UpdateProvider>();
+                DontDestroyOnLoad(go);
             }
-
-            if (_instance != null && _instance.gameObject == null)
-            {
-                _instance = null;
-            }
-
-            var go = new GameObject("UpdateProvider");
-            _instance = go.AddComponent<UpdateProvider>();
-            
-            return true;
-        }
-
-        private void Awake()
-        {
-            if (_initialized && _instance != null && _instance != this)
-            {
-                UnityEngine.Debug.LogWarning("Multiple UpdateProvider instances detected. Destroying duplicate.");
-                Destroy(gameObject);
-                return;
-            }
-
-            _initialized = true;
-            _instance = this;
-
-            DontDestroyOnLoad(gameObject);
-
-            var globalWorld = World.GetOrCreate();
-            UnityEngine.Debug.Log($"UpdateProvider initialized. Global world: {globalWorld}");
+            return _instance;
         }
 
         private void Update()
         {
-            ExecuteUpdateSystems();
-            QueryContext.ReturnResourcesForAllContexts();
+            for (int i = 0; i < UpdateQueue.Count; i++)
+            {
+                var entry = UpdateQueue[i];
+                entry.System.Execute(entry.World);
+            }
         }
 
         private void FixedUpdate()
         {
-            ExecuteFixedUpdateSystems();
-            QueryContext.ReturnResourcesForAllContexts();
-        }
-
-        private void ExecuteUpdateSystems()
-        {
-            SystemsManager.ExecuteUpdateAllWorlds();
-        }
-
-        private void ExecuteFixedUpdateSystems()
-        {
-            SystemsManager.ExecuteFixedUpdateAllWorlds();
+            for (int i = 0; i < FixedUpdateQueue.Count; i++)
+            {
+                var entry = FixedUpdateQueue[i];
+                entry.System.Execute(entry.World);
+            }
         }
 
         private void OnDestroy()
         {
-            if (_instance == this)
+            World.Clear();
+            _instance = null;
+        }
+
+        internal void RegisterSystem(SystemHandler system, WorldInstance world, UpdateType type)
+        {
+            var entry = new SystemEntry(system, world);
+
+            if (type == UpdateType.Update)
             {
-                _initialized = false;
-                _instance = null;
+                UpdateQueue.Add(entry);
             }
+            else
+            {
+                FixedUpdateQueue.Add(entry);
+            }
+        }
+
+        internal void ExecuteSystems(WorldInstance world, UpdateType type)
+        {
+            var queue = type == UpdateType.Update ? UpdateQueue : FixedUpdateQueue;
+
+            for (int i = 0; i < queue.Count; i++)
+            {
+                var entry = queue[i];
+                if (entry.World == world)
+                {
+                    entry.System.Execute(entry.World);
+                }
+            }
+        }
+
+        internal static void Clear()
+        {
+            if (_instance == null)
+            {
+                return;
+            }
+
+            _instance.UpdateQueue.Clear();
+            _instance.FixedUpdateQueue.Clear();
         }
     }
 }
