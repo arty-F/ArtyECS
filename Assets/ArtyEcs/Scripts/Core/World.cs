@@ -24,7 +24,7 @@ namespace ArtyECS.Core
 
         private World() { }
 
-        internal static ArrayData<Entity> GetAllEntities()
+        internal static List<Entity> GetAllEntities()
         {
             return Global.GetAllEntities();
         }

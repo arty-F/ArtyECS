@@ -30,12 +30,12 @@ namespace ArtyECS.Core
         public List<Entity> Execute()
         {
             _entities.Clear();
-            var entitesData = _world.GetAllEntities();
-            for (int i = 0; i < entitesData.Elements; i++)
+            var entites = _world.GetAllEntities();
+            for (int i = 0; i < entites.Count; i++)
             {
-                var entity = entitesData.Collection[i];
+                var entity = entites[i];
                 var compared = true;
-                for (int j = 0; j < _masks.Count; j++)
+                for (int j = 0; j < _masksUsed; j++)
                 {
                     var mask = _masks[j];
                     var hasFlag = entity.Archetype.HasFlag(mask.Id);

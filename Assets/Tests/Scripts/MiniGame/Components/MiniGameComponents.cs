@@ -2,6 +2,20 @@ using ArtyECS.Core;
 
 public class Player : IComponent { }
 
+public class Enemy : IComponent { }
+
+public class Position : IComponent 
+{
+    public float X;
+    public float Y;
+    public float Z;
+}
+
+public class Health : IComponent
+{
+    public float Amount;
+}
+
 public class MoveDirection : IComponent
 {
     public float X;

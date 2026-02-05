@@ -20,7 +20,6 @@ public class ExplosionSystem : SystemHandler
             playerHealth = player.Get<Health>();
             break;
         }
-
         var explodingEnemies = world
             .Query()
             .With<Explosion>()

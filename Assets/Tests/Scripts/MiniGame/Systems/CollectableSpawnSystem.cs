@@ -60,8 +60,8 @@ public class CollectableSpawnSystem : SystemHandler
         var angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         var distance = Random.Range(_spawnMinRange, _spawnMaxRange);
         var spawnPosition = new Vector3(playerPosition.X + Mathf.Cos(angle) * distance, 0.25f, playerPosition.Z + Mathf.Sin(angle) * distance);
-        
-        var collectableGameObject = Object.Instantiate(_prefab, Vector3.one, Quaternion.identity);
+
+        var collectableGameObject = Object.Instantiate(_prefab, spawnPosition, Quaternion.identity);
         var collectable = world.CreateEntity(collectableGameObject);
         var component = collectable.Add<Collectable>();
         component.SpeedBonus = _speedBonus;

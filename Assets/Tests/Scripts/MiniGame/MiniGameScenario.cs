@@ -1,4 +1,5 @@
 using ArtyECS.Core;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MiniGameScenario : MonoBehaviour
@@ -30,8 +31,8 @@ public class MiniGameScenario : MonoBehaviour
 
         World.RegisterSystem(new EnemySpawnSystem(enemySpeed, enemyPrefab, enemySpawnPeriod, enemiesPerSpawn, maxEnemies, 
             _enemySpawnMinDistance, _enemySpawnMaxDistance, enemyProximityDistance));
-        World.RegisterSystem(new CollectableSpawnSystem(powerupPrefab, _maxPowerups, _powerupRespawnInterval, _enemySpawnMinDistance,
-            _enemySpawnMaxDistance, speedBonusValue, speedBonusDuration));
+        World.RegisterSystem(new CollectableSpawnSystem(powerupPrefab, _maxPowerups, _powerupRespawnInterval, 2,
+            4, speedBonusValue, speedBonusDuration));
         World.RegisterSystem(new InputSystem());
         World.RegisterSystem(new EnemyNavigateSystem());
         World.RegisterSystem(new MovementSystem());

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,11 +10,8 @@ namespace ArtyECS.Core
         private QueryBuilder[] _queryBuilders = new QueryBuilder[Constants.QUERY_BUILDERS_CAPACITY];
         private int _currentQueryBuilder;
 
-        private ArrayData<Entity>[] _arrayData = new ArrayData<Entity>[Constants.ARRAY_DATA_CAPACITY];
-        private int _currentArrayData;
-
         private int _currentEntityIndex;
-        private Entity[] _entities = new Entity[Constants.WORLD_ENTITIES_CAPACITY];
+        private List<Entity> _entities = new(Constants.WORLD_ENTITIES_CAPACITY);
         private Dictionary<int, int> _entityIdIndexMap = new(Constants.WORLD_ENTITIES_CAPACITY);
 
         internal WorldInstance(string name)
@@ -25,49 +21,31 @@ namespace ArtyECS.Core
             {
                 _queryBuilders[i] = new QueryBuilder(this);
             }
-            for (int i = 0; i < _arrayData.Length; i++)
-            {
-                _arrayData[i] = new ArrayData<Entity>();
-            }
         }
 
-        internal ArrayData<Entity> GetAllEntities()
+        internal List<Entity> GetAllEntities()
         {
-            var arrayData = _arrayData[_currentArrayData++];
-            if (_currentArrayData == Constants.ARRAY_DATA_CAPACITY)
-            {
-                _currentArrayData = 0;
-            }
-            arrayData.Collection = _entities;
-            arrayData.Elements = _currentEntityIndex;
-
-            return arrayData;
+            return _entities;
         }
 
         public Entity CreateEntity(GameObject gameObject = null)
         {
-            if (_entities.Length == _currentEntityIndex)
-            {
-                var newEntitiesArray = new Entity[_entities.Length * 2];
-                Array.Copy(_entities, newEntitiesArray, _entities.Length);
-                _entities = newEntitiesArray;
-            }
-
             var entity = EntitiesPool.GetEntity(gameObject);
             entity.SetWorld(this);
 
-            _entities[_currentEntityIndex] = entity;
-            _entityIdIndexMap.Add(entity.Id, _currentEntityIndex);
-            _currentEntityIndex++;
+            _entityIdIndexMap.Add(entity.Id, _entities.Count);
+            _entities.Add(entity);
 
             return entity;
         }
 
         public void DestroyEntity(Entity entity)
         {
-            _currentEntityIndex--;
+            //TODO когда удаляем у остальных индексы сдвигаются и начинают не соответствовать _entityIdIndexMap
+            //TODO + есть какойто баг что powerups не собираются
             var entityIndex = _entityIdIndexMap[entity.Id];
-            _entities[entityIndex] = _entities[_currentEntityIndex];
+            //_entities[entityIndex] = _entities[_currentEntityIndex];
+            _entities.RemoveAt(entityIndex);
             _entityIdIndexMap.Remove(entity.Id);
             EntitiesPool.Release(entity);
         }
