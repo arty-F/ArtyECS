@@ -103,3 +103,4 @@ InitTestScene*.unity*
 /Assets/.vscode
 /Assets/Logs/PerformanceLog.txt
 /Assets/Logs/PerformanceLog.txt.meta
+/ProfilerCaptures
