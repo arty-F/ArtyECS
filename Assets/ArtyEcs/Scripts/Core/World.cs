@@ -1,4 +1,5 @@
 using ArtyEcs.Core;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -25,6 +26,11 @@ namespace ArtyECS.Core
 
         private World() { }
 
+        internal static ArrayData<Entity> GetAllEntities()
+        {
+            return Global.GetAllEntities();
+        }
+
         public static WorldInstance GetOrCreate(string name)
         {
             if (string.Equals(name, GLOBAL_WORLD_NAME))
@@ -50,11 +56,6 @@ namespace ArtyECS.Core
             Global.DestroyEntity(entity);
         }
 
-        public static IEnumerable<Entity> GetAllEntities()
-        {
-            return Global.GetAllEntities();
-        }
-
         public static QueryBuilder Query()
         {
             return Global.Query();
@@ -72,11 +73,11 @@ namespace ArtyECS.Core
 
         public static void Clear()
         {
-            /*Global.Clear();
+            Global.Clear();
             foreach (var key in _localWorlds.Keys)
             {
                 _localWorlds[key].Clear();
-            }*/
+            }
             _global = null;
             _localWorlds.Clear();
 

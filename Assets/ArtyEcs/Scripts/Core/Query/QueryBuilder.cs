@@ -8,6 +8,7 @@ namespace ArtyECS.Core
         private List<ArchetypeMask> _masks = new();
         private int _masksUsed;
         private WorldInstance _world;
+        private List<Entity> _entities = new();
 
         public QueryBuilder(WorldInstance world)
         {
@@ -26,15 +27,19 @@ namespace ArtyECS.Core
             return this;
         }
 
-        public IEnumerable<Entity> Execute()
+        public List<Entity> Execute()
         {
-            foreach (var entity in _world.GetAllEntities())
+            _entities.Clear();
+            var entitesData = _world.GetAllEntities();
+            for (int i = 0; i < entitesData.Elements; i++)
             {
+                var entity = entitesData.Collection[i];
                 var compared = true;
-                foreach (var mask in _masks)
+                for (int j = 0; j < _masks.Count; j++)
                 {
+                    var mask = _masks[j];
                     var hasFlag = entity.Archetype.HasFlag(mask.Id);
-                    if ((!hasFlag && mask.Value == 1) 
+                    if ((!hasFlag && mask.Value == 1)
                         || (hasFlag && mask.Value == -1))
                     {
                         compared = false;
@@ -44,9 +49,11 @@ namespace ArtyECS.Core
 
                 if (compared)
                 {
-                    yield return entity;
+                    _entities.Add(entity);
                 }
             }
+
+            return _entities;
         }
 
         internal void StartQuery()

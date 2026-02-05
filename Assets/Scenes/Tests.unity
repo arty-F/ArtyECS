@@ -119,50 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &256476356
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 256476358}
-  - component: {fileID: 256476357}
-  m_Layer: 0
-  m_Name: SingleTest
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &256476357
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 256476356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4c3014244f49f54eaf65a1d40c401db, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Tests::SingleTest
---- !u!4 &256476358
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 256476356}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &392054754
 GameObject:
   m_ObjectHideFlags: 0
@@ -207,7 +163,7 @@ MonoBehaviour:
   enemyProximityDistance: 1.5
   powerupCollectionRadius: 1
   _maxPowerups: 1
-  _powerupRespawnInterval: 0.2
+  _powerupRespawnInterval: 0.5
   speedBonusValue: 1
   speedBonusDuration: 5
 --- !u!4 &392054756
@@ -413,4 +369,3 @@ SceneRoots:
   - {fileID: 2129233390}
   - {fileID: 653974390}
   - {fileID: 392054756}
-  - {fileID: 256476358}

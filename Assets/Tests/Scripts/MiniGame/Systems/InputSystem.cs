@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class InputSystem : SystemHandler
 {
+    private Vector3 _cached = Vector3.zero;
+
     public override void Execute(WorldInstance world)
     {
         float moveX = 0f;
@@ -25,16 +27,17 @@ public class InputSystem : SystemHandler
             moveX = 1f;
         }
 
-        var direction = new Vector3(moveX, 0f, moveZ);
-        direction.Normalize();
+        _cached.x = moveX;
+        _cached.z = moveZ;
+        _cached.Normalize();
 
         var players = world.Query().With<Player>().With<MoveDirection>().Execute();
         foreach (var player in players)
         {
             var movementDirection = player.Get<MoveDirection>();
-            movementDirection.X = direction.x;
-            movementDirection.Y = direction.y;
-            movementDirection.Z = direction.z;
+            movementDirection.X = _cached.x;
+            movementDirection.Y = _cached.y;
+            movementDirection.Z = _cached.z;
         }
     }
 }
