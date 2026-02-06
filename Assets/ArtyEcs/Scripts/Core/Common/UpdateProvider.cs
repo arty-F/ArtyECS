@@ -27,6 +27,7 @@ namespace ArtyECS.Core
             {
                 var entry = UpdateQueue[i];
                 entry.System.Execute(entry.World);
+                entry.World.ResetQueryBuilders();
             }
         }
 
@@ -36,6 +37,7 @@ namespace ArtyECS.Core
             {
                 var entry = FixedUpdateQueue[i];
                 entry.System.Execute(entry.World);
+                entry.World.ResetQueryBuilders();
             }
         }
 

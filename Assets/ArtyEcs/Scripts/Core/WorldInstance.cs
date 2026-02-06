@@ -8,7 +8,7 @@ namespace ArtyECS.Core
     {
         public string Name { get; private set; }
 
-        private QueryBuilder[] _queryBuilders = new QueryBuilder[Constants.QUERY_BUILDERS_CAPACITY];
+        private List<QueryBuilder> _queryBuilders = new();
         private int _currentQueryBuilder;
 
         private int _currentEntityIndex;
@@ -20,10 +20,6 @@ namespace ArtyECS.Core
         internal WorldInstance(string name)
         {
             Name = name;
-            for (int i = 0; i < _queryBuilders.Length; i++)
-            {
-                _queryBuilders[i] = new QueryBuilder(this);
-            }
         }
 
         internal CollectionWrapper<Entity> GetAllEntities()
@@ -31,6 +27,11 @@ namespace ArtyECS.Core
             _wrapper.Collection = _entities;
             _wrapper.Length = _currentEntityIndex;
             return _wrapper;
+        }
+
+        internal void ResetQueryBuilders()
+        {
+            _currentQueryBuilder = 0;
         }
 
         public Entity CreateEntity(GameObject gameObject = null)
@@ -67,11 +68,12 @@ namespace ArtyECS.Core
 
         public QueryBuilder Query()
         {
-            var queryBuilder = _queryBuilders[_currentQueryBuilder++];
-            if (_currentQueryBuilder == Constants.QUERY_BUILDERS_CAPACITY)
+            if (_currentQueryBuilder == _queryBuilders.Count)
             {
-                _currentQueryBuilder = 0;
+                _queryBuilders.Add(new QueryBuilder(this));
             }
+            var queryBuilder = _queryBuilders[_currentQueryBuilder];
+            _currentQueryBuilder++;
             queryBuilder.StartQuery();
             return queryBuilder;
         }

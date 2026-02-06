@@ -25,16 +25,6 @@ public class ExplosionSystem : SystemHandler
             .With<Explosion>()
             .Execute();
 
-        /*
-         * НА большой скорости пробежал по группе врагов
-         * InvalidOperationException: Collection was modified; enumeration operation may not execute.
-System.Collections.Generic.List`1+Enumerator[T].MoveNextRare () (at <1eb9db207454431c84a47bcd81e79c37>:0)
-System.Collections.Generic.List`1+Enumerator[T].MoveNext () (at <1eb9db207454431c84a47bcd81e79c37>:0)
-ExplosionSystem.Execute (ArtyECS.Core.WorldInstance world) (at Assets/Tests/Scripts/MiniGame/Systems/ExplosionSystem.cs:28)
-ArtyECS.Core.UpdateProvider.Update () (at Assets/ArtyEcs/Scripts/Core/Common/UpdateProvider.cs:29)
-
-         */
-
         foreach (var enemy in explodingEnemies)
         {
             var explosion = enemy.Get<Explosion>();
@@ -54,7 +44,6 @@ ArtyECS.Core.UpdateProvider.Update () (at Assets/ArtyEcs/Scripts/Core/Common/Upd
             if (playerDistance <= explosion.ExplosionRadius)
             {
                 playerHealth.Amount -= 1f;
-                Debug.Log($"Player HP: {playerHealth.Amount}");
             }
 
             if (!enemy.Have<Destroying>())
