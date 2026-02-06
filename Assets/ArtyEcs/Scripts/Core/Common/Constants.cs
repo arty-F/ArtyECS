@@ -12,7 +12,7 @@
         internal static int SYSTEMS_CAPACITY = 32;
         internal static int QUERY_BUILDERS_CAPACITY = 8;
         internal static int ARRAY_DATA_CAPACITY = 8;
-        internal const string GAMEOBJECT_NAME = "ArtyEcsUpdateProvider";
-        internal const int DEFAULT_ORDER = 100;
+        internal static string GAMEOBJECT_NAME = "ArtyEcs";
+        internal static int DEFAULT_ORDER = 100;
     }
 }
