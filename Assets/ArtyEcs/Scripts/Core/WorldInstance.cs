@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,8 +12,10 @@ namespace ArtyECS.Core
         private int _currentQueryBuilder;
 
         private int _currentEntityIndex;
-        private List<Entity> _entities = new(Constants.WORLD_ENTITIES_CAPACITY);
+        private Entity[] _entities = new Entity[Constants.WORLD_ENTITIES_CAPACITY];
         private Dictionary<int, int> _entityIdIndexMap = new(Constants.WORLD_ENTITIES_CAPACITY);
+
+        private CollectionWrapper<Entity> _wrapper = new();
 
         internal WorldInstance(string name)
         {
@@ -23,30 +26,42 @@ namespace ArtyECS.Core
             }
         }
 
-        internal List<Entity> GetAllEntities()
+        internal CollectionWrapper<Entity> GetAllEntities()
         {
-            return _entities;
+            _wrapper.Collection = _entities;
+            _wrapper.Length = _currentEntityIndex;
+            return _wrapper;
         }
 
         public Entity CreateEntity(GameObject gameObject = null)
         {
+            if (_currentEntityIndex == _entities.Length)
+            {
+                var newEntitiesArray = new Entity[_entities.Length * 2];
+                Array.Copy(_entities, newEntitiesArray, _entities.Length);
+                _entities = newEntitiesArray;
+            }
+
             var entity = EntitiesPool.GetEntity(gameObject);
             entity.SetWorld(this);
 
-            _entityIdIndexMap.Add(entity.Id, _entities.Count);
-            _entities.Add(entity);
+            _entities[_currentEntityIndex] = entity;
+            _entityIdIndexMap.Add(entity.Id, _currentEntityIndex);
+            _currentEntityIndex++;
 
             return entity;
         }
 
         public void DestroyEntity(Entity entity)
         {
-            //TODO когда удаляем у остальных индексы сдвигаются и начинают не соответствовать _entityIdIndexMap
-            //TODO + есть какойто баг что powerups не собираются
-            var entityIndex = _entityIdIndexMap[entity.Id];
-            //_entities[entityIndex] = _entities[_currentEntityIndex];
-            _entities.RemoveAt(entityIndex);
+            _currentEntityIndex--;
+            var removingEntityIndex = _entityIdIndexMap[entity.Id];
             _entityIdIndexMap.Remove(entity.Id);
+
+            var lastEntity = _entities[_currentEntityIndex];
+            _entities[removingEntityIndex] = lastEntity;
+            _entityIdIndexMap[lastEntity.Id] = removingEntityIndex;
+
             EntitiesPool.Release(entity);
         }
 

@@ -8,7 +8,7 @@ namespace ArtyECS.Core
         private List<ArchetypeMask> _masks = new();
         private int _masksUsed;
         private WorldInstance _world;
-        private List<Entity> _entities = new();
+        private List<Entity> _entities = new(Constants.WORLD_ENTITIES_CAPACITY);
 
         public QueryBuilder(WorldInstance world)
         {
@@ -30,10 +30,11 @@ namespace ArtyECS.Core
         public List<Entity> Execute()
         {
             _entities.Clear();
-            var entites = _world.GetAllEntities();
-            for (int i = 0; i < entites.Count; i++)
+            var collectionWrapper = _world.GetAllEntities();
+            for (int i = 0; i < collectionWrapper.Length; i++)
             {
-                var entity = entites[i];
+
+                var entity = collectionWrapper.Collection[i];
                 var compared = true;
                 for (int j = 0; j < _masksUsed; j++)
                 {
