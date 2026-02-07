@@ -17,6 +17,8 @@ namespace ArtyECS.Core
 
         private CollectionWrapper<Entity> _wrapper = new();
 
+        private Dictionary<int, Entity> _uniqEntities = new();
+
         internal WorldInstance(string name)
         {
             Name = name;
@@ -34,6 +36,22 @@ namespace ArtyECS.Core
             _currentQueryBuilder = 0;
         }
 
+        internal void SetUniq<T>(Component component) where T : Component, new()
+        {
+#if UNITY_EDITOR
+            if (_uniqEntities.ContainsKey(component.TypeId))
+            {
+                throw new ArgumentException($"World <{Name}> already has uniq component <{nameof(T)}>");
+            }
+#endif
+            _uniqEntities[component.TypeId] = component.Entity;
+        }
+
+        internal void RemoveUniq(Component component)
+        {
+            _uniqEntities.Remove(component.TypeId);
+        }
+
         public Entity CreateEntity(GameObject gameObject = null)
         {
             if (_currentEntityIndex == _entities.Length)
@@ -47,7 +65,7 @@ namespace ArtyECS.Core
             entity.SetWorld(this);
 
             _entities[_currentEntityIndex] = entity;
-            _entityIdIndexMap.Add(entity.Id, _currentEntityIndex);
+            _entityIdIndexMap[entity.Id] = _currentEntityIndex;
             _currentEntityIndex++;
 
             return entity;
@@ -86,6 +104,16 @@ namespace ArtyECS.Core
         public void ExecuteSystems(UpdateType type)
         {
             UpdateProvider.GetOrCreate().ExecuteSystems(this, type);
+        }
+
+        public Entity GetUniq<T>() where T : Component, new()
+        {
+            var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
+            if (_uniqEntities.TryGetValue(typeId, out var entity))
+            {
+                return entity;
+            }
+            return null;
         }
 
         public void Clear()

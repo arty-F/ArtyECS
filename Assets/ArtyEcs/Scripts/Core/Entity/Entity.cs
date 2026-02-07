@@ -11,7 +11,8 @@ namespace ArtyECS.Core
         public GameObject GameObject { get; private set; }
         public WorldInstance World { get; private set; }
 
-        private Dictionary<int, IComponent> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
+        private Dictionary<int, Component> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
+
 
         internal Entity(int id)
         {
@@ -24,38 +25,48 @@ namespace ArtyECS.Core
             GameObject = gameObject;
         }
 
-        public T Add<T>() where T : IComponent, new()
+        public T Add<T>() where T : Component, new()
         {
-            var component = ComponentsManager.GetComponent<T>();
-            var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
+            var component = ComponentsManager.GetComponent<T>(this);
 #if UNITY_EDITOR
-            if (_components.ContainsKey(typeId))
+            if (_components.ContainsKey(component.TypeId))
             {
                 throw new ArgumentException($"Entity already has same component");
             }
 #endif
-            _components[typeId] = component;
-            Archetype.SetFlag(typeId);
+            _components[component.TypeId] = component;
+            Archetype.SetFlag(component.TypeId);
             return component;
         }
 
-        public void Remove<T>() where T : IComponent
+        public T AddUniq<T>() where T : Component, new()
         {
-            var componentType = typeof(T);
-            var typeId = ComponentsManager.GetComponentTypeId(componentType);
-            Archetype.RemoveFlag(typeId);
-            ComponentsManager.Release(_components[typeId]);
-            _components.Remove(typeId);
+            var component = Add<T>();
+            component.Uniq = true;
+            World.SetUniq<T>(component);
+            return component;
         }
 
-        public T Get<T>() where T : IComponent
+        public void Remove<T>() where T : Component
+        {
+            var component = Get<T>();
+            if (component.Uniq)
+            {
+                World.RemoveUniq(component);
+            }
+            Archetype.RemoveFlag(component.TypeId);
+            ComponentsManager.Release(_components[component.TypeId]);
+            _components.Remove(component.TypeId);
+        }
+
+        public T Get<T>() where T : Component
         {
             var componentType = typeof(T);
             var typeId = ComponentsManager.GetComponentTypeId(componentType);
             return (T)_components[typeId];
         }
 
-        public bool Have<T>() where T : IComponent
+        public bool Have<T>() where T : Component
         {
             var componentType = typeof(T);
             var typeId = ComponentsManager.GetComponentTypeId(componentType);
@@ -78,6 +89,11 @@ namespace ArtyECS.Core
             }
             foreach (var component in _components.Values)
             {
+                if (component.Uniq)
+                {
+                    World.RemoveUniq(component);
+                }
+                component.Clear();
                 ComponentsManager.Release(component);
             }
             _components.Clear();

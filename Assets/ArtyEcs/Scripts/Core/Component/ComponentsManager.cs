@@ -7,17 +7,17 @@ namespace ArtyECS.Core
     {
         private static int _componentTypeIdMapKey;
         private static Dictionary<Type, int> _componentTypeIdMap = new();
-        private static Dictionary<int, Queue<IComponent>> _poolMap = new(Constants.COMPONENT_TYPES_POOL_CAPACITY);
+        private static Dictionary<int, Queue<Component>> _poolMap = new(Constants.COMPONENT_TYPES_POOL_CAPACITY);
 
         internal static int ComponentTypesCount => _componentTypeIdMap.Keys.Count;
 
-        internal static T GetComponent<T>() where T : IComponent, new()
+        internal static T GetComponent<T>(Entity entity) where T : Component, new()
         {
             var componentTypeId = GetComponentTypeId(typeof(T));
             if (!_poolMap.ContainsKey(componentTypeId))
             {
                 _poolMap[componentTypeId] = new(Constants.COMPONENT_POOL_CAPACITY);
-                _poolMap[componentTypeId].Enqueue(new T());
+                _poolMap[componentTypeId].Enqueue(CreateNewComponent<T>(componentTypeId));
             }
 
             var pool = _poolMap[componentTypeId];
@@ -25,18 +25,25 @@ namespace ArtyECS.Core
             {
                 while (pool.Count < Constants.COMPONENT_POOL_CAPACITY)
                 {
-                    pool.Enqueue(new T());
+                    pool.Enqueue(CreateNewComponent<T>(componentTypeId));
                 }
             }
 
-            return (T)pool.Dequeue();
+            var component = (T)pool.Dequeue();
+            component.SetEntity(entity);
+            return component;
         }
 
-        internal static void Release(IComponent component)
+        private static Component CreateNewComponent<T>(int typeId) where T : Component, new()
         {
-            //TODO из компонента
-            var componentTypeId = GetComponentTypeId(component.GetType());
-            _poolMap[componentTypeId].Enqueue(component);
+            var component = new T();
+            component.TypeId = typeId;
+            return component;
+        }
+
+        internal static void Release(Component component)
+        {
+            _poolMap[component.TypeId].Enqueue(component);
         }
 
         internal static int GetComponentTypeId(Type componentType)

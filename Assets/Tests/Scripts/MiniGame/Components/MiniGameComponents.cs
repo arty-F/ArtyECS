@@ -1,58 +1,60 @@
 using ArtyECS.Core;
 
-public class Player : IComponent { }
+public class Player : Component { }
 
-public class Enemy : IComponent { }
+public class Enemy : Component { }
 
-public class Position : IComponent 
+public class Config : Component { }
+
+public class Position : Component 
 {
     public float X;
     public float Y;
     public float Z;
 }
 
-public class Health : IComponent
+public class Health : Component
 {
     public float Amount;
 }
 
-public class MoveDirection : IComponent
+public class MoveDirection : Component
 {
     public float X;
     public float Y;
     public float Z;
 }
 
-public class Speed : IComponent
+public class Speed : Component
 {
     public float Value;
 }
 
-public class ProximityBomb : IComponent 
+public class ProximityBomb : Component 
 {
     public float TriggerDistance;
 }
 
-public class Explosion : IComponent
+public class Explosion : Component
 {
     public float TimeRemaining;
     public float ExplosionRadius;
 }
 
-public class Destroying : IComponent { } 
+public class Destroying : Component { } 
 
-public class Collectable : IComponent 
+public class Collectable : Component 
 {
     public float SpeedBonus;
     public float BonusDuration;
 }
 
-public class CollectablePickuper : IComponent 
+public class CollectablePickuper : Component 
 {
     public float PickupRange;
 }
 
-public class SpeedBonus : IComponent
+public class SpeedBonus : Component
 {
     public float Value;
     public float TimeRamaining;
