@@ -21,32 +21,6 @@ namespace ArtyECS.Core
             return _instance;
         }
 
-        private void Update()
-        {
-            for (int i = 0; i < UpdateQueue.Count; i++)
-            {
-                var entry = UpdateQueue[i];
-                entry.System.Execute(entry.World);
-                entry.World.ResetQueryBuilders();
-            }
-        }
-
-        private void FixedUpdate()
-        {
-            for (int i = 0; i < FixedUpdateQueue.Count; i++)
-            {
-                var entry = FixedUpdateQueue[i];
-                entry.System.Execute(entry.World);
-                entry.World.ResetQueryBuilders();
-            }
-        }
-
-        private void OnDestroy()
-        {
-            World.Clear();
-            _instance = null;
-        }
-
         internal void RegisterSystem(SystemHandler system, WorldInstance world, UpdateType type)
         {
             var entry = new SystemEntry(system, world);
@@ -70,7 +44,7 @@ namespace ArtyECS.Core
                 var entry = queue[i];
                 if (entry.World == world)
                 {
-                    entry.System.Execute(entry.World);
+                    ExecuteSystems(entry.System, entry.World);
                 }
             }
         }
@@ -84,6 +58,36 @@ namespace ArtyECS.Core
 
             _instance.UpdateQueue.Clear();
             _instance.FixedUpdateQueue.Clear();
+        }
+
+        private void Update()
+        {
+            for (int i = 0; i < UpdateQueue.Count; i++)
+            {
+                var entry = UpdateQueue[i];
+                ExecuteSystems(entry.System, entry.World);
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            for (int i = 0; i < FixedUpdateQueue.Count; i++)
+            {
+                var entry = FixedUpdateQueue[i];
+                ExecuteSystems(entry.System, entry.World);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            World.Clear();
+            _instance = null;
+        }
+
+        private void ExecuteSystems(SystemHandler system, WorldInstance world)
+        {
+            system.Execute(world);
+            world.ResetQueryBuilders();
         }
     }
 }

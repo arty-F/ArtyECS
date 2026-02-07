@@ -27,8 +27,6 @@ namespace ArtyECS.Core
         public T Add<T>() where T : IComponent, new()
         {
             var component = ComponentsManager.GetComponent<T>();
-            //TODO Component - class, internal int ComponentTypeId
-            //TODO из компонента
             var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
 #if UNITY_EDITOR
             if (_components.ContainsKey(typeId))

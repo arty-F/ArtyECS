@@ -155,7 +155,7 @@ MonoBehaviour:
   enemySpeed: 0.5
   enemySpawnPeriod: 0.5
   enemiesPerSpawn: 500
-  maxEnemies: 1000
+  maxEnemies: 5000
   _enemySpawnMinDistance: 20
   _enemySpawnMaxDistance: 40
   enemyExplosionTime: 1

@@ -24,11 +24,6 @@ namespace ArtyECS.Core
 
         private World() { }
 
-        internal static CollectionWrapper<Entity> GetAllEntities()
-        {
-            return Global.GetAllEntities();
-        }
-
         public static WorldInstance GetOrCreate(string name)
         {
             if (string.Equals(name, GLOBAL_WORLD_NAME))
