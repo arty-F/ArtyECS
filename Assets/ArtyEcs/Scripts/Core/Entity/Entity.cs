@@ -43,7 +43,7 @@ namespace ArtyECS.Core
         {
             var component = Add<T>();
             component.Uniq = true;
-            World.SetUniq<T>(component);
+            World.SetUniqEntity<T>(component);
             return component;
         }
 
@@ -52,7 +52,7 @@ namespace ArtyECS.Core
             var component = Get<T>();
             if (component.Uniq)
             {
-                World.RemoveUniq(component);
+                World.RemoveUniqEntity(component);
             }
             Archetype.RemoveFlag(component.TypeId);
             ComponentsManager.Release(_components[component.TypeId]);
@@ -81,7 +81,6 @@ namespace ArtyECS.Core
         internal void Clear()
         {
             Archetype.Clear();
-            World = null;
             if (GameObject != null)
             {
                 UnityEngine.Object.Destroy(GameObject);
@@ -91,12 +90,13 @@ namespace ArtyECS.Core
             {
                 if (component.Uniq)
                 {
-                    World.RemoveUniq(component);
+                    World.RemoveUniqEntity(component);
                 }
                 component.Clear();
                 ComponentsManager.Release(component);
             }
             _components.Clear();
+            World = null;
         }
     }
 }

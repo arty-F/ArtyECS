@@ -44,18 +44,8 @@ public class CollectableSpawnSystem : SystemHandler
             return;
         }
         
-        Entity playerEntity = null;
-        Position playerPosition = default;
-        var playerEntities = world
-            .Query()
-            .With<Player>()
-            .Execute();
-        foreach (var player in playerEntities)
-        {
-            playerEntity = player;
-            playerPosition = player.Get<Position>();
-            break;
-        }
+        var playerEntity = world.GetUniqEntity<Player>();
+        var playerPosition = playerEntity.Get<Position>();
         
         var angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         var distance = Random.Range(_spawnMinRange, _spawnMaxRange);

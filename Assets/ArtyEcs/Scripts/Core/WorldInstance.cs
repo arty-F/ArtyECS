@@ -36,7 +36,7 @@ namespace ArtyECS.Core
             _currentQueryBuilder = 0;
         }
 
-        internal void SetUniq<T>(Component component) where T : Component, new()
+        internal void SetUniqEntity<T>(Component component) where T : Component, new()
         {
 #if UNITY_EDITOR
             if (_uniqEntities.ContainsKey(component.TypeId))
@@ -47,7 +47,7 @@ namespace ArtyECS.Core
             _uniqEntities[component.TypeId] = component.Entity;
         }
 
-        internal void RemoveUniq(Component component)
+        internal void RemoveUniqEntity(Component component)
         {
             _uniqEntities.Remove(component.TypeId);
         }
@@ -106,7 +106,7 @@ namespace ArtyECS.Core
             UpdateProvider.GetOrCreate().ExecuteSystems(this, type);
         }
 
-        public Entity GetUniq<T>() where T : Component, new()
+        public Entity GetUniqEntity<T>() where T : Component, new()
         {
             var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
             if (_uniqEntities.TryGetValue(typeId, out var entity))

@@ -31,13 +31,10 @@ public class InputSystem : SystemHandler
         _cached.z = moveZ;
         _cached.Normalize();
 
-        var players = world.Query().With<Player>().With<MoveDirection>().Execute();
-        foreach (var player in players)
-        {
-            var movementDirection = player.Get<MoveDirection>();
-            movementDirection.X = _cached.x;
-            movementDirection.Y = _cached.y;
-            movementDirection.Z = _cached.z;
-        }
+        var playerEntity = world.GetUniqEntity<Player>();
+        var movementDirection = playerEntity.Get<MoveDirection>();
+        movementDirection.X = _cached.x;
+        movementDirection.Y = _cached.y;
+        movementDirection.Z = _cached.z;
     }
 }

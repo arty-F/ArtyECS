@@ -49,18 +49,8 @@ public class EnemySpawnSystem : SystemHandler
             return;
         }
 
-        Entity playerEntity = null;
-        Position playerPosition = default;
-        var playerEntities = world
-            .Query()
-            .With<Player>()
-            .Execute();
-        foreach (var player in playerEntities)
-        {
-            playerEntity = player;
-            playerPosition = player.Get<Position>();
-            break;
-        }
+        var playerEntity = world.GetUniqEntity<Player>();
+        var playerPosition = playerEntity.Get<Position>();
 
         int enemiesToSpawn = Mathf.Min(_enemiesPerSpawn, _maxEnemies - currentCount);
         for (int i = 0; i < enemiesToSpawn; i++)

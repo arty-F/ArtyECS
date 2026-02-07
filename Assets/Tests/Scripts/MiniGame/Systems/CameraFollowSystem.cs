@@ -10,16 +10,13 @@ public class CameraFollowSystem : SystemHandler
             return;
         }
 
-        var playerEntities = world.Query().With<Player>().Execute();
-        foreach (var player in playerEntities)
-        {
-            var playerPosition = player.Get<Position>();
-            Camera.main.transform.position = new Vector3(
-                playerPosition.X,
-                Camera.main.transform.position.y,
-                playerPosition.Z
-            );
-            break;
-        }
+        var player = world.GetUniqEntity<Player>();
+        var playerPosition = player.Get<Position>();
+
+        Camera.main.transform.position = new Vector3(
+            playerPosition.X,
+            Camera.main.transform.position.y,
+            playerPosition.Z
+        );
     }
 }

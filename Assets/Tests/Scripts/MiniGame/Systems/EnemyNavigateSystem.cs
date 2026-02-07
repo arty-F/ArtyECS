@@ -5,17 +5,7 @@ public class EnemyNavigateSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        Entity playerEntity = null;
-        var playerEntities = world
-            .Query()
-            .With<Player>()
-            .With<Position>()
-            .Execute();
-        foreach (var player in playerEntities)
-        {
-            playerEntity = player;
-            break;
-        }
+        var playerEntity = world.GetUniqEntity<Player>();
         var playerPosition = playerEntity.Get<Position>();
 
         var enemies = world

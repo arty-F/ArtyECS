@@ -18,7 +18,7 @@ public class PlayerSpawnSystem : SystemHandler
     {
         var playerGameObject = UnityEngine.Object.Instantiate(_playerPrefab, Vector3.zero, Quaternion.identity);
         var player = World.CreateEntity(playerGameObject);
-        player.Add<Player>();
+        player.AddUniq<Player>();
         player.Add<Position>();
         player.Add<MoveDirection>();
         var speed = player.Add<Speed>();

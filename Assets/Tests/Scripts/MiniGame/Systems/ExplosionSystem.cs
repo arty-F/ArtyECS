@@ -5,21 +5,10 @@ public class ExplosionSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        Entity playerEntity = null;
-        Position playerPosition = default;
-        Health playerHealth = default;
+        var playerEntity = world.GetUniqEntity<Player>();
+        var playerPosition = playerEntity.Get<Position>();
+        var playerHealth = playerEntity.Get<Health>();
 
-        var playerEntities = world
-            .Query()
-            .With<Player>()
-            .Execute();
-        foreach (var player in playerEntities)
-        {
-            playerEntity = player;
-            playerPosition = player.Get<Position>();
-            playerHealth = player.Get<Health>();
-            break;
-        }
         var explodingEnemies = world
             .Query()
             .With<Explosion>()

@@ -15,16 +15,8 @@ public class ProximitySystem : SystemHandler
 
     public override void Execute(WorldInstance world)
     {
-        Position playerPosition = default;
-        var playerEntities = world
-            .Query()
-            .With<Player>()
-            .Execute();
-        foreach (var player in playerEntities)
-        {
-            playerPosition = player.Get<Position>();
-            break;
-        }
+        var playerEntity = world.GetUniqEntity<Player>();
+        var playerPosition = playerEntity.Get<Position>();
 
         var enemies = world
             .Query()
