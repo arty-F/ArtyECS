@@ -18,6 +18,7 @@ namespace ArtyECS.Core
         private CollectionWrapper<Entity> _wrapper = new();
 
         private Dictionary<int, Entity> _uniqEntities = new();
+        //TODO !
         private Dictionary<int, List<Entity>> _taggedEntities = new();
 
         internal WorldInstance(string name)
@@ -63,7 +64,7 @@ namespace ArtyECS.Core
 
         internal void RemoveTagged(Context component)
         {
-
+            //TODO
         }
 
         public Entity CreateEntity(GameObject gameObject = null)

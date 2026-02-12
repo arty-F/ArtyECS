@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using UnityEngine;
 
 namespace ArtyECS.Core
@@ -25,8 +24,6 @@ namespace ArtyECS.Core
             GameObject = gameObject;
         }
 
-        //TODO подумать над тем что я тут нахуевертил
-
         public T Add<T>() where T : Context, new()
         {
             var component = ComponentsManager.GetComponent<T>(this);
@@ -39,7 +36,7 @@ namespace ArtyECS.Core
             return component;
         }
 
-        public void Add(Context context)
+        internal void Add(Context context)
         {
             ComponentsManager.RegisterComponent(this, context);
             if (_components.ContainsKey(context.TypeId))
@@ -71,11 +68,6 @@ namespace ArtyECS.Core
             component.IsTag = true;
             World.AddTagged<T>(component);
             return component;
-        }
-
-        public void AddTag(Context context)
-        {
-            //TODO
         }
 
         public void Remove<T>() where T : Context
