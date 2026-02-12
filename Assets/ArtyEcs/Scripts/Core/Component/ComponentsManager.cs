@@ -7,11 +7,11 @@ namespace ArtyECS.Core
     {
         private static int _componentTypeIdMapKey;
         private static Dictionary<Type, int> _componentTypeIdMap = new();
-        private static Dictionary<int, Queue<Component>> _poolMap = new(Constants.COMPONENT_TYPES_POOL_CAPACITY);
+        private static Dictionary<int, Queue<Context>> _poolMap = new(Constants.COMPONENT_TYPES_POOL_CAPACITY);
 
         internal static int ComponentTypesCount => _componentTypeIdMap.Keys.Count;
 
-        internal static T GetComponent<T>(Entity entity) where T : Component, new()
+        internal static T GetComponent<T>(Entity entity) where T : Context, new()
         {
             var componentTypeId = GetComponentTypeId(typeof(T));
             if (!_poolMap.ContainsKey(componentTypeId))
@@ -34,14 +34,25 @@ namespace ArtyECS.Core
             return component;
         }
 
-        private static Component CreateNewComponent<T>(int typeId) where T : Component, new()
+        internal static void RegisterComponent(Entity entity, Context context)
+        {
+            var componentTypeId = GetComponentTypeId(context.GetType());
+            if (!_poolMap.ContainsKey(componentTypeId))
+            {
+                _poolMap[componentTypeId] = new(Constants.COMPONENT_POOL_CAPACITY);
+            }
+            context.SetEntity(entity);
+            context.TypeId = componentTypeId;
+        }
+
+        private static Context CreateNewComponent<T>(int typeId) where T : Context, new()
         {
             var component = new T();
             component.TypeId = typeId;
             return component;
         }
 
-        internal static void Release(Component component)
+        internal static void Release(Context component)
         {
             _poolMap[component.TypeId].Enqueue(component);
         }

@@ -4,29 +4,7 @@ using UnityEngine;
 
 public class EnemySpawnSystem : SystemHandler
 {
-    private readonly float _enemySpeed;
-    private readonly GameObject _enemyPrefab;
-    private readonly float _spawnPeriod;
-    private readonly int _enemiesPerSpawn;
-    private readonly int _maxEnemies;
-    private readonly float _spawnMaxDistance;
-    private readonly float _spawnMinDistance;
-    private readonly float _explosionTriggerDistane;
     private float _timeUntilNextSpawn;
-
-    public EnemySpawnSystem(float enemySpeed, GameObject enemyPrefab, float spawnPeriod, int enemiesPerSpawn, int maxEnemies, 
-        float spawnMaxDistance, float spawnMinDistance, float explosionTriggerDistane)
-    {
-        _enemySpeed = enemySpeed;
-        _enemyPrefab = enemyPrefab;
-        _spawnPeriod = spawnPeriod;
-        _enemiesPerSpawn = enemiesPerSpawn;
-        _maxEnemies = maxEnemies;
-        _timeUntilNextSpawn = spawnPeriod;
-        _spawnMaxDistance = spawnMaxDistance;
-        _spawnMinDistance = spawnMinDistance;
-        _explosionTriggerDistane = explosionTriggerDistane;
-    }
 
     public override void Execute(WorldInstance world)
     {
@@ -37,14 +15,18 @@ public class EnemySpawnSystem : SystemHandler
             return;
         }
 
-        _timeUntilNextSpawn = _spawnPeriod;
+        var enemySpawnConfig = world
+            .GetUniqEntity<Config>()
+            .Get<EnemySpawnConfig>();
+
+        _timeUntilNextSpawn = enemySpawnConfig.SpawnPeriod;
 
         var allEnemies = world
             .Query()
             .With<Enemy>()
             .Execute();
         var currentCount = allEnemies.Count();
-        if (currentCount >= _maxEnemies)
+        if (currentCount >= enemySpawnConfig.MaxEnemies)
         {
             return;
         }
@@ -52,13 +34,13 @@ public class EnemySpawnSystem : SystemHandler
         var playerEntity = world.GetUniqEntity<Player>();
         var playerPosition = playerEntity.Get<Position>();
 
-        int enemiesToSpawn = Mathf.Min(_enemiesPerSpawn, _maxEnemies - currentCount);
+        int enemiesToSpawn = Mathf.Min(enemySpawnConfig.EnemiesPerSpawn, enemySpawnConfig.MaxEnemies - currentCount);
         for (int i = 0; i < enemiesToSpawn; i++)
         {
             var angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-            var distance = Random.Range(_spawnMinDistance, _spawnMaxDistance);
+            var distance = Random.Range(enemySpawnConfig.SpawnMinDistance, enemySpawnConfig.SpawnMaxDistance);
             var spawnPosition = new Vector3( playerPosition.X + Mathf.Cos(angle) * distance, 0f, playerPosition.Z + Mathf.Sin(angle) * distance);
-            var enemyGameObject = Object.Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
+            var enemyGameObject = Object.Instantiate(enemySpawnConfig.Prefab, spawnPosition, Quaternion.identity);
             var enemy = world.CreateEntity(enemyGameObject);
             enemy.Add<Enemy>();
             var position = enemy.Add<Position>();
@@ -70,9 +52,9 @@ public class EnemySpawnSystem : SystemHandler
             moveDirection.Y = 0f;
             moveDirection.Z = 0f;
             var speed = enemy.Add<Speed>();
-            speed.Value = _enemySpeed;
+            speed.Value = enemySpawnConfig.EnemySpeed;
             var bomb = enemy.Add<ProximityBomb>();
-            bomb.TriggerDistance = _explosionTriggerDistane;
+            bomb.TriggerDistance = enemySpawnConfig.ExplosionTriggerDistane;
         }
     }
 }

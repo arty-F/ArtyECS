@@ -148,24 +148,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98ccc0f2bf4dd0347b4aaf34edfdafdf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerPrefab: {fileID: 6943166567625931527, guid: ce03c613bd686b54a8000b2bd76854f3, type: 3}
-  powerupPrefab: {fileID: 3010075401652380296, guid: f823ce35adfb8f34ba260e47c4d8005b, type: 3}
-  enemyPrefab: {fileID: 885330306672799471, guid: 7cafacd41aadf8b49b48a9e9f6ef62a4, type: 3}
-  playerBaseSpeed: 4
-  enemySpeed: 1
-  enemySpawnPeriod: 0.5
-  enemiesPerSpawn: 500
-  maxEnemies: 5000
-  _enemySpawnMinDistance: 20
-  _enemySpawnMaxDistance: 40
-  enemyExplosionTime: 1
-  enemyExplosionRadius: 2
-  enemyProximityDistance: 1.5
-  powerupCollectionRadius: 1
-  _maxPowerups: 10
-  _powerupRespawnInterval: 0.5
-  speedBonusValue: 1
-  speedBonusDuration: 5
+  playerConfig:
+    Prefab: {fileID: 6943166567625931527, guid: ce03c613bd686b54a8000b2bd76854f3, type: 3}
+    PlayerBaseSpeed: 4
+    PowerupCollectionRadius: 1
+    Health: 100
+  enemyConfig:
+    Prefab: {fileID: 885330306672799471, guid: 7cafacd41aadf8b49b48a9e9f6ef62a4, type: 3}
+    EnemySpeed: 1
+    SpawnPeriod: 0.5
+    EnemiesPerSpawn: 500
+    MaxEnemies: 5000
+    SpawnMaxDistance: 50
+    SpawnMinDistance: 30
+    ExplosionTriggerDistane: 1.5
+    ExplodeTime: 1
+    ExplodeRadius: 2
+  collectableConfig:
+    Prefab: {fileID: 3010075401652380296, guid: f823ce35adfb8f34ba260e47c4d8005b, type: 3}
+    MaxCollectables: 20
+    SpawnMinRange: 15
+    SpawnMaxRange: 30
+    SpeedBonus: 1
+    BonusDuration: 6
+    SpawnPeriod: 1
 --- !u!4 &392054756
 Transform:
   m_ObjectHideFlags: 0

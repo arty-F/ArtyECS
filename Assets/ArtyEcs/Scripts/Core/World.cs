@@ -64,9 +64,14 @@ namespace ArtyECS.Core
             Global.ExecuteSystems(type);
         }
 
-        public Entity GetUniqEntity<T>() where T : Component, new()
+        public Entity GetUniqEntity<T>() where T : Context, new()
         {
             return Global.GetUniqEntity<T>();
+        }
+
+        public List<Entity> GetTaggedEntities<T>() where T : Context, new()
+        {
+            return Global.GetTaggedEntities<T>();
         }
 
         public static void Clear()

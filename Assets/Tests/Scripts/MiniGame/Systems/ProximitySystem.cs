@@ -4,14 +4,6 @@ using UnityEngine;
 public class ProximitySystem : SystemHandler
 {
     private const string ANIMATION_NAME = "EnemyExplode";
-    private readonly float _explodeTime;
-    private readonly float _explodeRadius;
-
-    public ProximitySystem(float explodeTime, float explodeRadius)
-    {
-        _explodeTime = explodeTime;
-        _explodeRadius = explodeRadius;
-    }
 
     public override void Execute(WorldInstance world)
     {
@@ -24,6 +16,11 @@ public class ProximitySystem : SystemHandler
             .With<Position>()
             .Without<Explosion>()
             .Execute();
+
+        var enemySpawnConfig = world
+            .GetUniqEntity<Config>()
+            .Get<EnemySpawnConfig>();
+
         foreach (var enemy in enemies)
         {
             var enemyPosition = enemy.Get<Position>();
@@ -35,8 +32,8 @@ public class ProximitySystem : SystemHandler
             {
                 enemy.Remove<MoveDirection>();
                 var explosion = enemy.Add<Explosion>();
-                explosion.TimeRemaining = _explodeTime;
-                explosion.ExplosionRadius = _explodeRadius;
+                explosion.TimeRemaining = enemySpawnConfig.ExplodeTime;
+                explosion.ExplosionRadius = enemySpawnConfig.ExplodeRadius;
                 var animator = enemy.GameObject.GetComponent<Animator>();
                 if (animator != null)
                 {

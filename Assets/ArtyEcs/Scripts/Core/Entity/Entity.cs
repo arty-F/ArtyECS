@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using UnityEngine;
 
 namespace ArtyECS.Core
@@ -11,8 +12,7 @@ namespace ArtyECS.Core
         public GameObject GameObject { get; private set; }
         public WorldInstance World { get; private set; }
 
-        private Dictionary<int, Component> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
-
+        private Dictionary<int, Context> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
 
         internal Entity(int id)
         {
@@ -25,32 +25,63 @@ namespace ArtyECS.Core
             GameObject = gameObject;
         }
 
-        public T Add<T>() where T : Component, new()
+        //TODO подумать над тем что я тут нахуевертил
+
+        public T Add<T>() where T : Context, new()
         {
             var component = ComponentsManager.GetComponent<T>(this);
-#if UNITY_EDITOR
             if (_components.ContainsKey(component.TypeId))
             {
                 throw new ArgumentException($"Entity already has same component");
             }
-#endif
             _components[component.TypeId] = component;
             Archetype.SetFlag(component.TypeId);
             return component;
         }
 
-        public T AddUniq<T>() where T : Component, new()
+        public void Add(Context context)
+        {
+            ComponentsManager.RegisterComponent(this, context);
+            if (_components.ContainsKey(context.TypeId))
+            {
+                throw new ArgumentException($"Entity already has same component");
+            }
+            _components[context.TypeId] = context;
+            Archetype.SetFlag(context.TypeId);
+        }
+
+        public T AddUniq<T>() where T : Context, new()
         {
             var component = Add<T>();
-            component.Uniq = true;
-            World.SetUniqEntity<T>(component);
+            component.IsUniq = true;
+            World.SetUniqEntity(component);
             return component;
         }
 
-        public void Remove<T>() where T : Component
+        public void AddUniq(Context context)
+        {
+            Add(context);
+            context.IsUniq = true;
+            World.SetUniqEntity(context);
+        }
+
+        public T AddTag<T>() where T : Context, new()
+        {
+            var component = Add<T>();
+            component.IsTag = true;
+            World.AddTagged<T>(component);
+            return component;
+        }
+
+        public void AddTag(Context context)
+        {
+            //TODO
+        }
+
+        public void Remove<T>() where T : Context
         {
             var component = Get<T>();
-            if (component.Uniq)
+            if (component.IsUniq)
             {
                 World.RemoveUniqEntity(component);
             }
@@ -59,14 +90,14 @@ namespace ArtyECS.Core
             _components.Remove(component.TypeId);
         }
 
-        public T Get<T>() where T : Component
+        public T Get<T>() where T : Context
         {
             var componentType = typeof(T);
             var typeId = ComponentsManager.GetComponentTypeId(componentType);
             return (T)_components[typeId];
         }
 
-        public bool Have<T>() where T : Component
+        public bool Have<T>() where T : Context
         {
             var componentType = typeof(T);
             var typeId = ComponentsManager.GetComponentTypeId(componentType);
@@ -88,7 +119,7 @@ namespace ArtyECS.Core
             }
             foreach (var component in _components.Values)
             {
-                if (component.Uniq)
+                if (component.IsUniq)
                 {
                     World.RemoveUniqEntity(component);
                 }

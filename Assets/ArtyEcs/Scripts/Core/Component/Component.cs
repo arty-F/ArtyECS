@@ -1,17 +1,19 @@
 namespace ArtyECS.Core
 {
-    public class Component
+    public class Context
     {
         public Entity Entity { get; private set; }
         internal int TypeId { get; set; }
-        internal bool Uniq { get; set; }
+        internal bool IsUniq { get; set; }
+        internal bool IsTag { get; set; }
 
         internal void SetEntity(Entity entity) => Entity = entity;
 
         internal void Clear()
         {
             Entity = null;
-            Uniq = false;
+            IsUniq = false;
+            IsTag = false;
         }
     }
 }

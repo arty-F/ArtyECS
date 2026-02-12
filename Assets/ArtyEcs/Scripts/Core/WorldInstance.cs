@@ -18,6 +18,7 @@ namespace ArtyECS.Core
         private CollectionWrapper<Entity> _wrapper = new();
 
         private Dictionary<int, Entity> _uniqEntities = new();
+        private Dictionary<int, List<Entity>> _taggedEntities = new();
 
         internal WorldInstance(string name)
         {
@@ -36,20 +37,33 @@ namespace ArtyECS.Core
             _currentQueryBuilder = 0;
         }
 
-        internal void SetUniqEntity<T>(Component component) where T : Component, new()
+        internal void SetUniqEntity(Context component)
         {
-#if UNITY_EDITOR
             if (_uniqEntities.ContainsKey(component.TypeId))
             {
-                throw new ArgumentException($"World <{Name}> already has uniq component <{nameof(T)}>");
+                throw new ArgumentException($"World <{Name}> already has uniq component <{component.TypeId}>");
             }
-#endif
+
             _uniqEntities[component.TypeId] = component.Entity;
         }
 
-        internal void RemoveUniqEntity(Component component)
+        internal void RemoveUniqEntity(Context component)
         {
             _uniqEntities.Remove(component.TypeId);
+        }
+
+        internal void AddTagged<T>(Context component) where T : Context, new()
+        {
+            if (!_taggedEntities.ContainsKey(component.TypeId))
+            {
+                _taggedEntities[component.TypeId] = new List<Entity>(Constants.WORLD_ENTITIES_CAPACITY);
+            }
+            _taggedEntities[component.TypeId].Add(component.Entity);
+        }
+
+        internal void RemoveTagged(Context component)
+        {
+
         }
 
         public Entity CreateEntity(GameObject gameObject = null)
@@ -106,7 +120,7 @@ namespace ArtyECS.Core
             UpdateProvider.GetOrCreate().ExecuteSystems(this, type);
         }
 
-        public Entity GetUniqEntity<T>() where T : Component, new()
+        public Entity GetUniqEntity<T>() where T : Context, new()
         {
             var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
             if (_uniqEntities.TryGetValue(typeId, out var entity))
@@ -114,6 +128,16 @@ namespace ArtyECS.Core
                 return entity;
             }
             return null;
+        }
+
+        public List<Entity> GetTaggedEntities<T>() where T : Context, new()
+        {
+            var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
+            if (!_taggedEntities.ContainsKey(typeId))
+            {
+                _taggedEntities[typeId] = new List<Entity>(Constants.WORLD_ENTITIES_CAPACITY);
+            }
+            return _taggedEntities[typeId];
         }
 
         public void Clear()

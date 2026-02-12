@@ -3,37 +3,19 @@ using UnityEngine;
 
 public class MiniGameScenario : MonoBehaviour
 {
-    [SerializeField] private GameObject playerPrefab;
-    [SerializeField] private GameObject powerupPrefab;
-    [SerializeField] private GameObject enemyPrefab;
-
-    [SerializeField] private float playerBaseSpeed = 4f;
-    [SerializeField] private float enemySpeed = 0.5f;
-    [SerializeField] private float enemySpawnPeriod = 0.5f;
-    [SerializeField] private int enemiesPerSpawn = 500;
-    [SerializeField] private int maxEnemies = 5000;
-    [SerializeField] private float _enemySpawnMinDistance = 20f;
-    [SerializeField] private float _enemySpawnMaxDistance = 40f;
-    [SerializeField] private float enemyExplosionTime = 1f;
-    [SerializeField] private float enemyExplosionRadius = 2f;
-    [SerializeField] private float enemyProximityDistance = 1.5f;
-    [SerializeField] private float powerupCollectionRadius = 1f;
-    [SerializeField] private int _maxPowerups = 100;
-    [SerializeField] private float _powerupRespawnInterval = 0.2f;
-    [SerializeField] private float speedBonusValue = 1f;
-    [SerializeField] private float speedBonusDuration = 5f;
+    public PlayerSpawnConfig playerConfig;
+    public EnemySpawnConfig enemyConfig;
+    public CollectableSpawnConfig collectableConfig;
 
     private void Start()
     {
-        World.RegisterSystem(new EnemySpawnSystem(enemySpeed, enemyPrefab, enemySpawnPeriod, enemiesPerSpawn, maxEnemies, 
-            _enemySpawnMinDistance, _enemySpawnMaxDistance, enemyProximityDistance));
-        World.RegisterSystem(new CollectableSpawnSystem(powerupPrefab, _maxPowerups, _powerupRespawnInterval, _enemySpawnMinDistance,
-            _enemySpawnMaxDistance, speedBonusValue, speedBonusDuration));
+        World.RegisterSystem(new EnemySpawnSystem());
+        World.RegisterSystem(new CollectableSpawnSystem());
         World.RegisterSystem(new InputSystem());
         World.RegisterSystem(new EnemyNavigateSystem());
         World.RegisterSystem(new MovementSystem());
         World.RegisterSystem(new CollectablePickupSystem());
-        World.RegisterSystem(new ProximitySystem(enemyExplosionTime, enemyExplosionRadius));
+        World.RegisterSystem(new ProximitySystem());
         World.RegisterSystem(new ExplosionSystem());
         World.RegisterSystem(new DestroyingSystem());
         World.RegisterSystem(new SpeedBonusExpireSystem());
@@ -41,9 +23,10 @@ public class MiniGameScenario : MonoBehaviour
         World.RegisterSystem(new TransformSyncSystem());
         World.RegisterSystem(new CameraFollowSystem());
 
+        var configsCreatingSystem = new ConfigsCreatingSystem(playerConfig, enemyConfig, collectableConfig);
+        configsCreatingSystem.Execute(World.Global);
 
-
-        var playerRespawnSystem = new PlayerSpawnSystem(playerPrefab, playerBaseSpeed, powerupCollectionRadius);
+        var playerRespawnSystem = new PlayerSpawnSystem();
         playerRespawnSystem.Execute(World.Global);
     }
 }
