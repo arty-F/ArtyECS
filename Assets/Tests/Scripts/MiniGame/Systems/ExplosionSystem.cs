@@ -14,10 +14,15 @@ public class ExplosionSystem : SystemHandler
             .With<Explosion>()
             .Execute();
 
+        var enemyConfig = world.GetUniqContext<EnemySpawnConfig>();
+
         foreach (var enemy in explodingEnemies)
         {
             var explosion = enemy.Get<Explosion>();
             explosion.TimeRemaining -= Time.deltaTime;
+            enemy.GameObject.transform.localScale = explosion.TimeRemaining < enemyConfig.ExplodeAnimationTime
+                ? Vector3.one * enemyConfig.ExplodeRadius
+                : Vector3.one * explosion.TimeRemaining;
 
             if (explosion.TimeRemaining > 0f)
             {

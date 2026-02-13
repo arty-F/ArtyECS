@@ -3,8 +3,6 @@ using UnityEngine;
 
 public class ProximitySystem : SystemHandler
 {
-    private const string ANIMATION_NAME = "EnemyExplode";
-
     public override void Execute(WorldInstance world)
     {
         var playerEntity = world.GetUniqContext<Player>().Entity;
@@ -32,11 +30,6 @@ public class ProximitySystem : SystemHandler
                 var explosion = enemy.Add<Explosion>();
                 explosion.TimeRemaining = enemySpawnConfig.ExplodeTime;
                 explosion.ExplosionRadius = enemySpawnConfig.ExplodeRadius;
-                var animator = enemy.GameObject.GetComponent<Animator>();
-                if (animator != null)
-                {
-                    animator.Play(ANIMATION_NAME);
-                }
             }
         }
     }

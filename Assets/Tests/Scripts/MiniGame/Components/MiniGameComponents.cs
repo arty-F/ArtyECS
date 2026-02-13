@@ -28,6 +28,7 @@ public class EnemySpawnConfig : Context
     public float ExplosionTriggerDistane = 1.5f;
     public float ExplodeTime = 1f;
     public float ExplodeRadius = 2f;
+    public float ExplodeAnimationTime = 0.1f;
 }
 
 [Serializable]
