@@ -81,7 +81,7 @@ namespace ArtyECS.Core
 
             EntitiesPool.Clear();
             UpdateProvider.Clear();
-            ComponentsManager.Clear();
+            ContextsManager.Clear();
         }
     }
 }

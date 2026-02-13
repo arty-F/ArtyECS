@@ -11,7 +11,7 @@ namespace ArtyECS.Core
         public GameObject GameObject { get; private set; }
         public WorldInstance World { get; private set; }
 
-        private Dictionary<int, Context> _components = new(Constants.ENTITY_COMPONENTS_CAPACITY);
+        private Dictionary<int, Context> _contexts = new(Constants.ENTITY_CONTEXTS_CAPACITY);
 
         internal Entity(int id)
         {
@@ -26,14 +26,14 @@ namespace ArtyECS.Core
 
         public T Add<T>() where T : Context, new()
         {
-            var component = ComponentsManager.GetComponent<T>(this);
-            if (_components.ContainsKey(component.TypeId))
+            var context = ContextsManager.GetContext<T>(this);
+            if (_contexts.ContainsKey(context.TypeId))
             {
-                throw new ArgumentException($"Entity already has same component");
+                throw new ArgumentException($"Entity <{Id}> already has same context of type <{typeof(T).FullName}>");
             }
-            _components[component.TypeId] = component;
-            Archetype.SetFlag(component.TypeId);
-            return component;
+            _contexts[context.TypeId] = context;
+            Archetype.SetFlag(context.TypeId);
+            return context;
         }
 
         public T AddUniq<T>(Context context) where T : Context, new()
@@ -44,7 +44,7 @@ namespace ArtyECS.Core
             }
             else
             {
-                ComponentsManager.RegisterContext(context);
+                ContextsManager.RegisterContext(context);
             }
             context.IsUniq = true;
             World.SetUniq<T>(context);
@@ -53,28 +53,26 @@ namespace ArtyECS.Core
 
         public void Remove<T>() where T : Context
         {
-            var component = Get<T>();
-            if (component.IsUniq)
+            var context = Get<T>();
+            if (context.IsUniq)
             {
-                World.RemoveUniq(component);
+                World.RemoveUniq(context);
             }
-            Archetype.RemoveFlag(component.TypeId);
-            ComponentsManager.Release(_components[component.TypeId]);
-            _components.Remove(component.TypeId);
+            Archetype.RemoveFlag(context.TypeId);
+            ContextsManager.Release(_contexts[context.TypeId]);
+            _contexts.Remove(context.TypeId);
         }
 
         public T Get<T>() where T : Context
         {
-            var componentType = typeof(T);
-            var typeId = ComponentsManager.GetComponentTypeId(componentType);
-            return (T)_components[typeId];
+            var typeId = ContextsManager.GetContextTypeId(typeof(T));
+            return (T)_contexts[typeId];
         }
 
         public bool Have<T>() where T : Context
         {
-            var componentType = typeof(T);
-            var typeId = ComponentsManager.GetComponentTypeId(componentType);
-            return _components.ContainsKey(typeId);
+            var typeId = ContextsManager.GetContextTypeId(typeof(T));
+            return _contexts.ContainsKey(typeId);
         }
 
         internal void SetWorld(WorldInstance world)
@@ -90,16 +88,16 @@ namespace ArtyECS.Core
                 UnityEngine.Object.Destroy(GameObject);
                 GameObject = null;
             }
-            foreach (var component in _components.Values)
+            foreach (var component in _contexts.Values)
             {
                 if (component.IsUniq)
                 {
                     World.RemoveUniq(component);
                 }
                 component.Clear();
-                ComponentsManager.Release(component);
+                ContextsManager.Release(component);
             }
-            _components.Clear();
+            _contexts.Clear();
             World = null;
         }
     }

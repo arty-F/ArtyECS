@@ -64,15 +64,15 @@ namespace ArtyECS.Core
 
         private void AddMask<T>(sbyte value)
         {
-            var componentTypeId = ComponentsManager.GetComponentTypeId(typeof(T));
+            var contextTypeId = ContextsManager.GetContextTypeId(typeof(T));
             if (_masks.Count <= _masksUsed)
             {
-                _masks.Add(new ArchetypeMask { Id = componentTypeId, Value = value });
+                _masks.Add(new ArchetypeMask { Id = contextTypeId, Value = value });
             }
             else
             {
                 var mask = _masks[_masksUsed];
-                mask.Id = componentTypeId;
+                mask.Id = contextTypeId;
                 mask.Value = value;
             }
             _masksUsed++;

@@ -10,13 +10,10 @@ namespace ArtyECS.Core
 
         private List<QueryBuilder> _queryBuilders = new();
         private int _currentQueryBuilder;
-
         private int _currentEntityIndex;
         private Entity[] _entities = new Entity[Constants.WORLD_ENTITIES_CAPACITY];
         private Dictionary<int, int> _entityIdIndexMap = new(Constants.WORLD_ENTITIES_CAPACITY);
-
         private CollectionWrapper<Entity> _wrapper = new();
-
         private Dictionary<int, Context> _uniqContexts = new();
 
         internal WorldInstance(string name)
@@ -107,7 +104,7 @@ namespace ArtyECS.Core
 
         public T GetUniqContext<T>() where T : Context, new()
         {
-            var typeId = ComponentsManager.GetComponentTypeId(typeof(T));
+            var typeId = ContextsManager.GetContextTypeId(typeof(T));
             return (T)_uniqContexts[typeId];
         }
 

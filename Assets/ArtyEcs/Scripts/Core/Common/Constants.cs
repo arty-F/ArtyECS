@@ -3,9 +3,9 @@
     internal static class Constants
     {
         internal static int ENTITY_POOL_CAPACITY = 64;
-        internal static int ENTITY_COMPONENTS_CAPACITY = 16;
-        internal static int COMPONENT_TYPES_POOL_CAPACITY = 32;
-        internal static int COMPONENT_POOL_CAPACITY = 16;
+        internal static int ENTITY_CONTEXTS_CAPACITY = 16;
+        internal static int CONTEXT_TYPES_POOL_CAPACITY = 32;
+        internal static int CONTEXT_POOL_CAPACITY = 16;
         internal static int WORLD_ENTITIES_CAPACITY = 64;
         internal static int WORLD_ARCHETYPES_CAPACITY = 32;
         internal static int DEFAULT_ARCHETYPE_CAPACITY = 16;
