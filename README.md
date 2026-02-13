@@ -5,7 +5,7 @@ A lightweight, beginner-friendly, zero allocations Entity Component System (ECS)
 ## Features
 
 ### 🎯 Simple and Intuitive API
-- **Clear method names** that express their purpose
+- **Clear method names** - that express their purpose
 - **No complex registration** - systems are just classes you instantiate
 - **Straightforward component management** - add, get, remove with simple calls
 - **Beginner-friendly** - designed to be approachable for developers new to ECS
@@ -53,7 +53,7 @@ public class Health : Context
 Systems inherit from `SystemHandler` and operate on entities through a `WorldInstance`:
 
 ```csharp
-public class HealthDecaySystem : SystemHandler
+public class HealthSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
@@ -71,7 +71,7 @@ public class GameBootstrap : MonoBehaviour
 {
     private void Start()
     {
-        World.RegisterSystem(new HealthDecaySystem());
+        World.RegisterSystem(new HealthSystem());
         // Other systems ...
     }
 }
@@ -121,6 +121,9 @@ public class ExampleSystem : SystemHandler
     {
         // Use world to create entities, query, etc.
         var entity = world.CreateEntity();
+
+        // Or destroy entities
+        world.DestroyEntity(entity);
     }
 }
 ```
@@ -129,28 +132,18 @@ You can create additional worlds and manage their lifetime through the `World` A
 
 ### Entities
 
-Entities are classes that store their contexts.
+Entities are classes that store their contexts. Entities can also be linked to Unity `GameObject` instances.
 
 **Creating and linking:**
-```csharp
-// Create entity in a system (using WorldInstance)
-var entity = world.CreateEntity();
-```
-
-Entities can also be linked to Unity `GameObject` instances. This is how the MiniGame sample spawns enemies:
 
 ```csharp
 var enemyGameObject = Object.Instantiate(prefab, position, rotation);
 var enemy = world.CreateEntity(enemyGameObject);
-
-enemy.Add<Enemy>();
-var positionContext = enemy.Add<Position>();
-positionContext.X = position.x;
-positionContext.Y = position.y;
-positionContext.Z = position.z;
+// Access to linked GameObject
+enemy.GameObject.transform.position = Vector3.zero;
 ```
 
-ArtyECS takes care of cleaning up entities and their contexts when they are destroyed.
+When an entity gets destroyed, its GameObject is destroyed by ArtyEcs as well.
 
 ### Contexts
 
@@ -158,7 +151,7 @@ Contexts are data holders attached to entities, they are implemented as classes 
 
 **Adding and Removing:**
 ```csharp
-// Add context instances via entity extension methods
+// Add context
 var health = entity.Add<Health>();
 health.Amount = 100f;
 
@@ -181,13 +174,28 @@ if (entity.Have<Health>())
 For configuration data or global state it is often convenient to use **unique contexts**. You attach them once and access them through the world:
 
 ```csharp
-var playerConfig = new PlayerSpawnConfig { Health = 100f, MoveSpeed = 5f };
+[SerializeField]
+private PlayerSpawnConfig playerConfig;
+
+//...
+
 var entity = world.CreateEntity();
-// Adding a uniq context
+// Adding a uniq existing context
 entity.AddUniq<PlayerSpawnConfig>(playerConfig);
 
 // Reading a unique context
 var config = world.GetUniqContext<PlayerSpawnConfig>();
+```
+
+Or you can use uniq context for tagging uniq entities:
+
+```csharp
+// When passing null empty context will be added (with default values)
+entity.AddUniq<Player>(null);
+
+// ...
+
+var playerEntity = world.GetUniqContext<Player>().Entity;
 ```
 
 ### Systems
@@ -200,23 +208,17 @@ public class MovementSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-
+        // ...
     }
 }
 ```
 
 **Registering Systems:**
 ```csharp
-public class MiniGameScenario : MonoBehaviour
-{
-    private void Start()
-    {
-        // System are calls in update queue by default
-        World.RegisterSystem(new MovementSystem());
-        // But you can choose specific queue
-        World.RegisterSystem(new InputSystem(), type: UpdateType.FixedUpdate);
-    }
-}
+// System is called in the update queue by default
+World.RegisterSystem(new MovementSystem());
+// But you can choose a specific queue
+World.RegisterSystem(new InputSystem(), type: UpdateType.FixedUpdate);
 ```
 
 Systems are then executed automatically by the framework in update or fixed update queues. For setup-style systems you can also execute them manually by calling `mySystem.Execute(World.Global)` once.
@@ -241,7 +243,7 @@ foreach (var entity in entities)
 }
 ```
 
-You can combine multiple `With<T>()` clauses, and also exclude components with `Without<T>()`. The MiniGame example uses this pattern extensively for spawning, navigation and proximity checks.
+You can combine multiple `With<T>()` clauses, and also exclude contexts with `Without<T>()`.
 
 ## Editor Tools
 
