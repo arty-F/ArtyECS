@@ -5,7 +5,7 @@ public class EnemyNavigateSystem : SystemHandler
 {
     public override void Execute(WorldInstance world)
     {
-        var playerEntity = world.GetUniqEntity<Player>();
+        var playerEntity = world.GetUniqContext<Player>().Entity;
         var playerPosition = playerEntity.Get<Position>();
 
         var enemies = world

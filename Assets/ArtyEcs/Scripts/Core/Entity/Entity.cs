@@ -36,38 +36,19 @@ namespace ArtyECS.Core
             return component;
         }
 
-        internal void Add(Context context)
+        public T AddUniq<T>(Context context) where T : Context, new()
         {
-            ComponentsManager.RegisterComponent(this, context);
-            if (_components.ContainsKey(context.TypeId))
+            if (context == null)
             {
-                throw new ArgumentException($"Entity already has same component");
+                context = Add<T>();
             }
-            _components[context.TypeId] = context;
-            Archetype.SetFlag(context.TypeId);
-        }
-
-        public T AddUniq<T>() where T : Context, new()
-        {
-            var component = Add<T>();
-            component.IsUniq = true;
-            World.SetUniqEntity(component);
-            return component;
-        }
-
-        public void AddUniq(Context context)
-        {
-            Add(context);
+            else
+            {
+                ComponentsManager.RegisterContext(context);
+            }
             context.IsUniq = true;
-            World.SetUniqEntity(context);
-        }
-
-        public T AddTag<T>() where T : Context, new()
-        {
-            var component = Add<T>();
-            component.IsTag = true;
-            World.AddTagged<T>(component);
-            return component;
+            World.SetUniq<T>(context);
+            return (T)context;
         }
 
         public void Remove<T>() where T : Context
@@ -75,7 +56,7 @@ namespace ArtyECS.Core
             var component = Get<T>();
             if (component.IsUniq)
             {
-                World.RemoveUniqEntity(component);
+                World.RemoveUniq(component);
             }
             Archetype.RemoveFlag(component.TypeId);
             ComponentsManager.Release(_components[component.TypeId]);
@@ -113,7 +94,7 @@ namespace ArtyECS.Core
             {
                 if (component.IsUniq)
                 {
-                    World.RemoveUniqEntity(component);
+                    World.RemoveUniq(component);
                 }
                 component.Clear();
                 ComponentsManager.Release(component);

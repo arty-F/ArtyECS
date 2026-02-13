@@ -6,8 +6,6 @@ public class Player : Context { }
 
 public class Enemy : Context { }
 
-public class Config : Context { }
-
 [Serializable]
 public class PlayerSpawnConfig : Context
 {

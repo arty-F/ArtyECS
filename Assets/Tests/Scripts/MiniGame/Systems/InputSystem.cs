@@ -31,7 +31,7 @@ public class InputSystem : SystemHandler
         _cached.z = moveZ;
         _cached.Normalize();
 
-        var playerEntity = world.GetUniqEntity<Player>();
+        var playerEntity = world.GetUniqContext<Player>().Entity;
         var movementDirection = playerEntity.Get<MoveDirection>();
         movementDirection.X = _cached.x;
         movementDirection.Y = _cached.y;

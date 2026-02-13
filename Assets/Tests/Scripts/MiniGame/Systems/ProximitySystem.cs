@@ -7,7 +7,7 @@ public class ProximitySystem : SystemHandler
 
     public override void Execute(WorldInstance world)
     {
-        var playerEntity = world.GetUniqEntity<Player>();
+        var playerEntity = world.GetUniqContext<Player>().Entity;
         var playerPosition = playerEntity.Get<Position>();
 
         var enemies = world
@@ -17,9 +17,7 @@ public class ProximitySystem : SystemHandler
             .Without<Explosion>()
             .Execute();
 
-        var enemySpawnConfig = world
-            .GetUniqEntity<Config>()
-            .Get<EnemySpawnConfig>();
+        var enemySpawnConfig = world.GetUniqContext<EnemySpawnConfig>();
 
         foreach (var enemy in enemies)
         {

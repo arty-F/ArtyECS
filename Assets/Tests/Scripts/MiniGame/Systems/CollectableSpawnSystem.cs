@@ -14,9 +14,7 @@ public class CollectableSpawnSystem : SystemHandler
             return;
         }
 
-        var powerupSpawnConfig = world
-            .GetUniqEntity<Config>()
-            .Get<CollectableSpawnConfig>();
+        var powerupSpawnConfig = world.GetUniqContext<CollectableSpawnConfig>();
 
         _timeUntilNextSpawn = powerupSpawnConfig.SpawnPeriod;
 
@@ -30,7 +28,7 @@ public class CollectableSpawnSystem : SystemHandler
             return;
         }
         
-        var playerEntity = world.GetUniqEntity<Player>();
+        var playerEntity = world.GetUniqContext<Player>().Entity;
         var playerPosition = playerEntity.Get<Position>();
         
         var angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;

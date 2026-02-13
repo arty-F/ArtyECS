@@ -15,9 +15,7 @@ public class EnemySpawnSystem : SystemHandler
             return;
         }
 
-        var enemySpawnConfig = world
-            .GetUniqEntity<Config>()
-            .Get<EnemySpawnConfig>();
+        var enemySpawnConfig = world.GetUniqContext<EnemySpawnConfig>();
 
         _timeUntilNextSpawn = enemySpawnConfig.SpawnPeriod;
 
@@ -31,7 +29,7 @@ public class EnemySpawnSystem : SystemHandler
             return;
         }
 
-        var playerEntity = world.GetUniqEntity<Player>();
+        var playerEntity = world.GetUniqContext<Player>().Entity;
         var playerPosition = playerEntity.Get<Position>();
 
         int enemiesToSpawn = Mathf.Min(enemySpawnConfig.EnemiesPerSpawn, enemySpawnConfig.MaxEnemies - currentCount);

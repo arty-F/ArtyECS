@@ -6,12 +6,11 @@ public class PlayerSpawnSystem : SystemHandler
     public override void Execute(WorldInstance world)
     {
         var playerSpawnConfig = world
-            .GetUniqEntity<Config>()
-            .Get<PlayerSpawnConfig>();
+            .GetUniqContext<PlayerSpawnConfig>();
 
         var playerGameObject = UnityEngine.Object.Instantiate(playerSpawnConfig.Prefab, Vector3.zero, Quaternion.identity);
         var player = World.CreateEntity(playerGameObject);
-        player.AddUniq<Player>();
+        player.AddUniq<Player>(null);
         player.Add<Position>();
         player.Add<MoveDirection>();
         var speed = player.Add<Speed>();

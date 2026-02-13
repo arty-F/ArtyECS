@@ -16,10 +16,9 @@ public class ConfigsCreatingSystem : SystemHandler
     public override void Execute(WorldInstance world)
     {
         var configsEntity = world.CreateEntity();
-        configsEntity.AddUniq<Config>();
-        configsEntity.AddUniq(_playerConfig);
-        configsEntity.AddUniq(_enemyConfig);
-        configsEntity.AddUniq(_collectableConfig);
+        configsEntity.AddUniq<PlayerSpawnConfig>(_playerConfig);
+        configsEntity.AddUniq<EnemySpawnConfig>(_enemyConfig);
+        configsEntity.AddUniq<CollectableSpawnConfig>(_collectableConfig);
     }
 }
 

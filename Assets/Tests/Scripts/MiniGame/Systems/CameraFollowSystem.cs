@@ -10,7 +10,7 @@ public class CameraFollowSystem : SystemHandler
             return;
         }
 
-        var player = world.GetUniqEntity<Player>();
+        var player = world.GetUniqContext<Player>().Entity;
         var playerPosition = player.Get<Position>();
 
         Camera.main.transform.position = new Vector3(

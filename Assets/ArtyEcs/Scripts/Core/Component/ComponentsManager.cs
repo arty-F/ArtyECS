@@ -34,22 +34,21 @@ namespace ArtyECS.Core
             return component;
         }
 
-        internal static void RegisterComponent(Entity entity, Context context)
-        {
-            var componentTypeId = GetComponentTypeId(context.GetType());
-            if (!_poolMap.ContainsKey(componentTypeId))
-            {
-                _poolMap[componentTypeId] = new(Constants.COMPONENT_POOL_CAPACITY);
-            }
-            context.SetEntity(entity);
-            context.TypeId = componentTypeId;
-        }
-
         private static Context CreateNewComponent<T>(int typeId) where T : Context, new()
         {
             var component = new T();
             component.TypeId = typeId;
             return component;
+        }
+
+        internal static void RegisterContext(Context context)
+        {
+            var typeId = GetComponentTypeId(context.GetType());
+            context.TypeId = typeId;
+            if (!_poolMap.ContainsKey(typeId))
+            {
+                _poolMap[typeId] = new();
+            }
         }
 
         internal static void Release(Context component)
